@@ -1,14 +1,7 @@
 #pragma once
-#include <string>
 
-struct Shader
+namespace Core
 {
-    std::string m_Filepath;
-
-};
-
-namespace Shading
-{
-    Shader Bind(Shader shader);
+    int glfwTest();
 }
 
