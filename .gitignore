@@ -1,4 +1,5 @@
 bin/
+.cache/
 
 CMakeUserPresets.json
 **/CMakeCache.txt
