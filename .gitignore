@@ -10,5 +10,4 @@ CMakeUserPresets.json
 **/install_manifest.txt
 **/compile_commands.json
 
-#Ignore vendor source code 
 vendor/
