@@ -7,6 +7,8 @@ A stylized rendering focussed engine
 - Clang (LLVM)
 - Ninja
 
+- GLFW 3.14
+
 ## How to build
 
 ### Make sure you are using clang for C/C++
@@ -17,6 +19,14 @@ export CC=/usr/bin/clang
 env. variable for **C++**
 ```
 export CXX=/usr/bin/clang++
+```
+
+### Download glfw at glfw.org
+Make sure that glfw build Dependencies are met
+
+Place uncompressed "glfw-3.4" folder into
+```
+vendor/
 ```
 
 ### Run the following commands **in project root directory**
