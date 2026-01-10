@@ -10,5 +10,5 @@ CMakeUserPresets.json
 **/install_manifest.txt
 **/compile_commands.json
 
-#Ignore compiled dependencies
-core/dependencies/glfw
+#Ignore vendor source code 
+vendor/
