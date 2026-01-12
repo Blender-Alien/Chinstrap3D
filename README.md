@@ -8,6 +8,7 @@ A stylized rendering focussed engine
 - Ninja
 
 - GLFW 3.4
+- GLEW 2.3.0
 
 ## How to build
 

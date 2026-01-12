@@ -8,8 +8,12 @@ set(SOURCES
 add_library(core STATIC)
 target_sources(core PRIVATE ${SOURCES})
 
+add_compile_definitions(
+    GLFW_INCLUDE_NONE
+)
+
 target_link_libraries(core glfw)
-target_link_libraries(core OpenGL::GL)
+target_link_libraries(core glew)
 
 target_include_directories(core INTERFACE "src") 
 

@@ -7,6 +7,9 @@ set(SOURCES
 add_executable(app) 
 target_sources(app PRIVATE ${SOURCES})
 
+add_compile_definitions(
+    GLFW_INCLUDE_NONE
+)
 
 target_link_libraries(app core)
 

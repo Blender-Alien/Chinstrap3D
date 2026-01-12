@@ -9,3 +9,5 @@ set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
 add_subdirectory(vendor/glfw-3.4)
 
+# glew
+add_subdirectory(vendor/glew-2.3.0/build/cmake)
