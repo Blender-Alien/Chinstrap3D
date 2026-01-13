@@ -14,7 +14,7 @@ add_compile_definitions(
 )
 
 target_link_libraries(core glfw)
-target_link_libraries(core glew)
+target_link_libraries(core glad)
 
 target_include_directories(core INTERFACE "src") 
 

@@ -9,5 +9,15 @@ set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
 add_subdirectory(vendor/glfw-3.4)
 
-# glew
-add_subdirectory(vendor/glew-2.3.0/build/cmake)
+# glad
+
+set(SOURCES
+    vendor/glad/src/glad.c
+    vendor/glad/src/glad.h
+)
+
+add_library(glad STATIC)
+target_sources(glad PRIVATE ${SOURCES})
+
+target_include_directories(glad PUBLIC "vendor/glad/src") 
+

@@ -10,4 +10,4 @@ CMakeUserPresets.json
 **/install_manifest.txt
 **/compile_commands.json
 
-vendor/
+vendor/glfw-3.4

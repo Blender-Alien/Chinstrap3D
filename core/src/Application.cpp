@@ -1,6 +1,6 @@
 #include "Application.h"
 
-#include "GL/glew.h"
+#include "glad.h"
 #include "GLFW/glfw3.h"
 
 int Core::glfwTest()
@@ -22,7 +22,8 @@ int Core::glfwTest()
     /* Make the window's context current */
     glfwMakeContextCurrent(window);
 
-    if (glewInit() != GLEW_OK) 
+    // Load and check glad after valid context established
+    if (gladLoadGL() == 0)
     {
         glfwTerminate();
         return -1;
