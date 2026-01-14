@@ -3,7 +3,21 @@
 #include "glad.h"
 #include "GLFW/glfw3.h"
 
-int Core::glfwTest()
+Chinstrap::Application::App::App()
+{
+
+}
+Chinstrap::Application::App::~App()
+{
+
+}
+
+void Chinstrap::Application::Run(const App&)
+{
+    Chinstrap::glfwTest();
+}
+
+int Chinstrap::glfwTest()
 {
     GLFWwindow* window;
 
@@ -25,7 +39,7 @@ int Core::glfwTest()
     // Load and check glad after valid context established
     if (gladLoadGL() == 0)
     {
-        glfwTerminate();
+    glfwTerminate();
         return -1;
     }
 

@@ -1,8 +1,13 @@
 # core
 
 set(SOURCES
+    Chinstrap.h
     src/Application.cpp
     src/Application.h
+    src/Window.cpp
+    src/Window.h
+    src/Layer.cpp
+    src/Layer.h
 )
 
 add_library(core STATIC)
@@ -16,5 +21,5 @@ add_compile_definitions(
 target_link_libraries(core glfw)
 target_link_libraries(core glad)
 
-target_include_directories(core INTERFACE "src") 
+target_include_directories(core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}) 
 

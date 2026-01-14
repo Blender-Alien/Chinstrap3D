@@ -1,6 +1,8 @@
-#include "Application.h"
+#include <Chinstrap.h>
 
 int main()
 {
-    Core::glfwTest();
+    Chinstrap::Application::App application;
+    Chinstrap::Application::Run(application);
+
 }
