@@ -1,5 +1,5 @@
 #pragma once
 
 #include "src/Application.h"
-#include "src/Layer.h"
+#include "src/Scene.h"
 #include "src/Window.h"

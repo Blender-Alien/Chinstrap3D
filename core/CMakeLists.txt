@@ -6,8 +6,8 @@ set(SOURCES
     src/Application.h
     src/Window.cpp
     src/Window.h
-    src/Layer.cpp
-    src/Layer.h
+    src/Scene.cpp
+    src/Scene.h
 )
 
 add_library(core STATIC)

@@ -1,5 +1,5 @@
 #include "Application.h"
-#include "Layer.h"
+#include "Scene.h"
 
 #include "glad.h"
 #include "GLFW/glfw3.h"
@@ -9,7 +9,7 @@ namespace Chinstrap
     namespace Application
     {
         std::string Name = "Application";
-        std::vector<std::unique_ptr<Layer>> LayerStack;
+        std::vector<std::unique_ptr<Scene>> SceneStack;
 
         void Run()
         {

@@ -2,7 +2,7 @@
 
 namespace Chinstrap {
     
-    class Layer
+    class Scene
     {
     };
 
