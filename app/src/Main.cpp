@@ -1,8 +1,8 @@
+#include "src/Application.h"
 #include <Chinstrap.h>
 
 int main()
 {
-    Chinstrap::Application::App application;
-    Chinstrap::Application::Run(application);
-
+    Chinstrap::Application::Name = "TestApp";
+    Chinstrap::Application::Run();
 }

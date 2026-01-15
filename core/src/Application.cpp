@@ -1,21 +1,25 @@
 #include "Application.h"
+#include "Layer.h"
 
 #include "glad.h"
 #include "GLFW/glfw3.h"
 
-Chinstrap::Application::App::App()
+namespace Chinstrap
 {
+    namespace Application
+    {
+        std::string Name = "Application";
+        std::vector<std::unique_ptr<Layer>> LayerStack;
+
+        void Run()
+        {
+            Chinstrap::glfwTest();
+        }
+    }
+     
 
 }
-Chinstrap::Application::App::~App()
-{
 
-}
-
-void Chinstrap::Application::Run(const App&)
-{
-    Chinstrap::glfwTest();
-}
 
 int Chinstrap::glfwTest()
 {

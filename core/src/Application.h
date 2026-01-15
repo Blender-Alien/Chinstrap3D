@@ -1,37 +1,24 @@
 #pragma once
 
-#include "Window.h"
-#include "Layer.h"
-
 #include <string>
 #include <vector>
 #include <memory>
 
+
 namespace Chinstrap
 {
+    // Forward declerations
+    class Layer;
+
+    // Only one application will exist at time, thus no class or struct is used
     namespace Application
     {
+        extern std::string Name;
 
-        struct AppSpecification
-        {
-            std::string Name = "Application";
-            WindowSpecification WindowSpec;
-        };
+        extern std::vector<std::unique_ptr<Layer>> LayerStack;
 
-        struct App
-        {
-            App();
-            ~App();
-
-            AppSpecification m_Specification;
-            
-            std::vector<std::unique_ptr<Layer>> m_LayerStack;
-
-        };
-    
-        void Run(const App&);
-
-    };
+        void Run();
+    }
 
     int glfwTest();
 }

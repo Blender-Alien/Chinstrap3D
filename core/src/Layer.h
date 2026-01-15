@@ -2,9 +2,8 @@
 
 namespace Chinstrap {
     
-    struct Layer
+    class Layer
     {
-
     };
 
 }
