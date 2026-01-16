@@ -1,5 +1,4 @@
 #include "Application.h"
-#include "Scene.h"
 
 #include "glad.h"
 #include "GLFW/glfw3.h"
