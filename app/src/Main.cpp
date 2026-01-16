@@ -1,4 +1,3 @@
-#include "src/Application.h"
 #include <Chinstrap.h>
 
 int main()
