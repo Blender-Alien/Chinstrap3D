@@ -9,6 +9,10 @@ class GLFWwindow;
 namespace Chinstrap
 {
     class Scene;
+    namespace Window {
+        class Frame;
+        class FrameSpec;
+    }
 
     namespace Application
     {
@@ -17,7 +21,7 @@ namespace Chinstrap
             std::string name;
             bool running;
 
-            GLFWwindow* window;
+            std::shared_ptr<Window::Frame> frame;
 
             std::vector<std::unique_ptr<Scene>> sceneStack;
 
@@ -27,9 +31,13 @@ namespace Chinstrap
             App(App const&&) = delete;
             App();
             ~App();
+
+            // TO BE DELETED
+            GLFWwindow* window;
+
         };
 
-        int Init(const std::string& appName);
+        int Init(const std::string& appName, const Window::FrameSpec& spec);
         void Run();
         void Stop();
 

@@ -1,9 +1,12 @@
 #include "Application.h"
+#include "Window.h"
+#include "Scene.h"
 
 #include "glad.h"
 #include "GLFW/glfw3.h"
 
 #include <assert.h>
+#include <memory>
 
 namespace Chinstrap
 {
@@ -32,7 +35,7 @@ namespace Chinstrap
             return *appInstance;
         }
 
-        int Init(const std::string& appName)
+        int Init(const std::string& appName, const Window::FrameSpec& spec)
         {
             appInstance = new App();
             appInstance->name = appName;
@@ -41,21 +44,10 @@ namespace Chinstrap
             {
                 return -1;
             }
-
-            appInstance->window = glfwCreateWindow(1920, 1080, appInstance->name.c_str(), NULL, NULL);
-            if (!appInstance->window)
-            {
-                glfwTerminate();
-                return -1;
-            }
             
-            glfwMakeContextCurrent(appInstance->window);
+            appInstance->frame = std::make_shared<Window::Frame>(spec);
 
-            if (gladLoadGL() == 0)
-            {
-                glfwTerminate();
-                return -1;
-            }
+            Window::Create(*appInstance->frame);
 
             return 0;
         }
@@ -66,13 +58,13 @@ namespace Chinstrap
 
             while (appInstance->running)
             {
-                if (glfwWindowShouldClose(appInstance->window))
+                if (Window::ShouldClose(*appInstance->frame))
                 {
                     appInstance->running = false;
                 }
 
                 glClear(GL_COLOR_BUFFER_BIT);
-                glfwSwapBuffers(appInstance->window);
+                Window::Update(*appInstance->frame);
                 glfwPollEvents();
             }
 
@@ -86,49 +78,4 @@ namespace Chinstrap
     }
      
 
-}
-
-
-
-int Chinstrap::glfwTest()
-{
-    GLFWwindow* window;
-
-    /* Initialize the library */
-    if (!glfwInit())
-        return -1;
-
-    /* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
-    if (!window)
-    {
-        glfwTerminate();
-        return -1;
-    }
-
-    /* Make the window's context current */
-    glfwMakeContextCurrent(window);
-
-    // Load and check glad after valid context established
-    if (gladLoadGL() == 0)
-    {
-        glfwTerminate();
-        return -1;
-    }
-
-//  /* Loop until the user closes the window */
-//  while (!glfwWindowShouldClose(window))
-//  {
-//      /* Render here */
-//      glClear(GL_COLOR_BUFFER_BIT);
-//
-//      /* Swap front and back buffers */
-//      glfwSwapBuffers(window);
-//
-//      /* Poll for and process events */
-//      glfwPollEvents();
-//  }
-
-    glfwTerminate();
-    return 0;
 }
