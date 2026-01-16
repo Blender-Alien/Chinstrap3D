@@ -4,20 +4,40 @@
 #include <vector>
 #include <memory>
 
+class GLFWwindow;
 
 namespace Chinstrap
 {
-    // Forward declerations
     class Scene;
 
-    // Only one application will exist at time, thus no class or struct is used
     namespace Application
     {
-        extern std::string Name;
+        struct App
+        {
+            std::string name;
+            bool running;
 
-        extern std::vector<std::unique_ptr<Scene>> SceneStack;
+            GLFWwindow* window;
 
+            std::vector<std::unique_ptr<Scene>> sceneStack;
+
+            // App should be a singleton
+            static App& Get();
+            App(App const&)  = delete;
+            App(App const&&) = delete;
+            App();
+            ~App();
+        };
+
+        int Init(const std::string& appName);
         void Run();
+        void Stop();
+
+        template<typename TScene>
+        void PushScene()
+        {
+            App::Get().sceneStack.push_back(std::make_unique<TScene>());
+        }
     }
 
     int glfwTest();

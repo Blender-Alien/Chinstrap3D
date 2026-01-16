@@ -1,8 +1,7 @@
-#include "src/Application.h"
 #include <Chinstrap.h>
 
 int main()
 {
-    Chinstrap::Application::Name = "TestApp";
+    Chinstrap::Application::Init("Sandbox Application");
     Chinstrap::Application::Run();
 }
