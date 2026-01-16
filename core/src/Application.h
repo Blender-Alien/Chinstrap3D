@@ -31,10 +31,6 @@ namespace Chinstrap
             App(App const&&) = delete;
             App();
             ~App();
-
-            // TO BE DELETED
-            GLFWwindow* window;
-
         };
 
         int Init(const std::string& appName, const Window::FrameSpec& spec);
