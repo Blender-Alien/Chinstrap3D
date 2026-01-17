@@ -2,6 +2,8 @@
 
 set(SOURCES
     src/Main.cpp
+    src/TestGLScene.cpp
+    src/TestGLScene.h
 )
 
 add_executable(app) 

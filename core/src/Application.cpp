@@ -63,7 +63,14 @@ namespace Chinstrap
                     appInstance->running = false;
                 }
 
-                glClear(GL_COLOR_BUFFER_BIT);
+                for (const std::unique_ptr<Scene>& scene : appInstance->sceneStack)
+                {
+                    scene->OnUpdate();
+
+                    // TODO: Rendering should be on a seperate thread
+                    scene->OnRender();
+                }
+
                 Window::Update(*appInstance->frame);
                 glfwPollEvents();
             }

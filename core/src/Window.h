@@ -5,6 +5,8 @@
 #include <string>
 #include <inttypes.h>
 
+class GLFWwindow;
+
 namespace Chinstrap
 {
     namespace Window {

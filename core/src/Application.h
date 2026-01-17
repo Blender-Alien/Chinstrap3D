@@ -4,8 +4,6 @@
 #include <vector>
 #include <memory>
 
-class GLFWwindow;
-
 namespace Chinstrap
 {
     class Scene;
