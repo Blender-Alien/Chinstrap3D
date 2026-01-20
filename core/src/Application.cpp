@@ -2,72 +2,69 @@
 #include "Window.h"
 #include "Scene.h"
 
-#include "glad.h"
 #include "GLFW/glfw3.h"
 
-#include <assert.h>
+#include <cassert>
 #include <memory>
 
-namespace Chinstrap
+namespace Chinstrap::Application
 {
-    namespace Application
+    namespace // access only in this file
     {
+        App* appInstance = nullptr;
+    }
 
-        namespace // access only in this file
+    App::App()
+    {
+        assert(appInstance == nullptr);
+        running = false;
+    }
+
+    App::~App()
+    {
+        glfwTerminate();
+        appInstance = nullptr;
+    }
+
+    App& App::Get()
+    {
+        assert(appInstance);
+        return *appInstance;
+    }
+
+    int Init(const std::string& appName, const Window::FrameSpec& spec)
+    {
+        appInstance = new App();
+        appInstance->name = appName;
+
+        if (!glfwInit())
         {
-            static App* appInstance = nullptr;
+            return -1;
         }
 
-        App::App()
-        {
-            assert(appInstance == nullptr);
-        }
+        appInstance->frame = std::make_shared<Window::Frame>(spec);
 
-        App::~App()
-        {
-            glfwTerminate();
-            appInstance = nullptr;
-        }
+        Window::Create(*appInstance->frame);
 
-        App& App::Get()
-        {
-            assert(appInstance);
-            return *appInstance;
-        }
+        return 0;
+    }
 
-        int Init(const std::string& appName, const Window::FrameSpec& spec)
-        {
-            appInstance = new App();
-            appInstance->name = appName;
+    void Run()
+    {
+        appInstance->running = true;
 
-            if (!glfwInit())
+        while (appInstance->running)
+        {
+            if (Window::ShouldClose(*appInstance->frame))
             {
-                return -1;
+                appInstance->running = false;
             }
-            
-            appInstance->frame = std::make_shared<Window::Frame>(spec);
 
-            Window::Create(*appInstance->frame);
-
-            return 0;
-        }
-
-        void Run()
-        {
-            appInstance->running = true;
-
-            while (appInstance->running)
+            for (const std::unique_ptr<Scene>& scene : appInstance->sceneStack)
             {
-                if (Window::ShouldClose(*appInstance->frame))
-                {
-                    appInstance->running = false;
-                }
+                scene->OnUpdate();
 
-                for (const std::unique_ptr<Scene>& scene : appInstance->sceneStack)
-                {
-                    scene->OnUpdate();
-
-                    // TODO: Rendering should be on a seperate thread
+                    // TODO: Rendering should be on a separate thread
                     scene->OnRender();
                 }
 
@@ -76,13 +73,10 @@ namespace Chinstrap
             }
 
             Stop();
-        }
-
-        void Stop()
-        {
-            appInstance->running = false;
-        }
     }
-     
 
+    void Stop()
+    {
+        appInstance->running = false;
+    }
 }

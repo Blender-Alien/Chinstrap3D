@@ -8,8 +8,8 @@ namespace Chinstrap
 {
     class Scene;
     namespace Window {
-        class Frame;
-        class FrameSpec;
+        struct Frame;
+        struct FrameSpec;
     }
 
     namespace Application
