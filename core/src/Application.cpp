@@ -11,7 +11,7 @@ namespace Chinstrap::Application
 {
     namespace // access only in this file
     {
-        App* appInstance = nullptr;
+        App *appInstance = nullptr;
     }
 
     App::App()
@@ -26,13 +26,13 @@ namespace Chinstrap::Application
         appInstance = nullptr;
     }
 
-    App& App::Get()
+    App &App::Get()
     {
         assert(appInstance);
         return *appInstance;
     }
 
-    int Init(const std::string& appName, const Window::FrameSpec& spec)
+    int Init(const std::string &appName, const Window::FrameSpec &spec)
     {
         appInstance = new App();
         appInstance->name = appName;
@@ -60,19 +60,23 @@ namespace Chinstrap::Application
                 appInstance->running = false;
             }
 
-            for (const std::unique_ptr<Scene>& scene : appInstance->sceneStack)
+            for (std::unique_ptr<Scene> &scene: appInstance->sceneStack)
             {
+                // TODO: Implement multithreaded rendering pipeline
                 scene->OnUpdate();
-
-                    // TODO: Rendering should be on a separate thread
-                    scene->OnRender();
-                }
+                scene->OnRender();
 
                 Window::Update(*appInstance->frame);
                 glfwPollEvents();
-            }
 
-            Stop();
+                if (scene->queued != nullptr) // scene has requested change to new scene
+                {
+                    scene = std::move(scene->queued);
+                }
+                continue; // don't operate on &scene after possibly changing it
+            }
+        }
+        Stop();
     }
 
     void Stop()

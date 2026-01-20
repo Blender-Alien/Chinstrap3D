@@ -6,7 +6,7 @@
 
 namespace Chinstrap
 {
-    class Scene;
+    struct Scene;
     namespace Window {
         struct Frame;
         struct FrameSpec;
