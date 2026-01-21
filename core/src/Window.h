@@ -1,35 +1,47 @@
 #pragma once
 
+#include "Event.h"
+
 #include <string>
 #include <cinttypes>
+#include <functional>
 
 class GLFWwindow;
 
-namespace Chinstrap::Window
+namespace Chinstrap
 {
-    struct FrameSpec
+    namespace Window
     {
-        FrameSpec(const std::string& title, const uint32_t& width, const uint32_t& height, bool isResizable, bool vSync);
+        struct FrameSpec
+        {
+            FrameSpec(const std::string &title, const int &width, const int &height, bool isResizable,
+                      bool vSync);
 
-        std::string Title;
-        uint32_t Width = 1280;
-        uint32_t Height = 720;
-        bool IsResizable = true;
-        bool VSync = true;
-    };
+            std::string Title;
+            int Width = 1280;
+            int Height = 720;
+            bool IsResizable = true;
+            bool VSync = true;
+        };
 
-    struct Frame
-    {
-        Frame(const FrameSpec& spec);
-        ~Frame();
+        struct Frame
+        {
+            Frame(const FrameSpec &spec);
 
-        FrameSpec frameSpec;
-        GLFWwindow* window = nullptr;
-    };
+            ~Frame();
 
-    void Create(Frame& frame);
-    void Destroy(Frame& frame);
-    void Update(Frame& frame);
-    bool ShouldClose(Frame& frame);
+            FrameSpec frameSpec;
+            GLFWwindow *window = nullptr;
 
+            std::function<void(Event&)> EventPassthrough;
+        };
+
+        void Create(Frame &frame);
+
+        void Destroy(Frame &frame);
+
+        void Update(Frame &frame);
+
+        bool ShouldClose(const Frame &frame);
+    }
 }

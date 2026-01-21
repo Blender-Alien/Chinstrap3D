@@ -4,6 +4,8 @@
 #include <vector>
 #include <memory>
 
+#include "Event.h"
+
 namespace Chinstrap
 {
     struct Scene;
@@ -19,7 +21,7 @@ namespace Chinstrap
             std::string name;
             bool running;
 
-            std::shared_ptr<Window::Frame> frame;
+            std::unique_ptr<Window::Frame> frame;
 
             std::vector<std::unique_ptr<Scene>> sceneStack;
 
@@ -31,14 +33,14 @@ namespace Chinstrap
             ~App();
         };
 
-        int Init(const std::string& appName, const Window::FrameSpec& spec);
+        int Init(const std::string& appName, Window::FrameSpec& spec);
         void Run();
         void Stop();
 
         template<typename TScene>
         void PushScene()
         {
-            App::Get().sceneStack.push_back(std::make_unique<TScene>());
+            App::Get().sceneStack.emplace_back(std::make_unique<TScene>());
         }
     }
 

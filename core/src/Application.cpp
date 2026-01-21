@@ -1,86 +1,105 @@
 #include "Application.h"
 #include "Window.h"
 #include "Scene.h"
+#include "Event.h"
 
 #include "GLFW/glfw3.h"
 
 #include <cassert>
 #include <memory>
 
-namespace Chinstrap::Application
+namespace Chinstrap
 {
-    namespace // access only in this file
+    namespace Application
     {
-        App *appInstance = nullptr;
-    }
-
-    App::App()
-    {
-        assert(appInstance == nullptr);
-        running = false;
-    }
-
-    App::~App()
-    {
-        glfwTerminate();
-        appInstance = nullptr;
-    }
-
-    App &App::Get()
-    {
-        assert(appInstance);
-        return *appInstance;
-    }
-
-    int Init(const std::string &appName, const Window::FrameSpec &spec)
-    {
-        appInstance = new App();
-        appInstance->name = appName;
-
-        if (!glfwInit())
+        namespace
         {
-            return -1;
-        }
+            App *appInstance = nullptr;
 
-        appInstance->frame = std::make_shared<Window::Frame>(spec);
-
-        Window::Create(*appInstance->frame);
-
-        return 0;
-    }
-
-    void Run()
-    {
-        appInstance->running = true;
-
-        while (appInstance->running)
-        {
-            if (Window::ShouldClose(*appInstance->frame))
+            void ForwardEvents(Event &event)
             {
-                appInstance->running = false;
-            }
-
-            for (std::unique_ptr<Scene> &scene: appInstance->sceneStack)
-            {
-                // TODO: Implement multithreaded rendering pipeline
-                scene->OnUpdate();
-                scene->OnRender();
-
-                Window::Update(*appInstance->frame);
-                glfwPollEvents();
-
-                if (scene->queued != nullptr) // scene has requested change to new scene
+                for (unsigned int i = appInstance->sceneStack.size(); i > 0; i--)
                 {
-                    scene = std::move(scene->queued);
+                    appInstance->sceneStack[i-1]->OnEvent(event);
+                    if (event.handled)
+                        return;
                 }
-                continue; // don't operate on &scene after possibly changing it
             }
         }
-        Stop();
-    }
 
-    void Stop()
-    {
-        appInstance->running = false;
+        App::App()
+        {
+            assert(appInstance == nullptr);
+            running = false;
+        }
+
+        App::~App()
+        {
+            glfwTerminate();
+            appInstance = nullptr;
+        }
+
+        App &App::Get()
+        {
+            assert(appInstance);
+            return *appInstance;
+        }
+
+        int Init(const std::string &appName, Window::FrameSpec &spec)
+        {
+            appInstance = new App();
+            appInstance->name = appName;
+
+            if (!glfwInit())
+            {
+                return -1;
+            }
+
+            appInstance->frame = std::make_unique<Window::Frame>(spec);
+
+            Window::Create(*appInstance->frame);
+
+            appInstance->frame->EventPassthrough = [](Event& event){ ForwardEvents(event); };
+
+            return 0;
+        }
+
+        void Run()
+        {
+            assert(appInstance);
+            appInstance->running = true;
+
+            while (appInstance->running)
+            {
+                if (Window::ShouldClose(*appInstance->frame))
+                {
+                    appInstance->running = false;
+                }
+
+                for (std::unique_ptr<Scene> &scene: appInstance->sceneStack)
+                {
+                    // TODO: Implement multithreaded rendering pipeline
+                    scene->OnUpdate();
+                    scene->OnRender();
+
+                    Window::Update(*appInstance->frame);
+                    glfwPollEvents();
+
+                    if (scene->queued != nullptr) // scene has requested change to new scene
+                    {
+                        scene = std::move(scene->queued);
+                    }
+                    // DON'T operate on scene in stack after possibly changing the scene
+                }
+            }
+            Stop();
+        }
+
+        void Stop()
+        {
+            appInstance->running = false;
+        }
+
+
     }
 }

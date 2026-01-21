@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Event.h"
+
 #include <memory>
 #include <cassert>
 
@@ -12,6 +14,8 @@ namespace Chinstrap {
 
         virtual void OnUpdate() {}
         virtual void OnRender() {}
+
+        virtual void OnEvent(Event& event) {}
 
         template<typename TScene>
         void QueueChangeToScene()

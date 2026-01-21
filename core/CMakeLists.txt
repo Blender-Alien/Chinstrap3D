@@ -1,13 +1,15 @@
 # core
 
 set(SOURCES
-    Chinstrap.h
-    src/Application.cpp
-    src/Application.h
-    src/Window.cpp
-    src/Window.h
-    src/Scene.cpp
-    src/Scene.h
+        Chinstrap.h
+        src/Application.cpp
+        src/Application.h
+        src/Window.cpp
+        src/Window.h
+        src/Scene.cpp
+        src/Scene.h
+        src/Event.h
+        src/WindowEvents.h
 )
 
 add_library(core STATIC)

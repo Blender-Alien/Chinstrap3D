@@ -3,6 +3,16 @@
 // TODO: Move to Chinstrap:: render call
 #include "glad.h"
 
+#include <iostream>
+
+void Game::TestGLScene::OnEvent(Chinstrap::Event &event)
+{
+    if (event.GetEventType() == Chinstrap::EventType::WindowClose)
+    {
+        std::cout << "TestGLScene did something before window closed!!" << std::endl;
+        event.handled = true;
+    }
+}
 
 void Game::TestGLScene::OnUpdate()
 {

@@ -8,5 +8,7 @@ namespace Game
     {
         void OnUpdate() override;
         void OnRender() override;
+
+        void OnEvent(Chinstrap::Event &event) override;
     };
 }
