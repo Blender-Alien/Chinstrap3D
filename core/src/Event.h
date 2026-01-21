@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string>
+#include <functional>
+
 namespace Chinstrap
 {
     enum class EventType
@@ -10,13 +13,30 @@ namespace Chinstrap
         MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled,
     };
 
-#define CHIN_EVENT_TYPE(TYPE) virtual EventType GetEventType() const override { return EventType::TYPE; }
+#define CHIN_EVENT_TYPE(TYPE) virtual EventType GetEventType() const override { return EventType::TYPE; }\
+                              static EventType GetStaticEventType() { return EventType::TYPE; }
 
     struct Event
     {
         bool handled = false;
+
         virtual EventType GetEventType() const = 0;
+        virtual std::string ToString() const = 0;
 
         virtual ~Event() = default;
+    };
+
+    struct EventDispatcher
+    {
+        template <typename T>
+        static void dispatch(Event &event, const std::function<bool(Event &dispatchedEvent)> &func)
+        {
+            if (event.GetEventType() == T::GetStaticEventType() )
+            {
+                event.handled = func(event);
+            }
+        }
+
+        explicit EventDispatcher(Event& event);
     };
 }

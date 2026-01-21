@@ -75,25 +75,24 @@ namespace Chinstrap
         {
             glfwSetWindowUserPointer(frame.window, &frame);
 
+
             glfwSetWindowCloseCallback(frame.window, [](GLFWwindow* handle)
             {
-                Frame& frame = *static_cast<Frame*>(glfwGetWindowUserPointer(handle));
+                const Frame& userFrame = *static_cast<Frame*>(glfwGetWindowUserPointer(handle));
 
                 WindowClosedEvent event;
-                frame.EventPassthrough(event);
+                userFrame.EventPassthrough(event);
             });
-
             glfwSetWindowSizeCallback(frame.window, [](GLFWwindow* handle, int width, int height)
             {
-                Frame& frame = *static_cast<Frame*>(glfwGetWindowUserPointer(handle));
+                const Frame& userFrame = *static_cast<Frame*>(glfwGetWindowUserPointer(handle));
 
                 WindowResizedEvent event(width, height);
-                frame.EventPassthrough(event);
+                userFrame.EventPassthrough(event);
             });
-
             glfwSetKeyCallback(frame.window, [](GLFWwindow* handle, int key, int scancode, int action, int mods)
             {
-                Frame& frame = *static_cast<Frame*>(glfwGetWindowUserPointer(handle));
+                const Frame& userFrame = *static_cast<Frame*>(glfwGetWindowUserPointer(handle));
 
                 switch (action)
                 {
@@ -101,13 +100,13 @@ namespace Chinstrap
                     case GLFW_REPEAT:
                     {
                         KeyPressedEvent event(key);
-                        frame.EventPassthrough(event);
+                        userFrame.EventPassthrough(event);
                         break;
                     }
                     case GLFW_RELEASE:
                     {
                         KeyReleasedEvent event(key);
-                        frame.EventPassthrough(event);
+                        userFrame.EventPassthrough(event);
                         break;
                     }
                     default:
