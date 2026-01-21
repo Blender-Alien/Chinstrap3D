@@ -19,9 +19,9 @@ void Game::TestGLScene::OnRender()
     glClear(GL_COLOR_BUFFER_BIT);
 }
 
-bool OnWindowClose()
+bool OnWindowClose(Chinstrap::Event &event)
 {
-    std::cout << "TestGLScene did something before window closed!!" << std::endl;
+    std::cout << "TestOpenGLScene-->OnEvent: " << event.ToString() << "\n";
     return true;
 }
 
@@ -29,7 +29,7 @@ bool OnKeyPress(Chinstrap::Event &event)
 {
     if (dynamic_cast<Chinstrap::KeyPressedEvent&>(event).keyCode == GLFW_KEY_HOME)
     {
-        std::cout << "TestGLScene::OnKeyPressed()" << std::endl;
+        std::cout << "TestOpenGLScene-->OnEvent: " << event.ToString() << "\n";
         return true;
     }
     return false;
@@ -39,7 +39,7 @@ bool OnKeyRelease(Chinstrap::Event &event)
 {
     if(dynamic_cast<Chinstrap::KeyReleasedEvent&>(event).keyCode == GLFW_KEY_HOME)
     {
-        std::cout << "TestGLScene::OnKeyReleased()" << std::endl;
+        std::cout << "TestOpenGLScene-->OnEvent: " << event.ToString() << "\n";
         return true;
     }
     return false;
@@ -47,22 +47,7 @@ bool OnKeyRelease(Chinstrap::Event &event)
 
 void Game::TestGLScene::OnEvent(Chinstrap::Event &event)
 {
-    //TODO: Elegant event dispatcher
-    using namespace Chinstrap;
-    switch (event.GetEventType())
-    {
-        case EventType::WindowClose:
-            event.handled = OnWindowClose();
-            break;
-        case EventType::WindowResize:
-            break;
-        case EventType::KeyPressed:
-            event.handled = OnKeyPress(event);
-            break;
-        case EventType::KeyReleased:
-            event.handled = OnKeyRelease(event);
-            break;
-        default:
-            return;
-    }
+    Chinstrap::EventDispatcher::dispatch<Chinstrap::KeyPressedEvent>(event, [&event](Chinstrap::Event &dispatchedEvent) { return OnKeyPress(dispatchedEvent); });
+    Chinstrap::EventDispatcher::dispatch<Chinstrap::KeyReleasedEvent>(event, [&event](Chinstrap::Event &dispatchedEvent) { return OnKeyRelease(dispatchedEvent); });
+    Chinstrap::EventDispatcher::dispatch<Chinstrap::WindowClosedEvent>(event, [&event](Chinstrap::Event &dispatchedEvent) { return OnWindowClose(dispatchedEvent); });
 }
