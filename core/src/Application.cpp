@@ -92,7 +92,6 @@ namespace Chinstrap
                     // DON'T operate on scene in stack after possibly changing the scene
                 }
             }
-            Stop();
         }
 
         void Stop()

@@ -20,7 +20,7 @@ namespace Chinstrap
             std::string Title;
             int Width = 1280;
             int Height = 720;
-            bool IsResizable = true;
+            bool IsResizable;
             bool VSync = true;
         };
 
@@ -40,7 +40,7 @@ namespace Chinstrap
 
         void Destroy(Frame &frame);
 
-        void Update(Frame &frame);
+        void Update(const Frame &frame);
 
         bool ShouldClose(const Frame &frame);
     }

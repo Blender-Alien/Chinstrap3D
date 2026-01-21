@@ -5,6 +5,7 @@
 #include <iostream>
 #include <cassert>
 
+#include "InputEvents.h"
 #include "WindowEvents.h"
 
 namespace Chinstrap
@@ -24,9 +25,14 @@ namespace Chinstrap
 
         Frame::~Frame()
         {
-            Window::Destroy(*this);
+            if (window)
+            {
+                glfwDestroyWindow(window);
+            }
+            window = nullptr;
         }
 
+        void SetGLFWCallbacks(Frame& frame);
         void Create(Frame &frame)
         {
             frame.window = glfwCreateWindow(
@@ -52,15 +58,7 @@ namespace Chinstrap
 
             glfwSwapInterval(frame.frameSpec.VSync ? 1 : 0);
 
-            glfwSetWindowUserPointer(frame.window, &frame);
-
-            glfwSetWindowCloseCallback(frame.window, [](GLFWwindow* handle)
-            {
-                Frame& frame = *((Frame*)glfwGetWindowUserPointer(handle));
-
-                WindowClosedEvent event;
-                frame.EventPassthrough(event);
-            });
+            SetGLFWCallbacks(frame);
         }
 
         bool ShouldClose(const Frame &frame)
@@ -68,19 +66,54 @@ namespace Chinstrap
             return glfwWindowShouldClose(frame.window) != 0;
         }
 
-        void Destroy(Frame &frame)
-        {
-            if (frame.window)
-            {
-                glfwDestroyWindow(frame.window);
-            }
-            frame.window = nullptr;
-        }
-
-        void Update(Frame &frame)
+        void Update(const Frame &frame)
         {
             glfwSwapBuffers(frame.window);
         }
 
+        void SetGLFWCallbacks(Frame& frame)
+        {
+            glfwSetWindowUserPointer(frame.window, &frame);
+
+            glfwSetWindowCloseCallback(frame.window, [](GLFWwindow* handle)
+            {
+                Frame& frame = *static_cast<Frame*>(glfwGetWindowUserPointer(handle));
+
+                WindowClosedEvent event;
+                frame.EventPassthrough(event);
+            });
+
+            glfwSetWindowSizeCallback(frame.window, [](GLFWwindow* handle, int width, int height)
+            {
+                Frame& frame = *static_cast<Frame*>(glfwGetWindowUserPointer(handle));
+
+                WindowResizedEvent event(width, height);
+                frame.EventPassthrough(event);
+            });
+
+            glfwSetKeyCallback(frame.window, [](GLFWwindow* handle, int key, int scancode, int action, int mods)
+            {
+                Frame& frame = *static_cast<Frame*>(glfwGetWindowUserPointer(handle));
+
+                switch (action)
+                {
+                    case GLFW_PRESS:
+                    case GLFW_REPEAT:
+                    {
+                        KeyPressedEvent event(key);
+                        frame.EventPassthrough(event);
+                        break;
+                    }
+                    case GLFW_RELEASE:
+                    {
+                        KeyReleasedEvent event(key);
+                        frame.EventPassthrough(event);
+                        break;
+                    }
+                    default:
+                        assert(false);
+                }
+            });
+        }
     }
 }

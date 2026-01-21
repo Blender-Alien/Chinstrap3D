@@ -10,6 +10,7 @@ set(SOURCES
         src/Scene.h
         src/Event.h
         src/WindowEvents.h
+        src/InputEvents.h
 )
 
 add_library(core STATIC)
