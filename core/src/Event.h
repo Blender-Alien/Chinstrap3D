@@ -29,14 +29,12 @@ namespace Chinstrap
     struct EventDispatcher
     {
         template <typename T>
-        static void dispatch(Event &event, const std::function<bool(Event &dispatchedEvent)> &func)
+        static void Dispatch(Event &event, const std::function<bool(Event &dispatchedEvent)> &func)
         {
             if (event.GetEventType() == T::GetStaticEventType() )
             {
                 event.handled = func(event);
             }
         }
-
-        explicit EventDispatcher(Event& event);
     };
 }

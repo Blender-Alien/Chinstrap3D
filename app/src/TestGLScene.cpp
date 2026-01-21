@@ -47,7 +47,7 @@ bool OnKeyRelease(Chinstrap::Event &event)
 
 void Game::TestGLScene::OnEvent(Chinstrap::Event &event)
 {
-    Chinstrap::EventDispatcher::dispatch<Chinstrap::KeyPressedEvent>(event, [](Chinstrap::Event &dispatchedEvent) { return OnKeyPress(dispatchedEvent); });
-    Chinstrap::EventDispatcher::dispatch<Chinstrap::KeyReleasedEvent>(event, [](Chinstrap::Event &dispatchedEvent) { return OnKeyRelease(dispatchedEvent); });
-    Chinstrap::EventDispatcher::dispatch<Chinstrap::WindowClosedEvent>(event, [](Chinstrap::Event &dispatchedEvent) { return OnWindowClose(dispatchedEvent); });
+    Chinstrap::EventDispatcher::Dispatch<Chinstrap::KeyPressedEvent>(event, [](Chinstrap::Event &dispatchedEvent) { return OnKeyPress(dispatchedEvent); });
+    Chinstrap::EventDispatcher::Dispatch<Chinstrap::KeyReleasedEvent>(event, [](Chinstrap::Event &dispatchedEvent) { return OnKeyRelease(dispatchedEvent); });
+    Chinstrap::EventDispatcher::Dispatch<Chinstrap::WindowClosedEvent>(event, [](Chinstrap::Event &dispatchedEvent) { return OnWindowClose(dispatchedEvent); });
 }
