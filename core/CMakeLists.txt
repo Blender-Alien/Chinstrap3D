@@ -19,10 +19,13 @@ target_sources(core PRIVATE ${SOURCES})
 add_compile_definitions(
     GLFW_INCLUDE_NONE
     GLEW_STATIC
+    $<$<CONFIG:Debug>:CHIN_DEBUG>
+    $<$<CONFIG:Release>:CHIN_RELEASE>
 )
 
 target_link_libraries(core glfw)
 target_link_libraries(core glad)
+target_link_libraries(core $<$<CONFIG:Debug>: spdlog::spdlog>)
 
 target_include_directories(core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}) 
 

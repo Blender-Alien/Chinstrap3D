@@ -9,6 +9,7 @@ A stylized rendering focussed engine
 
 ## Dependencies with source-code needed 
 - GLFW 3.4
+- spdlog 1.17.0
 
 ## How to build
 
@@ -22,10 +23,12 @@ env. variable for **C++**
 export CXX=/usr/bin/clang++
 ```
 
-### Download all source-code needed Dependencies
+### Download Dependencies
 Make sure that all build Dependencies are met
 
-Place uncompressed folder (for example) "glfw-3.4" folder into
+Follow spdlog static library install guide on GitHub
+
+Place uncompressed folder "glfw-3.4" folder into
 ```
 vendor/
 ```

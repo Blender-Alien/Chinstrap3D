@@ -10,7 +10,6 @@ set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(vendor/glfw-3.4)
 
 # glad
-
 set(SOURCES
     vendor/glad/src/glad.c
     vendor/glad/src/glad.h
@@ -21,3 +20,5 @@ target_sources(glad PRIVATE ${SOURCES})
 
 target_include_directories(glad PUBLIC "vendor/glad/src") 
 
+# spdlog
+find_package(spdlog REQUIRED)

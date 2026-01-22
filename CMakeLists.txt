@@ -11,5 +11,3 @@ include(Dependencies.cmake)
 
 add_subdirectory(core)
 add_subdirectory(app)
-
-

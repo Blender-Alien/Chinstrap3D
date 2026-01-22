@@ -11,6 +11,8 @@ target_sources(app PRIVATE ${SOURCES})
 
 add_compile_definitions(
     GLFW_INCLUDE_NONE
+    $<$<CONFIG:Debug>:CHIN_DEBUG>
+    $<$<CONFIG:Release>:CHIN_RELEASE>
 )
 
 target_link_libraries(app core)
