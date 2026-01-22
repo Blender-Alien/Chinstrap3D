@@ -23,12 +23,10 @@ env. variable for **C++**
 export CXX=/usr/bin/clang++
 ```
 
-### Download Dependencies
+### Download and copy all "source-code needed" Dependencies
 Make sure that all build Dependencies are met
 
-Follow spdlog static library install guide on GitHub
-
-Place uncompressed folder "glfw-3.4" folder into
+Place uncompressed folder like "glfw-3.4" folder into
 ```
 vendor/
 ```

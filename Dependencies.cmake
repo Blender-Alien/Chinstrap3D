@@ -11,8 +11,8 @@ add_subdirectory(vendor/glfw-3.4)
 
 # glad
 set(SOURCES
-    vendor/glad/src/glad.c
-    vendor/glad/src/glad.h
+        vendor/glad/src/glad.c
+        vendor/glad/src/glad.h
 )
 
 add_library(glad STATIC)
@@ -21,4 +21,4 @@ target_sources(glad PRIVATE ${SOURCES})
 target_include_directories(glad PUBLIC "vendor/glad/src") 
 
 # spdlog
-find_package(spdlog REQUIRED)
+add_subdirectory("vendor/spdlog-1.17.0")
