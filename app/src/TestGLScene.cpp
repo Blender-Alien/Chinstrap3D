@@ -21,7 +21,6 @@ void Game::TestGLScene::OnRender()
 
 bool OnWindowClose(Chinstrap::Event &event)
 {
-    std::cout << "TestOpenGLScene-->OnEvent: " << event.ToString() << "\n";
     return true;
 }
 
@@ -29,7 +28,6 @@ bool OnKeyPress(Chinstrap::Event &event)
 {
     if (dynamic_cast<Chinstrap::KeyPressedEvent&>(event).keyCode == GLFW_KEY_HOME)
     {
-        std::cout << "TestOpenGLScene-->OnEvent: " << event.ToString() << "\n";
         return true;
     }
     return false;
@@ -39,7 +37,6 @@ bool OnKeyRelease(Chinstrap::Event &event)
 {
     if(dynamic_cast<Chinstrap::KeyReleasedEvent&>(event).keyCode == GLFW_KEY_HOME)
     {
-        std::cout << "TestOpenGLScene-->OnEvent: " << event.ToString() << "\n";
         return true;
     }
     return false;

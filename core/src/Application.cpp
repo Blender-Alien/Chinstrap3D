@@ -2,6 +2,7 @@
 #include "Window.h"
 #include "Scene.h"
 #include "Event.h"
+#include "Logging.h"
 
 #include "GLFW/glfw3.h"
 
@@ -18,6 +19,7 @@ namespace Chinstrap
 
             void ForwardEvents(Event &event)
             {
+                CHIN_LOG_INFO(event.ToString());
                 for (unsigned int i = appInstance->sceneStack.size(); i > 0; i--)
                 {
                     appInstance->sceneStack[i-1]->OnEvent(event);
