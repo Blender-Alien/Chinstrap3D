@@ -1,53 +1,38 @@
 # Chinstrap3D
 
-A stylized rendering focussed engine
+A cross-platform custom Game Engine focused on stylized 3D rendering and 
+realistic audio simulation with good pre-calculation tooling.
 
-## Dependencies
+## Tooling Dependencies
 - CMake
 - Clang (LLVM)
 - Ninja
 
-## Dependencies with source-code needed 
-- GLFW 3.4
-- spdlog 1.17.0
+## Library Dependencies 
+- GLFW 3.4 ( https://glfw.org )
+- spdlog 1.17.0 ( https://github.com/gabime/spdlog )
 
 ## How to build
 
-### Make sure you are using clang for C/C++
-env. variable for **C**
-```
-export CC=/usr/bin/clang
-```
-env. variable for **C++**
-```
-export CXX=/usr/bin/clang++
-```
+### Download and place all libary dependencies source-code
 
-### Download and copy all "source-code needed" Dependencies
-Make sure that all build Dependencies are met
-
-Place uncompressed folder like "glfw-3.4" folder into
 ```
-vendor/
+vendor/glfw-3.4
+vendor/spdlog-1.17.0
 ```
 
 ### Run the following commands **in project root directory**
 Generate CMake environment:
 ```
-bash shell/generate.sh
+cmake -G "Ninja Multi-Config" -B bin
 ```
-Build an exexcutable using environment:
+Build an executable using environment:
 ```
-bash shell/build-debug.sh
+cmake --build bin --config Debug
 ```
 
 ## How to run
 
-### Run the following commands in **in project root directory**
-Run the executable:
 ```
-bash shell/run-debug.sh
+./bin/app/Debug/app
 ```
-
-## Notes
-- Shell scripts only work on linux, eventually they should replaced by a CMake workflow/preset
