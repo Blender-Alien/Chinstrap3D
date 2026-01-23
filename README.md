@@ -14,7 +14,7 @@ realistic audio simulation with good pre-calculation tooling.
 
 ## How to build
 
-### Download and place all libary dependencies source-code
+### Download and place all library dependencies source-code
 
 ```
 vendor/glfw-3.4
