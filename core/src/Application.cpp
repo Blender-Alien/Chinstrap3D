@@ -89,7 +89,7 @@ namespace Chinstrap
 
                     if (scene->queued != nullptr) // scene has requested change to new scene
                     {
-                        CHIN_LOG_WARN("Scene Transition from [{}] to [{}]", scene->GetName(), scene->queued->GetName());
+                        CHIN_LOG_INFO("Scene Transition [{}]->[{}]", scene->GetName(), scene->queued->GetName());
                         scene = std::move(scene->queued);
                     }
                     // DON'T operate on scene in stack after possibly changing the scene
