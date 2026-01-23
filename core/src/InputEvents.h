@@ -7,11 +7,12 @@ namespace Chinstrap
     struct KeyPressedEvent : public Event
     {
         int keyCode;
+        bool repeat;
 
-        std::string ToString() const override { return "Key pressed: " + std::to_string(keyCode); }
+        std::string ToString() const override { return "Key pressed: " + std::to_string(keyCode) + " repeated: " + std::to_string(repeat); }
 
-        explicit KeyPressedEvent(const int keyCode)
-            : keyCode(keyCode) {}
+        explicit KeyPressedEvent(const int keyCode, const bool repeat)
+            : keyCode(keyCode), repeat(repeat) {}
         CHIN_EVENT_TYPE(KeyPressed)
     };
     struct KeyReleasedEvent : public Event

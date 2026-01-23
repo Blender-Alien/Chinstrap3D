@@ -99,7 +99,7 @@ namespace Chinstrap
                     case GLFW_PRESS:
                     case GLFW_REPEAT:
                     {
-                        KeyPressedEvent event(key);
+                        KeyPressedEvent event(key, action == GLFW_REPEAT);
                         userFrame.EventPassthrough(event);
                         break;
                     }

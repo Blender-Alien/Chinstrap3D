@@ -1,16 +1,20 @@
 # app
 
 set(SOURCES
-    src/Main.cpp
-    src/TestGLScene.cpp
-    src/TestGLScene.h
+        src/Main.cpp
+        src/TestGLScene.cpp
+        src/TestGLScene.h
+        src/TestMenuScene.cpp
+        src/TestMenuScene.h
 )
 
 add_executable(app) 
 target_sources(app PRIVATE ${SOURCES})
 
 add_compile_definitions(
-    GLFW_INCLUDE_NONE
+        GLFW_INCLUDE_NONE
+        $<$<CONFIG:Debug>:CHIN_DEBUG>
+        $<$<CONFIG:Release>:CHIN_RELEASE>
 )
 
 target_link_libraries(app core)
