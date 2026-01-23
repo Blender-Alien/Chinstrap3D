@@ -2,11 +2,9 @@
 
 #include <Chinstrap.h>
 
-#include "src/InputEvents.h"
-
 namespace Game
 {
-    struct TestGLScene : public Chinstrap::Scene
+    struct TestMenuScene : public Chinstrap::Scene
     {
         void OnUpdate() override;
         void OnRender() override;

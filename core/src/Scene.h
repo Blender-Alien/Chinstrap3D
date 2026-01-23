@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <cassert>
+#include <string>
 
 
 namespace Chinstrap {
@@ -24,6 +25,8 @@ namespace Chinstrap {
             queued = std::make_unique<TScene>();
         }
         std::unique_ptr<Scene> queued = nullptr;
+
+        std::string GetName() const {return typeid(*this).name();};
     };
 
 }
