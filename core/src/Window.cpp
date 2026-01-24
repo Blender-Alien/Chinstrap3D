@@ -1,4 +1,3 @@
-#include "Window.h"
 #include "glad.h"
 #include "GLFW/glfw3.h"
 
@@ -6,14 +5,18 @@
 #include <cassert>
 
 #include "InputEvents.h"
+#include "Window.h"
+
+#include "Logging.h"
 #include "WindowEvents.h"
+#include "Renderer.h"
 
 namespace Chinstrap
 {
     namespace Window
     {
-        ViewPortSpec::ViewPortSpec(int posX, int posY, int width, int height)
-            : posX(posX), posY(posY), width(width), height(height)
+        ViewPortSpec::ViewPortSpec(float posScaleX, float posScaleY, float sizeScaleX, float sizeScaleY)
+            : posScaleX(posScaleX), posScaleY(posScaleY), sizeScaleX(sizeScaleX), sizeScaleY(sizeScaleY)
         {
         }
 
@@ -66,8 +69,16 @@ namespace Chinstrap
                 assert(false);
             }
 
-            glViewport(frame.viewPortSpec.posX, frame.viewPortSpec.posY, frame.viewPortSpec.width,
-                       frame.viewPortSpec.height);
+            glfwSetWindowSizeLimits(frame.window, 720, 480, GLFW_DONT_CARE, GLFW_DONT_CARE);
+            //TODO: Proper aspect ratio handling
+            glfwSetWindowAspectRatio(frame.window, 16, 9);
+
+            GLCall(glViewport(
+                static_cast<int>(frame.viewPortSpec.posScaleX * frame.frameSpec.width),
+                static_cast<int>(frame.viewPortSpec.posScaleY * frame.frameSpec.height),
+                static_cast<int>(frame.viewPortSpec.sizeScaleX * frame.frameSpec.width),
+                static_cast<int>(frame.viewPortSpec.sizeScaleY * frame.frameSpec.height)
+                ));
 
             glfwSwapInterval(frame.frameSpec.vSync ? 1 : 0);
 
@@ -98,16 +109,14 @@ namespace Chinstrap
             });
             glfwSetWindowSizeCallback(frame.window, [](GLFWwindow *handle, int width, int height)
             {
-                const Frame &userFrame = *static_cast<Frame *>(glfwGetWindowUserPointer(handle));
+                Frame &userFrame = *static_cast<Frame *>(glfwGetWindowUserPointer(handle));
 
-                //TODO: Only do this once when new size is stable
-                //TODO: are posX and posY actually pixel values???
-                glViewport(
-                    userFrame.viewPortSpec.posX * (width / userFrame.frameSpec.width),
-                    userFrame.viewPortSpec.posX * (height / userFrame.frameSpec.height),
-                    userFrame.viewPortSpec.width * (width / userFrame.frameSpec.width),
-                    userFrame.viewPortSpec.height * (height / userFrame.frameSpec.height)
-                );
+                GLCall(glViewport(
+                    static_cast<int>(userFrame.viewPortSpec.posScaleX * width),
+                    static_cast<int>(userFrame.viewPortSpec.posScaleY * height),
+                    static_cast<int>(userFrame.viewPortSpec.sizeScaleX * width),
+                    static_cast<int>(userFrame.viewPortSpec.sizeScaleY * height)
+                ));
 
                 WindowResizedEvent event(width, height);
                 userFrame.EventPassthrough(event);

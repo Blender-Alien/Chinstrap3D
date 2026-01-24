@@ -12,6 +12,8 @@ set(SOURCES
         src/Event.h
         src/WindowEvents.h
         src/InputEvents.h
+        src/Renderer.h
+        src/Renderer.cpp
 )
 
 add_library(core STATIC)

@@ -17,7 +17,7 @@ namespace Chinstrap
     namespace Renderer
     {
 
-        void Draw(const VertexArray& vertexArray, const IndexBuffer& indexBuffer, const Shader& shader);
+        //void Draw(const VertexArray& vertexArray, const IndexBuffer& indexBuffer, const Shader& shader);
 
         void Clear();
     }

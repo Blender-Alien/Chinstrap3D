@@ -14,12 +14,12 @@ namespace Chinstrap
     {
         struct ViewPortSpec
         {
-            int posX;
-            int posY;
-            int width;
-            int height;
+            float posScaleX;
+            float posScaleY;
+            float sizeScaleX;
+            float sizeScaleY;
 
-            explicit ViewPortSpec(int posX, int posY, int width, int height);
+            explicit ViewPortSpec(float posScaleX, float posScaleY, float sizeScaleX, float sizeScaleY);
         };
 
         struct FrameSpec
