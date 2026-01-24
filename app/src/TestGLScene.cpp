@@ -128,12 +128,18 @@ bool Game::TestGLScene::OnKeyPress(Chinstrap::KeyPressedEvent &event)
     switch (event.keyCode)
     {
         case GLFW_KEY_HOME:
-            QueueChangeToScene<TestMenuScene>();
-            return true;
+            if (!event.repeat)
+            {
+                QueueChangeToScene<TestMenuScene>();
+                return true;
+            }
 
         case GLFW_KEY_1:
-            CHIN_LOG_INFO("We're in the TestGLScene!!");
-            return false;
+            if (!event.repeat)
+            {
+                CHIN_LOG_INFO("We're in the TestGLScene!!");
+                return false;
+            }
 
         default:
             return false;
