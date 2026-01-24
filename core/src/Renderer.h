@@ -2,11 +2,10 @@
 
 #include "RendererData.h"
 
-#define ASSERT(x) if (!(x)) __debugbreak()
 #ifdef CHIN_DEBUG
 #define GLCall(x) Chinstrap::GLDebug::GLClearError();\
     x;\
-    ASSERT(Chinstrap::GLDebug::GLLogCall(#x, __FILE__, __LINE__))
+    Chinstrap::GLDebug::GLLogCall(#x, __FILE__, __LINE__)
 #else
 #define GLCall(x)
 

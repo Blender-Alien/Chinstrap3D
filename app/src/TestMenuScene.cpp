@@ -22,17 +22,23 @@ void Game::TestMenuScene::OnRender()
     glClear(GL_COLOR_BUFFER_BIT);
 }
 
-bool Game::TestMenuScene::OnKeyPress(Chinstrap::Event &event)
+bool Game::TestMenuScene::OnKeyPress(Chinstrap::KeyPressedEvent &event)
 {
-    switch (dynamic_cast<Chinstrap::KeyPressedEvent&>(event).keyCode)
+    switch (event.keyCode)
     {
         case GLFW_KEY_HOME:
-            QueueChangeToScene<TestGLScene>();
-            return true;
+            if (!event.repeat)
+            {
+                QueueChangeToScene<TestGLScene>();
+                return true;
+            }
 
         case GLFW_KEY_1:
-            CHIN_LOG_INFO("We're in the TestMenuScene!!");
-            return false;
+            if (!event.repeat)
+            {
+                CHIN_LOG_INFO("We're in the TestMenuScene!!");
+                return false;
+            }
 
         default:
             return false;
@@ -41,5 +47,5 @@ bool Game::TestMenuScene::OnKeyPress(Chinstrap::Event &event)
 
 void Game::TestMenuScene::OnEvent(Chinstrap::Event &event)
 {
-    Chinstrap::EventDispatcher::Dispatch<Chinstrap::KeyPressedEvent>(event, [this](Chinstrap::Event &dispatchedEvent) { return OnKeyPress(dispatchedEvent); });
+    Chinstrap::EventDispatcher::Dispatch<Chinstrap::KeyPressedEvent>(event, [this](Chinstrap::KeyPressedEvent &dispatchedEvent) { return OnKeyPress(dispatchedEvent); });
 }

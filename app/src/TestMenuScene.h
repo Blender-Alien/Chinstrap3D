@@ -1,5 +1,6 @@
 #pragma once
 
+#include "src/InputEvents.h"
 #include <Chinstrap.h>
 
 namespace Game
@@ -12,6 +13,6 @@ namespace Game
 
         void OnEvent(Chinstrap::Event &event) override;
 
-        bool OnKeyPress(Chinstrap::Event &event);
+        bool OnKeyPress(Chinstrap::KeyPressedEvent &event);
     };
 }

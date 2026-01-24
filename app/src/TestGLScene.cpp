@@ -123,9 +123,9 @@ void Game::TestGLScene::OnRender()
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 }
 
-bool Game::TestGLScene::OnKeyPress(Chinstrap::Event &event)
+bool Game::TestGLScene::OnKeyPress(Chinstrap::KeyPressedEvent &event)
 {
-    switch (dynamic_cast<Chinstrap::KeyPressedEvent&>(event).keyCode)
+    switch (event.keyCode)
     {
         case GLFW_KEY_HOME:
             QueueChangeToScene<TestMenuScene>();
@@ -142,5 +142,5 @@ bool Game::TestGLScene::OnKeyPress(Chinstrap::Event &event)
 
 void Game::TestGLScene::OnEvent(Chinstrap::Event &event)
 {
-    Chinstrap::EventDispatcher::Dispatch<Chinstrap::KeyPressedEvent>(event, [this](Chinstrap::Event &dispatchedEvent) { return OnKeyPress(dispatchedEvent); });
+    Chinstrap::EventDispatcher::Dispatch<Chinstrap::KeyPressedEvent>(event, [this](Chinstrap::KeyPressedEvent &dispatchedEvent) { return OnKeyPress(dispatchedEvent); });
 }

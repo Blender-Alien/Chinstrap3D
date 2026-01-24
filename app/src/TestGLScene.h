@@ -14,6 +14,6 @@ namespace Game
 
         void OnEvent(Chinstrap::Event &event) override;
 
-        bool OnKeyPress(Chinstrap::Event &event);
+        bool OnKeyPress(Chinstrap::KeyPressedEvent &event);
     };
 }
