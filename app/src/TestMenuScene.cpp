@@ -7,6 +7,10 @@
 #include "GLFW/glfw3.h"
 #include "src/InputEvents.h"
 
+void Game::TestMenuScene::OnBegin()
+{
+}
+
 void Game::TestMenuScene::OnUpdate()
 {
 }
@@ -14,6 +18,7 @@ void Game::TestMenuScene::OnUpdate()
 void Game::TestMenuScene::OnRender()
 {
     // TODO: Move to Chinstrap:: render call
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 }
 

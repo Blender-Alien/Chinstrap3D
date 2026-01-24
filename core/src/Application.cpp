@@ -47,7 +47,7 @@ namespace Chinstrap
             return *appInstance;
         }
 
-        int Init(const std::string &appName, Window::FrameSpec &spec)
+        int Init(const std::string &appName, Window::FrameSpec &frameSpec, Window::ViewPortSpec &viewportSpec)
         {
             appInstance = new App();
             appInstance->name = appName;
@@ -57,7 +57,7 @@ namespace Chinstrap
                 return -1;
             }
 
-            appInstance->frame = std::make_unique<Window::Frame>(spec);
+            appInstance->frame = std::make_unique<Window::Frame>(frameSpec, viewportSpec);
 
             Window::Create(*appInstance->frame);
 
@@ -70,6 +70,9 @@ namespace Chinstrap
         {
             assert(appInstance);
             appInstance->running = true;
+
+            for (std::unique_ptr<Scene> &scene: appInstance->sceneStack)
+                scene->OnBegin();
 
             while (appInstance->running)
             {
@@ -91,6 +94,7 @@ namespace Chinstrap
                     {
                         CHIN_LOG_INFO("Scene Transition [{}]->[{}]", scene->GetName(), scene->queued->GetName());
                         scene = std::move(scene->queued);
+                        scene->OnBegin();
                     }
                     // DON'T operate on scene in stack after possibly changing the scene
                 }

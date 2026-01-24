@@ -14,7 +14,6 @@ namespace Chinstrap
 
     struct WindowResizedEvent : public Event
     {
-
         int width;
         int height;
 

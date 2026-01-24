@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "Event.h"
+#include "Window.h"
 
 namespace Chinstrap
 {
@@ -33,7 +34,7 @@ namespace Chinstrap
             ~App();
         };
 
-        int Init(const std::string& appName, Window::FrameSpec& spec);
+        int Init(const std::string& appName, Window::FrameSpec& spec, Window::ViewPortSpec& viewportSpec);
         void Run();
         void Stop();
 

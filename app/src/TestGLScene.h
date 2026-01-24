@@ -8,6 +8,7 @@ namespace Game
 {
     struct TestGLScene : public Chinstrap::Scene
     {
+        void OnBegin() override;
         void OnUpdate() override;
         void OnRender() override;
 

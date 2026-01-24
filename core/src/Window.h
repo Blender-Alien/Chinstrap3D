@@ -12,28 +12,37 @@ namespace Chinstrap
 {
     namespace Window
     {
+        struct ViewPortSpec
+        {
+            int posX;
+            int posY;
+            int width;
+            int height;
+
+            explicit ViewPortSpec(int posX, int posY, int width, int height);
+        };
+
         struct FrameSpec
         {
-            FrameSpec(const std::string &title, const int &width, const int &height, bool isResizable,
-                      bool vSync);
+            std::string title;
+            int width = 1280;
+            int height = 720;
+            bool isResizable;
+            bool vSync = true;
 
-            std::string Title;
-            int Width = 1280;
-            int Height = 720;
-            bool IsResizable;
-            bool VSync = true;
+            explicit FrameSpec(const std::string &title, int width, int height, bool isResizable,
+                      bool vSync);
         };
 
         struct Frame
         {
-            Frame(const FrameSpec &spec);
-
-            ~Frame();
-
             FrameSpec frameSpec;
+            ViewPortSpec viewPortSpec;
             GLFWwindow *window = nullptr;
-
             std::function<void(Event&)> EventPassthrough;
+
+            explicit Frame(const FrameSpec &spec, const ViewPortSpec &viewportSpec);
+            ~Frame();
         };
 
         void Create(Frame &frame);

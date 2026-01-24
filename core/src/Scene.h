@@ -13,6 +13,7 @@ namespace Chinstrap {
     {
         virtual ~Scene() = default;
 
+        virtual void OnBegin() {}
         virtual void OnUpdate() {}
         virtual void OnRender() {}
 
