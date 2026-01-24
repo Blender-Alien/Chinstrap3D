@@ -12,16 +12,6 @@
 void Game::TestGLScene::OnBegin()
 {
     //TODO: Abstract Render Code
-    constexpr float vertices2[] = {
-        -0.5f, -0.5f, 0.0f,
-        0.5f, -0.5f, 0.0f,
-        0.5f,  0.5f, 0.0f,
-    };
-    constexpr float vertices[] = {
-        -1.0f, -1.0f, 0.0f,
-        1.0f, -1.0f, 0.0f,
-        1.0f,  1.0f, 0.0f,
-    };
 
     const char *vertexShaderSource = "#version 330 core\n"
         "layout (location = 0) in vec3 aPos;\n"
@@ -78,9 +68,27 @@ void Game::TestGLScene::OnBegin()
     glDeleteShader(vertexShaderID);
     glDeleteShader(fragmentShaderID);
 
-    unsigned int vertextArrayID;
-    glGenVertexArrays(1, &vertextArrayID);
-    glBindVertexArray(vertextArrayID);
+
+    constexpr float verticesOriginal[] = {
+        -0.5f, -0.5f, 0.0f,
+        0.5f, -0.5f, 0.0f,
+        0.5f,  0.5f, 0.0f,
+    };
+
+    constexpr float vertices[] = {
+        0.5f, 0.5f, 0.0f,   // top right
+        0.5f, -0.5f, 0.0f,  // bottom right
+        -0.5f, -0.5f, 0.0f, // bottom left
+        -0.5f, 0.5f, 0.0f,  // top left
+    };
+    constexpr unsigned int indices[] = {
+        0, 1, 3, // first triangle
+        1, 2, 3  // second triangle
+    };
+
+    unsigned int vertexArrayID;
+    glGenVertexArrays(1, &vertexArrayID);
+    glBindVertexArray(vertexArrayID);
 
     unsigned int vertexBufferID;
     glGenBuffers(1, &vertexBufferID);
@@ -88,11 +96,18 @@ void Game::TestGLScene::OnBegin()
     glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
+    unsigned int indexBufferID;
+    glGenBuffers(1, &indexBufferID);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferID);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), static_cast<void *>(nullptr));
     glEnableVertexAttribArray(0);
 
     glUseProgram(shaderProgramID);
-    glBindVertexArray(vertextArrayID);
+    glBindVertexArray(vertexArrayID);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 }
 
 void Game::TestGLScene::OnUpdate()
@@ -105,7 +120,7 @@ void Game::TestGLScene::OnRender()
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 }
 
 bool Game::TestGLScene::OnKeyPress(Chinstrap::Event &event)
