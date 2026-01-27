@@ -6,6 +6,8 @@ set(SOURCES
         src/TestGLScene.h
         src/TestMenuScene.cpp
         src/TestMenuScene.h
+        src/TestGuiScene.cpp
+        src/TestGuiScene.h
 )
 
 add_executable(app) 

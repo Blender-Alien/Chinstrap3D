@@ -6,6 +6,7 @@
 #include <cassert>
 #include <string>
 
+#include "InputEvents.h"
 
 namespace Chinstrap {
     
@@ -18,6 +19,7 @@ namespace Chinstrap {
         virtual void OnRender() {}
 
         virtual void OnEvent(Event& event) {}
+        virtual bool OnKeyPress(const Chinstrap::KeyPressedEvent &event) {return false;}
 
         template<typename TScene>
         void QueueChangeToScene()

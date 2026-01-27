@@ -122,7 +122,7 @@ void Game::TestGLScene::OnRender()
     glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, nullptr);
 }
 
-bool Game::TestGLScene::OnKeyPress(Chinstrap::KeyPressedEvent &event)
+bool Game::TestGLScene::OnKeyPress(const Chinstrap::KeyPressedEvent &event)
 {
     switch (event.keyCode)
     {

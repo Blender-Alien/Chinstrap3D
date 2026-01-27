@@ -32,6 +32,6 @@ target_link_libraries(core glad)
 target_link_libraries(core $<$<CONFIG:DEBUG>:spdlog::spdlog>)
 
 target_include_directories(core PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}
+        /
 )
 

@@ -47,10 +47,17 @@ namespace Chinstrap
             glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
             glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
             glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+            glfwWindowHint(GLFW_SCALE_TO_MONITOR, 1);
+
+            frame.monitor = glfwGetPrimaryMonitor();
+
+            float scaleX, scaleY;
+            glfwGetMonitorContentScale(frame.monitor, &scaleX, &scaleY);
+            CHIN_LOG_INFO("Primary Monitor: {0} Scale: {1} by {2}", glfwGetMonitorName(frame.monitor), scaleX, scaleY);
 
             frame.window = glfwCreateWindow(
-                frame.frameSpec.width,
-                frame.frameSpec.height,
+                frame.frameSpec.width / scaleX,
+                frame.frameSpec.height / scaleY,
                 frame.frameSpec.title.c_str(),
                 nullptr,
                 nullptr
@@ -61,6 +68,10 @@ namespace Chinstrap
                 assert(false);
             }
 
+
+            float xscale, yscale;
+            glfwGetWindowContentScale(frame.window, &xscale, &yscale);
+            CHIN_LOG_INFO("Window scale: {0} by {1}", xscale, yscale);
             glfwMakeContextCurrent(frame.window);
 
             if (gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)) == 0)

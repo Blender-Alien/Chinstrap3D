@@ -3,10 +3,10 @@
 #include "Event.h"
 
 #include <string>
-#include <cinttypes>
 #include <functional>
 
 class GLFWwindow;
+class GLFWmonitor;
 
 namespace Chinstrap
 {
@@ -36,10 +36,12 @@ namespace Chinstrap
 
         struct Frame
         {
+            GLFWwindow *window = nullptr;
+            GLFWmonitor *monitor = nullptr;
             FrameSpec frameSpec;
             ViewPortSpec viewPortSpec;
-            GLFWwindow *window = nullptr;
             std::function<void(Event&)> EventPassthrough;
+
 
             explicit Frame(const FrameSpec &spec, const ViewPortSpec &viewportSpec);
             ~Frame();
