@@ -11,6 +11,7 @@ realistic audio simulation with good pre-calculation tooling.
 ## Library Dependencies 
 - GLFW 3.4 ( https://glfw.org )
 - spdlog 1.17.0 ( https://github.com/gabime/spdlog )
+- ImGui 1.92.5 ( https://github.com/ocornut/imgui )
 
 ## How to build
 
@@ -19,6 +20,7 @@ realistic audio simulation with good pre-calculation tooling.
 ```
 vendor/glfw-3.4
 vendor/spdlog-1.17.0
+vendor/imgui-1.92.5
 ```
 
 ### Run the following commands **in project root directory**

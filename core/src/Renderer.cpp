@@ -1,7 +1,5 @@
 #include "Renderer.h"
 
-#include <iostream>
-
 #include "glad.h"
 #include "Logging.h"
 

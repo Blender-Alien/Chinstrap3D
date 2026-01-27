@@ -13,3 +13,4 @@ CMakeUserPresets.json
 
 vendor/glfw-3.4
 vendor/spdlog-1.17.0
+vendor/imgui-1.92.5

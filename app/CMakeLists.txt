@@ -18,6 +18,7 @@ add_compile_definitions(
 )
 
 target_link_libraries(app core)
+target_link_libraries(app imgui)
 
 target_include_directories(app PRIVATE src)
 

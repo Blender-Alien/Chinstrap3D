@@ -7,6 +7,7 @@ namespace Game
 {
     struct TestMenuScene : public Chinstrap::Scene
     {
+        ~TestMenuScene() override;
         void OnBegin() override;
         void OnUpdate() override;
         void OnRender() override;

@@ -38,7 +38,7 @@ void Game::TestGLScene::OnBegin()
         "out vec4 FragColor;\n"
         "void main()\n"
         "{\n"
-        "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+        "   FragColor = vec4(0.5f, 0.5f, 1.0f, 1.0f);\n"
         "}\0";
 
     unsigned int fragmentShaderID;
@@ -82,8 +82,7 @@ void Game::TestGLScene::OnBegin()
         -0.5f, 0.5f, 0.0f,  // top left
     };
     constexpr unsigned int indices[] = {
-        0, 1, 3, // first triangle
-        1, 2, 3  // second triangle
+        0, 1, 3 // first triangle
     };
 
     unsigned int vertexArrayID;
@@ -107,7 +106,7 @@ void Game::TestGLScene::OnBegin()
 
     glUseProgram(shaderProgramID);
     glBindVertexArray(vertexArrayID);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 }
 
 void Game::TestGLScene::OnUpdate()
@@ -120,7 +119,7 @@ void Game::TestGLScene::OnRender()
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+    glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, nullptr);
 }
 
 bool Game::TestGLScene::OnKeyPress(Chinstrap::KeyPressedEvent &event)

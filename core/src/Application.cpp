@@ -81,14 +81,14 @@ namespace Chinstrap
                     appInstance->running = false;
                 }
 
+                Window::Update(*appInstance->frame);
+                glfwPollEvents();
+
                 for (std::unique_ptr<Scene> &scene: appInstance->sceneStack)
                 {
                     // TODO: Implement multithreaded rendering pipeline
                     scene->OnUpdate();
                     scene->OnRender();
-
-                    Window::Update(*appInstance->frame);
-                    glfwPollEvents();
 
                     if (scene->queued != nullptr) // scene has requested change to new scene
                     {
