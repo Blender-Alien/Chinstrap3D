@@ -36,12 +36,10 @@ void Game::TestGUIScene::OnBegin()
 
     ImFontConfig font_config;
     font_config.RasterizerDensity = xscale;
-
-    // For an integration test like this, it should be enough to assume the presence of some system fonts
 #ifdef _WIN64
-    io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\Arial.ttf", 16.0f, &font_config);
+    ImFont* font = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\Arial.ttf", 16.0f, &font_config);
 #elif __linux__
-    io.Fonts->AddFontFromFileTTF("/usr/share/fonts/TTF/DejaVuSans.ttf", 16.0f, &font_config);
+    ImFont* font = io.Fonts->AddFontFromFileTTF("../../../vendor/fonts/AdwaitaMono/AdwaitaMonoNerdFont-Regular.ttf", 16.0f, &font_config);
 #endif
 
     io.Fonts->Build();
