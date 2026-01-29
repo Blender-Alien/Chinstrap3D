@@ -1,7 +1,7 @@
 #include "TestGuiScene.h"
 
-#include <Chinstrap.h>
-#include "src/InputEvents.h"
+#include "chinstrap/src/InputEvents.h"
+#include "chinstrap/src/Application.h"
 
 #define IMGUI_IMPL_OPENGL_LOADER_CUSTOM
 #include "imgui.h"

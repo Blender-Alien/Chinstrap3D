@@ -1,7 +1,6 @@
-# core
+# chinstrap
 
 set(SOURCES
-        Chinstrap.h
         src/Logging.h
         src/Application.cpp
         src/Application.h
@@ -16,8 +15,8 @@ set(SOURCES
         src/Renderer.cpp
 )
 
-add_library(core STATIC)
-target_sources(core PRIVATE ${SOURCES})
+add_library(chinstrap STATIC)
+target_sources(chinstrap PRIVATE ${SOURCES})
 
 add_compile_definitions(
         GLFW_INCLUDE_NONE
@@ -26,12 +25,13 @@ add_compile_definitions(
         $<$<CONFIG:Release>:CHIN_RELEASE>
 )
 
-target_link_libraries(core glfw)
-target_link_libraries(core glad)
+target_link_libraries(chinstrap glfw)
+target_link_libraries(chinstrap glad)
 # Note that excluding spdlog from Release doesn't work as of 22.01.2026, https://gitlab.kitware.com/cmake/cmake/-/issues/24629
-target_link_libraries(core $<$<CONFIG:DEBUG>:spdlog::spdlog>)
+target_link_libraries(chinstrap $<$<CONFIG:DEBUG>:spdlog::spdlog>)
 
-target_include_directories(core PUBLIC
-        /
+target_include_directories(chinstrap INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+
+target_precompile_headers(chinstrap
+    PRIVATE pch.h
 )
-

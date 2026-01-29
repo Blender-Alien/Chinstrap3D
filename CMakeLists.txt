@@ -10,5 +10,5 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include(Dependencies.cmake)
 
 
-add_subdirectory(core)
+add_subdirectory(chinstrap)
 add_subdirectory(app)

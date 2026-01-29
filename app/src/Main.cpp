@@ -1,4 +1,5 @@
-#include <Chinstrap.h>
+#include "chinstrap/src/Window.h"
+#include "chinstrap/src/Application.h"
 
 #include "TestGLScene.h"
 #include "TestGuiScene.h"

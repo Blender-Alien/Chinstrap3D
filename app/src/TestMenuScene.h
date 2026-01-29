@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Chinstrap.h>
+#include "chinstrap/src/Scene.h"
 
 namespace Game
 {

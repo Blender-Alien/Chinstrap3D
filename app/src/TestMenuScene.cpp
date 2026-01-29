@@ -1,6 +1,7 @@
 #include "TestMenuScene.h"
 
-#include <Chinstrap.h>
+#include "chinstrap/src/InputEvents.h"
+#include "chinstrap/src/Logging.h"
 
 // TODO: Move to Chinstrap:: render call
 #include "glad.h"
@@ -8,7 +9,6 @@
 #include "TestGLScene.h"
 
 #include "GLFW/glfw3.h"
-#include "src/InputEvents.h"
 
 void Game::TestMenuScene::OnBegin()
 {

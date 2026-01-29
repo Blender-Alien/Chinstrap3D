@@ -1,6 +1,8 @@
 # app
 
 set(SOURCES
+        pch.h
+
         src/Main.cpp
         src/TestGLScene.cpp
         src/TestGLScene.h
@@ -19,9 +21,9 @@ add_compile_definitions(
         $<$<CONFIG:Release>:CHIN_RELEASE>
 )
 
-target_link_libraries(app core)
+target_link_libraries(app chinstrap)
 target_link_libraries(app imgui)
 
 target_include_directories(app PRIVATE src)
 
-
+target_precompile_headers(app PRIVATE pch.h)

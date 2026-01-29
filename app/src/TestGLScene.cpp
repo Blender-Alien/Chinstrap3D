@@ -3,11 +3,13 @@
 // TODO: Abstract Render Code
 #include <iostream>
 
+#include "chinstrap/src/InputEvents.h"
+#include "chinstrap/src/Logging.h"
+
 #include "glad.h"
 #include "GLFW/glfw3.h"
 
 #include "TestMenuScene.h"
-#include "src/InputEvents.h"
 
 void Game::TestGLScene::OnBegin()
 {
