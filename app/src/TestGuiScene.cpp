@@ -38,7 +38,7 @@ void Game::TestGUIScene::OnBegin()
 
     ImFontConfig font_config;
     font_config.RasterizerDensity = xscale;
-    io.Fonts->AddFontFromMemoryTTF(Font::robotoRegular, sizeof(Font::robotoRegular),16.0f, &font_config);
+    io.Fonts->AddFontFromMemoryTTF(robotoRegular, sizeof(robotoRegular),16.0f, &font_config);
     io.Fonts->Build();
 }
 
