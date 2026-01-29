@@ -24,8 +24,7 @@ add_compile_definitions(
 )
 
 target_link_libraries(app chinstrap)
-target_link_libraries(app imgui)
 
-target_include_directories(app PRIVATE src ../vendor/fonts)
+target_include_directories(app PRIVATE src)
 
 target_precompile_headers(app PRIVATE pch.h)

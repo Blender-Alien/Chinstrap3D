@@ -25,6 +25,7 @@ namespace Chinstrap
         struct FrameSpec
         {
             std::string title;
+            float dpiScale = 1.0f;
             int width = 1280;
             int height = 720;
             bool isResizable;

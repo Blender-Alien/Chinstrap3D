@@ -13,6 +13,10 @@ set(SOURCES
         src/InputEvents.h
         src/Renderer.h
         src/Renderer.cpp
+        src/DevInterface.h
+        src/DevInterface.cpp
+
+        ../vendor/fonts/Roboto/Roboto-Regular.h
 )
 
 add_library(chinstrap STATIC)
@@ -29,8 +33,9 @@ target_link_libraries(chinstrap glfw)
 target_link_libraries(chinstrap glad)
 # Note that excluding spdlog from Release doesn't work as of 22.01.2026, https://gitlab.kitware.com/cmake/cmake/-/issues/24629
 target_link_libraries(chinstrap $<$<CONFIG:DEBUG>:spdlog::spdlog>)
+target_link_libraries(chinstrap imgui)
 
-target_include_directories(chinstrap INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_include_directories(chinstrap INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/.. PRIVATE ../vendor/fonts/)
 
 target_precompile_headers(chinstrap
     PRIVATE pch.h
