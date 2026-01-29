@@ -1,3 +1,4 @@
 #!/bin/bash
 
-./bin/app/Debug/app    
+cd bin/app/Debug/
+./app
