@@ -1,3 +1,4 @@
 #!/bin/bash
 
-./bin/app/Release/app    
+cd bin/app/Release/
+./app

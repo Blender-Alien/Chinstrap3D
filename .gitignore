@@ -10,6 +10,3 @@ CMakeUserPresets.json
 **/cmake_install.cmake
 **/install_manifest.txt
 **/compile_commands.json
-
-vendor/glfw-3.4
-vendor/spdlog-1.17.0

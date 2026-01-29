@@ -1,11 +1,17 @@
 # app
 
 set(SOURCES
+        pch.h
+
         src/Main.cpp
         src/TestGLScene.cpp
         src/TestGLScene.h
         src/TestMenuScene.cpp
         src/TestMenuScene.h
+        src/TestGuiScene.cpp
+        src/TestGuiScene.h
+
+        ../vendor/fonts/Roboto/Roboto-Regular.h
 )
 
 add_executable(app) 
@@ -17,8 +23,9 @@ add_compile_definitions(
         $<$<CONFIG:Release>:CHIN_RELEASE>
 )
 
-target_link_libraries(app core)
+target_link_libraries(app chinstrap)
+target_link_libraries(app imgui)
 
-target_include_directories(app PRIVATE src)
+target_include_directories(app PRIVATE src ../vendor/fonts)
 
-
+target_precompile_headers(app PRIVATE pch.h)
