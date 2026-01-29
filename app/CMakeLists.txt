@@ -10,6 +10,8 @@ set(SOURCES
         src/TestMenuScene.h
         src/TestGuiScene.cpp
         src/TestGuiScene.h
+
+        ../vendor/fonts/Roboto/Roboto-Regular.h
 )
 
 add_executable(app) 
@@ -24,6 +26,6 @@ add_compile_definitions(
 target_link_libraries(app chinstrap)
 target_link_libraries(app imgui)
 
-target_include_directories(app PRIVATE src)
+target_include_directories(app PRIVATE src ../vendor/fonts)
 
 target_precompile_headers(app PRIVATE pch.h)

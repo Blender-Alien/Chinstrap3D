@@ -15,14 +15,6 @@ realistic audio simulation with good pre-calculation tooling.
 
 ## How to build
 
-### Download and place all library dependencies source-code
-
-```
-vendor/glfw-3.4
-vendor/spdlog-1.17.0
-vendor/imgui-1.92.5
-```
-
 ### Run the following commands **in project root directory**
 Generate CMake environment:
 ```
