@@ -36,12 +36,7 @@ void Game::TestGUIScene::OnBegin()
 
     ImFontConfig font_config;
     font_config.RasterizerDensity = xscale;
-#ifdef _WIN64
-    ImFont* font = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\Arial.ttf", 16.0f, &font_config);
-#elif __linux__
     ImFont* font = io.Fonts->AddFontFromFileTTF("../../../vendor/fonts/AdwaitaMono/AdwaitaMonoNerdFont-Regular.ttf", 16.0f, &font_config);
-#endif
-
     io.Fonts->Build();
 }
 
