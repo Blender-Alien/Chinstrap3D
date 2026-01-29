@@ -33,7 +33,7 @@ namespace Chinstrap
         {
             if (event.GetEventType() == T::GetStaticEventType() )
             {
-                event.handled = func(reinterpret_cast<T&>(event));
+                event.handled = func(static_cast<T&>(event));
             }
         }
     };

@@ -38,7 +38,6 @@ void Game::TestGUIScene::OnBegin()
 
     ImFontConfig font_config;
     font_config.RasterizerDensity = xscale;
-    //ImFont* font = io.Fonts->AddFontFromFileTTF("../../../vendor/fonts/AdwaitaMono/AdwaitaMonoNerdFont-Regular.ttf", 16.0f, &font_config);
     io.Fonts->AddFontFromMemoryTTF(Font::robotoRegular, sizeof(Font::robotoRegular),16.0f, &font_config);
     io.Fonts->Build();
 }
