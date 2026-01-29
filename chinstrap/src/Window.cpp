@@ -65,7 +65,13 @@ namespace Chinstrap::Window
         glfwGetWindowContentScale(frame.window, &xscale, &yscale);
         CHIN_LOG_INFO("Window scale: {0} by {1}", xscale, yscale);
         frame.frameSpec.dpiScale = xscale;
+// Currently on Wayland with glfw-3.4 windowSize doesn't reflect the actual size in screen pixels (29.01.2026)
+#if defined(__linux__)
         glfwSetWindowSize(frame.window, frame.frameSpec.width / xscale, frame.frameSpec.height / yscale);
+#elif defined(_WIN64)
+        glfwSetWindowSize(frame.window, frame.frameSpec.width, frame.frameSpec.height);
+#endif
+
 
         glfwMakeContextCurrent(frame.window);
 
@@ -117,12 +123,22 @@ namespace Chinstrap::Window
         {
             Frame &userFrame = *static_cast<Frame *>(glfwGetWindowUserPointer(handle));
 
+// Currently on Wayland with glfw-3.4 windowSize doesn't reflect the actual size in screen pixels (29.01.2026)
+#if defined(__linux__)
             GLCall(glViewport(
                 static_cast<int>(userFrame.viewPortSpec.posScaleX * width * userFrame.frameSpec.dpiScale),
                 static_cast<int>(userFrame.viewPortSpec.posScaleY * height * userFrame.frameSpec.dpiScale),
                 static_cast<int>(userFrame.viewPortSpec.sizeScaleX * width * userFrame.frameSpec.dpiScale),
                 static_cast<int>(userFrame.viewPortSpec.sizeScaleY * height * userFrame.frameSpec.dpiScale)
             ));
+#elif defined(_WIN64)
+            GLCall(glViewport(
+                static_cast<int>(userFrame.viewPortSpec.posScaleX * width),
+                static_cast<int>(userFrame.viewPortSpec.posScaleY * height),
+                static_cast<int>(userFrame.viewPortSpec.sizeScaleX * width),
+                static_cast<int>(userFrame.viewPortSpec.sizeScaleY * height)
+            ));
+#endif
 
             glfwSetWindowSize(userFrame.window, width, height);
 

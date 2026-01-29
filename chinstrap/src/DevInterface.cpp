@@ -11,25 +11,32 @@
 #include "backends/imgui_impl_glfw.cpp"
 #include "backends/imgui_impl_opengl3.h"
 #include "imgui_internal.h"
-#include "spdlog/fmt/bundled/base.h"
 
-void Chinstrap::DevInterface::ContextInfo()
+void Chinstrap::DevInterface::ContextInfo(float posScaleX, float posScaleY)
 {
-    ImGui::SetNextWindowPos(ImVec2(0, 0));
-    ImGui::Begin("ContextInfo");
-
+// This is wasted performance for release builds
+#ifdef CHIN_DEBUG
     int x, y;
     glfwGetWindowSize(Application::App::Get().frame->window, &x, &y);
+
+    ImGui::SetNextWindowPos(ImVec2(x * posScaleX, y * posScaleY));
+    ImGui::Begin("ContextInfo");
+
     ImGui::Text("WindowSize: %dx%d", x, y);
+
+    // Currently on Wayland with glfw-3.4 windowSize doesn't reflect the actual size in screen pixels (29.01.2026)
+#if defined(__linux__)
     x *= Application::App::Get().frame->frameSpec.dpiScale;
     y *= Application::App::Get().frame->frameSpec.dpiScale;
     ImGui::Text("WindowSize after Scaling: %dx%d", x, y);
+#endif
 
     GLint viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
     ImGui::Text("glViewportSize: %dx%d", viewport[2], viewport[3]);
 
     ImGui::End();
+#endif
 }
 
 void Chinstrap::DevInterface::Render(){ Render([](void){}); }

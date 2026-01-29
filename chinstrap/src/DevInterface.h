@@ -12,5 +12,5 @@ namespace Chinstrap::DevInterface
     void Render(std::function<void()> lambda);
     void Shutdown();
 
-    void ContextInfo();
+    void ContextInfo(float posScaleX, float posScaleY);
 }

@@ -7,7 +7,7 @@
     x;\
     Chinstrap::GLDebug::GLLogCall(#x, __FILE__, __LINE__)
 #else
-#define GLCall(x)
+#define GLCall(x) x;\
 
 #endif
 

@@ -22,7 +22,7 @@ void Game::TestGUIScene::OnRender()
 {
     Chinstrap::DevInterface::Render([](void)
     {
-        Chinstrap::DevInterface::ContextInfo();
+        Chinstrap::DevInterface::ContextInfo(0.8f, 0.0f);
     });
 }
 
