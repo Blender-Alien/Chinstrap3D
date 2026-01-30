@@ -8,7 +8,7 @@ namespace Game
     {
         ~TestGUIScene() override;
         void OnBegin() override;
-        void OnUpdate() override;
+        void OnUpdate(float deltaTime) override;
         void OnRender() override;
 
         void OnEvent(Chinstrap::Event &event) override;

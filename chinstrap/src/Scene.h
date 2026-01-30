@@ -15,7 +15,7 @@ namespace Chinstrap {
         virtual ~Scene() = default;
 
         virtual void OnBegin() {}
-        virtual void OnUpdate() {}
+        virtual void OnUpdate(float deltaTime) {}
         virtual void OnRender() {}
 
         virtual void OnEvent(Event& event) {}

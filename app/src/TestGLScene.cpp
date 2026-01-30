@@ -111,7 +111,7 @@ void Game::TestGLScene::OnBegin()
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 }
 
-void Game::TestGLScene::OnUpdate()
+void Game::TestGLScene::OnUpdate(float deltaTime)
 {
 }
 

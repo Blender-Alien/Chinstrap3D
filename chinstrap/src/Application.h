@@ -19,13 +19,13 @@ namespace Chinstrap
     {
         struct App
         {
+            std::vector<std::unique_ptr<Scene>> sceneStack;
             std::string name;
-            bool running;
 
             std::unique_ptr<Window::Frame> frame;
 
-            std::vector<std::unique_ptr<Scene>> sceneStack;
-
+            int framerate;
+            bool running;
             // App should be a singleton
             static App& Get();
             App(App const&)  = delete;

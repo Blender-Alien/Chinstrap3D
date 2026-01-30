@@ -72,6 +72,11 @@ namespace Chinstrap::Application
         for (std::unique_ptr<Scene> &scene: appInstance->sceneStack)
             scene->OnBegin();
 
+        double timeAtPreviousFrame = glfwGetTime();
+        double timeAtPreviousSecond = glfwGetTime();
+        double currentTime = 0.0f;
+        int frameCount = 0;
+
         while (appInstance->running)
         {
             if (Window::ShouldClose(*appInstance->frame))
@@ -82,10 +87,11 @@ namespace Chinstrap::Application
             Window::Update(*appInstance->frame);
             glfwPollEvents();
 
+            currentTime = glfwGetTime();
             for (std::unique_ptr<Scene> &scene: appInstance->sceneStack)
             {
                 // TODO: Implement multithreaded rendering pipeline
-                scene->OnUpdate();
+                scene->OnUpdate(static_cast<float>((currentTime - timeAtPreviousFrame)*1000));
                 scene->OnRender();
 
                 if (scene->queued != nullptr) // scene has requested change to new scene
@@ -95,6 +101,15 @@ namespace Chinstrap::Application
                     scene->OnBegin();
                 }
                 // DON'T operate on scene in stack after possibly changing the scene
+            }
+            timeAtPreviousFrame = currentTime;
+
+            ++frameCount;
+            if (currentTime - timeAtPreviousSecond >= 1.0f)
+            {
+                Application::App::Get().framerate = frameCount;
+                frameCount = 0;
+                timeAtPreviousSecond = currentTime;
             }
         }
     }

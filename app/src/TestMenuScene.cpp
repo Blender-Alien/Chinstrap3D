@@ -14,7 +14,7 @@ void Game::TestMenuScene::OnBegin()
 {
 }
 
-void Game::TestMenuScene::OnUpdate()
+void Game::TestMenuScene::OnUpdate(float deltaTime)
 {
 }
 

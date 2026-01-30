@@ -35,12 +35,27 @@ void Chinstrap::DevInterface::ContextInfo(float posScaleX, float posScaleY)
     glGetIntegerv(GL_VIEWPORT, viewport);
     ImGui::Text("glViewportSize: %dx%d", viewport[2], viewport[3]);
 
+
     ImGui::End();
 #endif
 }
 
-void Chinstrap::DevInterface::Render(){ Render([](void){}); }
-void Chinstrap::DevInterface::Render(std::function<void()> lambda)
+void Chinstrap::DevInterface::PerformanceInfo(float posScaleX, float posScaleY)
+{
+    int x, y;
+    glfwGetWindowSize(Application::App::Get().frame->window, &x, &y);
+    ImGui::SetNextWindowPos(ImVec2(x * posScaleX, y * posScaleY));
+
+    ImGui::Begin("Performance");
+    ImGui::Text("%d FPS", Application::App::Get().framerate);
+
+    ImGui::Checkbox("VSync", &Application::App::Get().frame->frameSpec.vSync);
+    glfwSwapInterval(Application::App::Get().frame->frameSpec.vSync? 1 : 0);
+    ImGui::End();
+}
+
+void Chinstrap::DevInterface::Render(){ Render([](){}); }
+void Chinstrap::DevInterface::Render(void(*lambda)())
 {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -59,6 +74,7 @@ void Chinstrap::DevInterface::Initialize(float fontSize)
     ImGui::StyleColorsDark();
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
 
     ImGui_ImplGlfw_InitForOpenGL(Application::App::Get().frame->window, true);
     ImGui_ImplOpenGL3_Init();

@@ -7,7 +7,7 @@ namespace Game
     struct TestGLScene : public Chinstrap::Scene
     {
         void OnBegin() override;
-        void OnUpdate() override;
+        void OnUpdate(float deltaTime) override;
         void OnRender() override;
 
         void OnEvent(Chinstrap::Event &event) override;
