@@ -1,7 +1,7 @@
 #include "TestMenuScene.h"
 
-#include "chinstrap/src/InputEvents.h"
-#include "chinstrap/src/Logging.h"
+#include "../../chinstrap/src/events/InputEvents.h"
+#include "chinstrap/src/ops/Logging.h"
 
 // TODO: Move to Chinstrap:: render call
 #include "glad.h"

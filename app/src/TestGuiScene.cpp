@@ -1,8 +1,8 @@
 #include "TestGuiScene.h"
 
-#include "chinstrap/src/InputEvents.h"
+#include "../../chinstrap/src/events/InputEvents.h"
 #include "chinstrap/src/Application.h"
-#include "chinstrap/src/DevInterface.h"
+#include "../../chinstrap/src/ops/DevInterface.h"
 
 Game::TestGUIScene::~TestGUIScene()
 {

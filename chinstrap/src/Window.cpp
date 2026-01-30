@@ -4,12 +4,12 @@
 #include <iostream>
 #include <cassert>
 
-#include "InputEvents.h"
+#include "events/InputEvents.h"
 #include "Window.h"
 
-#include "Logging.h"
-#include "WindowEvents.h"
-#include "Renderer.h"
+#include "ops/Logging.h"
+#include "events/WindowEvents.h"
+#include "rendering/Renderer.h"
 
 
 namespace Chinstrap::Window

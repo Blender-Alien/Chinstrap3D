@@ -1,20 +1,21 @@
 # chinstrap
 
 set(SOURCES
-        src/Logging.h
+        src/ops/Logging.h
         src/Application.cpp
         src/Application.h
         src/Window.cpp
         src/Window.h
         src/Scene.cpp
         src/Scene.h
-        src/Event.h
-        src/WindowEvents.h
-        src/InputEvents.h
-        src/Renderer.h
-        src/Renderer.cpp
-        src/DevInterface.h
-        src/DevInterface.cpp
+        src/events/Event.h
+        src/events/WindowEvents.h
+        src/events/InputEvents.h
+        src/rendering/Renderer.h
+        src/rendering/Renderer.cpp
+        src/ops/DevInterface.h
+        src/ops/DevInterface.cpp
+        src/ops/Profiling.h
 
         ../vendor/fonts/Roboto/Roboto-Regular.h
 )

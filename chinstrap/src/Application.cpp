@@ -1,8 +1,9 @@
 #include "Application.h"
 #include "Window.h"
 #include "Scene.h"
-#include "Event.h"
-#include "Logging.h"
+#include "events/Event.h"
+#include "ops/Logging.h"
+#include "ops/Profiling.h"
 
 #include "GLFW/glfw3.h"
 
@@ -91,8 +92,10 @@ namespace Chinstrap::Application
             for (std::unique_ptr<Scene> &scene: appInstance->sceneStack)
             {
                 // TODO: Implement multithreaded rendering pipeline
-                scene->OnUpdate(static_cast<float>((currentTime - timeAtPreviousFrame)*1000));
-                scene->OnRender();
+
+                CHIN_PROFILE_TIME(scene->OnUpdate(static_cast<float>((currentTime - timeAtPreviousFrame)*1000)), scene->OnUpdateProfile);
+
+                CHIN_PROFILE_TIME(scene->OnRender(), scene->OnRenderProfile);
 
                 if (scene->queued != nullptr) // scene has requested change to new scene
                 {

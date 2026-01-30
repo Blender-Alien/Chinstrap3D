@@ -1,17 +1,21 @@
 #pragma once
 
-#include "Event.h"
+#include "events/Event.h"
+#include "events/InputEvents.h"
 
 #include <memory>
 #include <cassert>
 #include <string>
 
-#include "InputEvents.h"
 
 namespace Chinstrap {
     
     struct Scene
     {
+        float OnUpdateProfile = 0.0f;
+        float OnRenderProfile = 0.0f;
+        float OnEventProfile  = 0.0f;
+
         virtual ~Scene() = default;
 
         virtual void OnBegin() {}
@@ -29,7 +33,7 @@ namespace Chinstrap {
         }
         std::unique_ptr<Scene> queued = nullptr;
 
-        std::string GetName() const {return typeid(*this).name();};
+        [[nodiscard]] virtual std::string GetName() const { assert(false); return ""; }
     };
 
 }

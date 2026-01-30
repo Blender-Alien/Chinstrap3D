@@ -1,7 +1,7 @@
 #include "DevInterface.h"
 
-#include "Application.h"
-#include "Window.h"
+#include "../Application.h"
+#include "../Window.h"
 #include "Roboto/Roboto-Regular.h"
 
 #include "glad.h"
@@ -11,6 +11,7 @@
 #include "backends/imgui_impl_glfw.cpp"
 #include "backends/imgui_impl_opengl3.h"
 #include "imgui_internal.h"
+#include "../Scene.h"
 
 void Chinstrap::DevInterface::ContextInfo(float posScaleX, float posScaleY)
 {
@@ -40,8 +41,10 @@ void Chinstrap::DevInterface::ContextInfo(float posScaleX, float posScaleY)
 #endif
 }
 
+// For simple fps counter use different method
 void Chinstrap::DevInterface::PerformanceInfo(float posScaleX, float posScaleY)
 {
+#ifdef CHIN_DEBUG
     int x, y;
     glfwGetWindowSize(Application::App::Get().frame->window, &x, &y);
     ImGui::SetNextWindowPos(ImVec2(x * posScaleX, y * posScaleY));
@@ -51,7 +54,15 @@ void Chinstrap::DevInterface::PerformanceInfo(float posScaleX, float posScaleY)
 
     ImGui::Checkbox("VSync", &Application::App::Get().frame->frameSpec.vSync);
     glfwSwapInterval(Application::App::Get().frame->frameSpec.vSync? 1 : 0);
+
+    for (std::unique_ptr<Scene> &scene: Application::App::Get().sceneStack)
+    {
+        ImGui::Text("(%fms): OnUpdate() <- [%s]", scene->OnUpdateProfile, scene->GetName().c_str());
+        ImGui::Text("(%fms): OnRender() <- [%s]", scene->OnRenderProfile, scene->GetName().c_str());
+    }
+
     ImGui::End();
+#endif
 }
 
 void Chinstrap::DevInterface::Render(){ Render([](){}); }

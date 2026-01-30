@@ -1,7 +1,7 @@
 #include "Renderer.h"
 
 #include "glad.h"
-#include "Logging.h"
+#include "../ops/Logging.h"
 
 namespace Chinstrap
 {

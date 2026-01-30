@@ -4,7 +4,7 @@
 #include <vector>
 #include <memory>
 
-#include "Event.h"
+#include "events/Event.h"
 #include "Window.h"
 
 namespace Chinstrap
