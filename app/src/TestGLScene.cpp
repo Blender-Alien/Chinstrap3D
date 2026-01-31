@@ -10,17 +10,14 @@
 
 #include "glad.h"
 #include "GLFW/glfw3.h"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "TestMenuScene.h"
 
 void Game::TestGLScene::OnBegin()
 {
-
-    constexpr float verticesOriginal[] = {
-        -0.5f, -0.5f, 0.0f,
-        0.5f, -0.5f, 0.0f,
-        0.5f,  0.5f, 0.0f,
-    };
 
     constexpr float vertices[] = {
         0.5f, 0.5f, 0.0f,   // top right
@@ -29,7 +26,8 @@ void Game::TestGLScene::OnBegin()
         -0.5f, 0.5f, 0.0f,  // top left
     };
     constexpr unsigned int indices[] = {
-        0, 1, 3 // first triangle
+        0, 1, 3, // first triangle
+        3, 1, 2  // second triangle
     };
 
     unsigned int vertexArrayID;
@@ -51,9 +49,15 @@ void Game::TestGLScene::OnBegin()
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), static_cast<void *>(nullptr));
     glEnableVertexAttribArray(0);
 
-    Chinstrap::RendererData::Shader shader("../../../chinstrap/res/shaders/BasicVertex.shader", "../../../chinstrap/res/shaders/BasicFragment.shader");
+    Chinstrap::RendererData::Shader shader("../../../chinstrap/res/shaders/BasicVertex.glsl", "../../../chinstrap/res/shaders/BasicFragment.glsl");
     Chinstrap::Renderer::CompileShader(shader);
     Chinstrap::Renderer::BindShader(shader);
+
+    glm::mat4 trans = glm::mat4(1.0f);
+    trans = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+    unsigned int transformLoc = glGetUniformLocation(shader.ID, "transform");
+    GLCall(glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans)));
 
     glBindVertexArray(vertexArrayID);
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -69,7 +73,7 @@ void Game::TestGLScene::OnRender()
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, nullptr);
+    GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
 }
 
 bool Game::TestGLScene::OnKeyPress(const Chinstrap::KeyPressedEvent &event)

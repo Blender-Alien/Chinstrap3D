@@ -47,3 +47,6 @@ file(GLOB IMGUI_GLOB
 add_library(imgui STATIC ${IMGUI_GLOB})
 target_include_directories(imgui PUBLIC ${IMGUI_PATH})
 target_link_libraries(imgui PRIVATE glfw glad)
+
+# glm
+add_subdirectory(vendor/glm-1.0.3)
