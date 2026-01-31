@@ -4,14 +4,16 @@
 
 namespace Chinstrap
 {
-    struct Shader
+    namespace RendererData
     {
-        const std::string filepath;
-        unsigned int rendererID;
-        std::unordered_map<std::string, int> uniformLocationCache;
+        struct Shader
+        {
+            std::string vertexPath;
+            std::string fragmentPath;
+            unsigned int ID;
 
-        explicit Shader(const std::string& filepath);
-        ~Shader();
-    };
+            explicit Shader(const std::string& vertexPath, const std::string& fragmentPath);
+        };
 
+    }
 }

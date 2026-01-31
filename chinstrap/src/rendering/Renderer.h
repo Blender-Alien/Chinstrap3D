@@ -15,17 +15,15 @@ namespace Chinstrap
 {
     namespace Renderer
     {
+        void BindShader(const RendererData::Shader& shader);
+        void UnbindShader();
 
-        //void Draw(const VertexArray& vertexArray, const IndexBuffer& indexBuffer, const Shader& shader);
+        //TODO: Multithreaded shader-compile handler
+        void CompileShader(RendererData::Shader& shader);
 
-        void Clear();
-    }
-
-    namespace Shading
-    {
-        void Bind(const Shader& shader);
-        void Unbind();
-        void SetUniform4f(const std::string& name, float v0, float v1, float v2, float v3, Shader& shader);
+        void setUniformBool(RendererData::Shader& shader, const std::string &name, bool value);
+        void setUniformInt(RendererData::Shader& shader, const std::string &name, int value);
+        void setUniformFloat(RendererData::Shader& shader, const std::string &name, float value);
     }
 
     namespace GLDebug

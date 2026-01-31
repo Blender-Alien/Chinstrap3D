@@ -13,6 +13,8 @@ set(SOURCES
         src/events/InputEvents.h
         src/rendering/Renderer.h
         src/rendering/Renderer.cpp
+        src/rendering/RendererData.h
+        src/rendering/RendererData.cpp
         src/ops/DevInterface.h
         src/ops/DevInterface.cpp
         src/ops/Profiling.h
@@ -32,8 +34,7 @@ add_compile_definitions(
 
 target_link_libraries(chinstrap glfw)
 target_link_libraries(chinstrap glad)
-# Note that excluding spdlog from Release doesn't work as of 22.01.2026, https://gitlab.kitware.com/cmake/cmake/-/issues/24629
-target_link_libraries(chinstrap $<$<CONFIG:DEBUG>:spdlog::spdlog>)
+target_link_libraries(chinstrap spdlog::spdlog)
 target_link_libraries(chinstrap imgui)
 
 target_include_directories(chinstrap INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/.. PRIVATE ../vendor/fonts/)
