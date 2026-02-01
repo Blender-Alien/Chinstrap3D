@@ -9,7 +9,6 @@
 
 #include "ops/Logging.h"
 #include "events/WindowEvents.h"
-#include "rendering/Renderer.h"
 
 
 namespace Chinstrap::Window
@@ -44,6 +43,7 @@ namespace Chinstrap::Window
     void Create(Frame &frame)
     {
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
         glfwWindowHint(GLFW_SCALE_TO_MONITOR, 1);
 
         frame.window = glfwCreateWindow(
@@ -64,21 +64,8 @@ namespace Chinstrap::Window
         vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
         CHIN_LOG_INFO("{} extensions supported!", extensionCount);
 
-        float xscale, yscale;
-        glfwGetWindowContentScale(frame.window, &xscale, &yscale);
-        CHIN_LOG_INFO("Window scale: {0} by {1}", xscale, yscale);
-        frame.frameSpec.dpiScale = xscale;
-// Currently on Wayland with glfw-3.4 windowSize doesn't reflect the actual size in screen pixels (29.01.2026)
-#if defined(__linux__)
-        glfwSetWindowSize(frame.window, frame.frameSpec.width / xscale, frame.frameSpec.height / yscale);
-#elif defined(_WIN64)
-        glfwSetWindowSize(frame.window, frame.frameSpec.width, frame.frameSpec.height);
-#endif
-
-
         glfwMakeContextCurrent(frame.window);
 
-        glfwSetWindowSizeLimits(frame.window, 720, 480, GLFW_DONT_CARE, GLFW_DONT_CARE);
         //TODO: Proper aspect ratio handling
         glfwSetWindowAspectRatio(frame.window, 16, 9);
 
@@ -109,21 +96,6 @@ namespace Chinstrap::Window
             const Frame &userFrame = *static_cast<Frame *>(glfwGetWindowUserPointer(handle));
 
             WindowClosedEvent event;
-            userFrame.EventPassthrough(event);
-        });
-        glfwSetWindowSizeCallback(frame.window, [](GLFWwindow *handle, int width, int height)
-        {
-            Frame &userFrame = *static_cast<Frame *>(glfwGetWindowUserPointer(handle));
-
-        //TODO: Viewport Size adjust
-// Currently on Wayland with glfw-3.4 windowSize doesn't reflect the actual size in screen pixels (29.01.2026)
-#if defined(__linux__)
-#elif defined(_WIN64)
-#endif
-
-            glfwSetWindowSize(userFrame.window, width, height);
-
-            WindowResizedEvent event(width, height);
             userFrame.EventPassthrough(event);
         });
         glfwSetKeyCallback(frame.window, [](GLFWwindow *handle, int key, int scancode, int action, int mods)

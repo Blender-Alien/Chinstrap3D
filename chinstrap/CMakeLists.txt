@@ -1,29 +1,19 @@
 # chinstrap
 
-set(SOURCES
-        src/ops/Logging.h
-        src/Application.cpp
-        src/Application.h
-        src/Window.cpp
-        src/Window.h
-        src/Scene.cpp
-        src/Scene.h
-        src/events/Event.h
-        src/events/WindowEvents.h
-        src/events/InputEvents.h
-        src/rendering/Renderer.h
-        src/rendering/Renderer.cpp
-        src/rendering/RendererData.h
-        src/rendering/RendererData.cpp
-        src/ops/DevInterface.h
-        src/ops/DevInterface.cpp
-        src/ops/Profiling.h
+file(GLOB sources
+        "src/*.cpp"
+        "src/*.h"
+        "src/ops/*.cpp"
+        "src/ops/*.h"
+        "src/events/*.cpp"
+        "src/events/*.h"
+        "src/rendering/*.cpp"
+        "src/rendering/*.h"
 
-        ../vendor/fonts/Roboto/Roboto-Regular.h
+        "../vendor/fonts/Roboto/Roboto-Regular.h"
 )
 
-add_library(chinstrap STATIC)
-target_sources(chinstrap PRIVATE ${SOURCES})
+add_library(chinstrap STATIC ${sources})
 
 add_compile_definitions(
         GLFW_INCLUDE_NONE
@@ -39,6 +29,4 @@ target_link_libraries(chinstrap glm)
 
 target_include_directories(chinstrap INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/.. PRIVATE ../vendor/fonts/)
 
-target_precompile_headers(chinstrap
-    PRIVATE pch.h
-)
+target_precompile_headers(chinstrap PRIVATE pch.h)

@@ -7,6 +7,7 @@ realistic audio simulation with good pre-calculation tooling.
 - CMake
 - Clang (LLVM)
 - Ninja
+- Vulkan SDK ( https://vulkan.lunarg.com/ )
 
 ## Library Dependencies 
 - GLFW 3.4 ( https://glfw.org )

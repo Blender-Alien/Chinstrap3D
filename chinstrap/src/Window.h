@@ -43,6 +43,8 @@ namespace Chinstrap
             ViewPortSpec viewPortSpec;
             std::function<void(Event&)> EventPassthrough;
 
+            Frame(const Frame&) = delete;
+            Frame &operator=(const Frame&) = delete;
 
             explicit Frame(const FrameSpec &spec, const ViewPortSpec &viewportSpec);
             ~Frame();
