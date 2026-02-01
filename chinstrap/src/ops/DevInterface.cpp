@@ -4,12 +4,12 @@
 #include "../Window.h"
 #include "Roboto/Roboto-Regular.h"
 
-#include "glad.h"
 #define IMGUI_IMPL_OPENGL_LOADER_CUSTOM
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_glfw.cpp"
-#include "backends/imgui_impl_opengl3.h"
+#include "backends/imgui_impl_vulkan.h"
+#include "backends/imgui_impl_vulkan.cpp"
 #include "imgui_internal.h"
 #include "../Scene.h"
 
@@ -31,11 +31,7 @@ void Chinstrap::DevInterface::ContextInfo(float posScaleX, float posScaleY)
     y *= Application::App::Get().frame->frameSpec.dpiScale;
     ImGui::Text("WindowSize after Scaling: %dx%d", x, y);
 #endif
-
-    GLint viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
-    ImGui::Text("glViewportSize: %dx%d", viewport[2], viewport[3]);
-
+    // TODO: viewport size
 
     ImGui::End();
 #endif
@@ -68,14 +64,14 @@ void Chinstrap::DevInterface::PerformanceInfo(float posScaleX, float posScaleY)
 void Chinstrap::DevInterface::Render(){ Render([](){}); }
 void Chinstrap::DevInterface::Render(void(*lambda)())
 {
-    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
     lambda();
 
     ImGui::Render();
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    //ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), );
 }
 
 void Chinstrap::DevInterface::Initialize(float fontSize)
@@ -87,8 +83,7 @@ void Chinstrap::DevInterface::Initialize(float fontSize)
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
 
-    ImGui_ImplGlfw_InitForOpenGL(Application::App::Get().frame->window, true);
-    ImGui_ImplOpenGL3_Init();
+    ImGui_ImplGlfw_InitForVulkan(Application::App::Get().frame->window, true);
 
     float xscale, yscale;
     glfwGetWindowContentScale(Application::App::Get().frame->window, &xscale, &yscale);
@@ -103,7 +98,7 @@ void Chinstrap::DevInterface::Initialize(float fontSize)
 }
 void Chinstrap::DevInterface::Shutdown()
 {
-    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplVulkan_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 }

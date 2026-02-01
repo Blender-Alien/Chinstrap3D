@@ -11,7 +11,7 @@ int main()
 
     Chinstrap::Application::Init("Sandbox Application", frame, viewport);
     Chinstrap::Application::PushScene<Game::TestGLScene>();
-    Chinstrap::Application::PushScene<Game::TestGUIScene>();
+    //Chinstrap::Application::PushScene<Game::TestGUIScene>();
 
     Chinstrap::Application::Run();
 }

@@ -3,9 +3,6 @@
 #include "../../chinstrap/src/events/InputEvents.h"
 #include "chinstrap/src/ops/Logging.h"
 
-// TODO: Move to Chinstrap:: render call
-#include "glad.h"
-
 #include "TestGLScene.h"
 
 #include "GLFW/glfw3.h"
@@ -20,9 +17,6 @@ void Game::TestMenuScene::OnUpdate(float deltaTime)
 
 void Game::TestMenuScene::OnRender()
 {
-    // TODO: Move to Chinstrap:: render call
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
 }
 
 bool Game::TestMenuScene::OnKeyPress(const Chinstrap::KeyPressedEvent &event)

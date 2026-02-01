@@ -27,13 +27,12 @@ target_sources(chinstrap PRIVATE ${SOURCES})
 
 add_compile_definitions(
         GLFW_INCLUDE_NONE
-        GLEW_STATIC
         $<$<CONFIG:Debug>:CHIN_DEBUG>
         $<$<CONFIG:Release>:CHIN_RELEASE>
 )
 
+target_link_libraries(chinstrap Vulkan::Vulkan)
 target_link_libraries(chinstrap glfw)
-target_link_libraries(chinstrap glad)
 target_link_libraries(chinstrap spdlog::spdlog)
 target_link_libraries(chinstrap imgui)
 target_link_libraries(chinstrap glm)

@@ -1,4 +1,4 @@
-#include "glad.h"
+#define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
 
 #include <iostream>
@@ -43,9 +43,7 @@ namespace Chinstrap::Window
 
     void Create(Frame &frame)
     {
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_SCALE_TO_MONITOR, 1);
 
         frame.window = glfwCreateWindow(
@@ -61,6 +59,11 @@ namespace Chinstrap::Window
             assert(false);
         }
 
+        uint32_t extensionCount = 0;
+
+        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+        CHIN_LOG_INFO("{} extensions supported!", extensionCount);
+
         float xscale, yscale;
         glfwGetWindowContentScale(frame.window, &xscale, &yscale);
         CHIN_LOG_INFO("Window scale: {0} by {1}", xscale, yscale);
@@ -75,22 +78,11 @@ namespace Chinstrap::Window
 
         glfwMakeContextCurrent(frame.window);
 
-        if (gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)) == 0)
-        {
-            std::cerr << "Glad could not load!\n";
-            assert(false);
-        }
-
         glfwSetWindowSizeLimits(frame.window, 720, 480, GLFW_DONT_CARE, GLFW_DONT_CARE);
         //TODO: Proper aspect ratio handling
         glfwSetWindowAspectRatio(frame.window, 16, 9);
 
-        GLCall(glViewport(
-            static_cast<int>(frame.viewPortSpec.posScaleX * frame.frameSpec.width),
-            static_cast<int>(frame.viewPortSpec.posScaleY * frame.frameSpec.height),
-            static_cast<int>(frame.viewPortSpec.sizeScaleX * frame.frameSpec.width),
-            static_cast<int>(frame.viewPortSpec.sizeScaleY * frame.frameSpec.height)
-            ));
+        //TODO: Viewport Size adjust
 
         glfwSwapInterval(frame.frameSpec.vSync ? 1 : 0);
 
@@ -123,21 +115,10 @@ namespace Chinstrap::Window
         {
             Frame &userFrame = *static_cast<Frame *>(glfwGetWindowUserPointer(handle));
 
+        //TODO: Viewport Size adjust
 // Currently on Wayland with glfw-3.4 windowSize doesn't reflect the actual size in screen pixels (29.01.2026)
 #if defined(__linux__)
-            GLCall(glViewport(
-                static_cast<int>(userFrame.viewPortSpec.posScaleX * width * userFrame.frameSpec.dpiScale),
-                static_cast<int>(userFrame.viewPortSpec.posScaleY * height * userFrame.frameSpec.dpiScale),
-                static_cast<int>(userFrame.viewPortSpec.sizeScaleX * width * userFrame.frameSpec.dpiScale),
-                static_cast<int>(userFrame.viewPortSpec.sizeScaleY * height * userFrame.frameSpec.dpiScale)
-            ));
 #elif defined(_WIN64)
-            GLCall(glViewport(
-                static_cast<int>(userFrame.viewPortSpec.posScaleX * width),
-                static_cast<int>(userFrame.viewPortSpec.posScaleY * height),
-                static_cast<int>(userFrame.viewPortSpec.sizeScaleX * width),
-                static_cast<int>(userFrame.viewPortSpec.sizeScaleY * height)
-            ));
 #endif
 
             glfwSetWindowSize(userFrame.window, width, height);
