@@ -14,14 +14,18 @@ namespace Chinstrap
     };
 
 #define CHIN_EVENT_TYPE(TYPE) virtual EventType GetEventType() const override { return EventType::TYPE; }\
-                              static EventType GetStaticEventType() { return EventType::TYPE; }
+                              static EventType GetStaticEventType() { return EventType::TYPE; }\
+                              \
+                              bool IsHandled() override {return handled;}\
+                              void SetHandled(bool value) override {handled = value;}\
+                              bool handled = false; // Defining bool handled only in inheriting Event structs improves alignment and reduces memory footprint
 
     struct Event
     {
-        bool handled = false;
-
         virtual EventType GetEventType() const = 0;
         virtual std::string ToString() const = 0;
+        virtual bool IsHandled() {return false;}
+        virtual void SetHandled(bool value) {}
 
         virtual ~Event() = default;
     };
@@ -33,7 +37,7 @@ namespace Chinstrap
         {
             if (event.GetEventType() == T::GetStaticEventType() )
             {
-                event.handled = func(static_cast<T&>(event));
+                event.SetHandled(func(static_cast<T&>(event)));
             }
         }
     };

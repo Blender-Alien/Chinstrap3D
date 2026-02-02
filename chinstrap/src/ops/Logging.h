@@ -1,7 +1,7 @@
 #pragma once
+#include "spdlog/spdlog.h"
 
 #if CHIN_DEBUG
-#include "spdlog/spdlog.h"
 
 #define CHIN_LOG_INFO(...) spdlog::info(__VA_ARGS__)
 #define CHIN_LOG_WARN(...) spdlog::warn(__VA_ARGS__)

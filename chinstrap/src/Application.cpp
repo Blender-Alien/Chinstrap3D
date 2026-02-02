@@ -22,7 +22,7 @@ namespace Chinstrap::Application
             for (unsigned int i = appInstance->sceneStack.size(); i > 0; i--)
             {
                 appInstance->sceneStack[i-1]->OnEvent(event);
-                if (event.handled)
+                if (event.IsHandled())
                     return;
             }
         }
@@ -97,10 +97,11 @@ namespace Chinstrap::Application
 
                 CHIN_PROFILE_TIME(scene->OnRender(), scene->OnRenderProfile);
 
-                if (scene->queued != nullptr) // scene has requested change to new scene
+                if (scene->CreateQueued != nullptr) // scene has requested change to new scene
                 {
-                    CHIN_LOG_INFO("Scene Transition [{}]->[{}]", scene->GetName(), scene->queued->GetName());
-                    scene = std::move(scene->queued);
+                    CHIN_LOG_INFO("Unreferencing Scene: [{}] ...", scene->GetName());
+                    scene = std::move(scene->CreateQueued());
+                    CHIN_LOG_INFO("... Slotted in Scene: [{}]", scene->GetName());
                     scene->OnBegin();
                 }
                 // DON'T operate on scene in stack after possibly changing the scene
