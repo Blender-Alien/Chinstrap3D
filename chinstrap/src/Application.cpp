@@ -36,8 +36,8 @@ namespace Chinstrap::Application
 
     App::~App()
     {
-        glfwTerminate();
         appInstance = nullptr;
+        glfwTerminate();
     }
 
     App &App::Get()
@@ -82,7 +82,7 @@ namespace Chinstrap::Application
         {
             if (Window::ShouldClose(*appInstance->frame))
             {
-                appInstance->running = false;
+                Stop();
             }
 
             Window::Update(*appInstance->frame);
@@ -122,7 +122,5 @@ namespace Chinstrap::Application
     {
         appInstance->running = false;
     }
-
-
 }
 

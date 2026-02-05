@@ -18,6 +18,7 @@ add_library(chinstrap STATIC ${sources})
 add_compile_definitions(
         GLFW_INCLUDE_NONE
         $<$<CONFIG:Debug>:CHIN_DEBUG>
+        $<$<CONFIG:Debug>:CHIN_VK_VAL_LAYERS>
         $<$<CONFIG:Release>:CHIN_RELEASE>
 )
 

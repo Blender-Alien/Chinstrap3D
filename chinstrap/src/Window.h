@@ -1,5 +1,8 @@
 #pragma once
 
+#define GLFW_INCLUDE_VULKAN
+#include "GLFW/glfw3.h"
+
 #include "events/Event.h"
 
 #include <string>
@@ -29,8 +32,7 @@ namespace Chinstrap::Window
         bool vSync = true;
         bool isResizable;
 
-        explicit FrameSpec(const std::string &title, int width, int height, bool isResizable,
-                  bool vSync);
+        explicit FrameSpec(const std::string &title, int width, int height, bool isResizable, bool vSync);
     };
 
     struct Frame
@@ -38,8 +40,15 @@ namespace Chinstrap::Window
         std::function<void(Event&)> EventPassthrough;
         FrameSpec frameSpec;
         ViewPortSpec viewPortSpec;
+
         GLFWwindow *window = nullptr;
         GLFWmonitor *monitor = nullptr;
+
+        VkInstance vulkanInstance;
+        VkDebugUtilsMessengerEXT vulkanDebugMessenger;
+        const std::vector<const char*> validationLayers = {
+            "VK_LAYER_KHRONOS_validation"
+        };
 
         Frame(const Frame&) = delete;
         Frame &operator=(const Frame&) = delete;

@@ -9,7 +9,8 @@ int main()
     Chinstrap::Window::FrameSpec frame("Sandbox", 1920, 1080, true, true);
     Chinstrap::Window::ViewPortSpec viewport(0.0f, 0.0f, 1.0f, 1.0f);
 
-    Chinstrap::Application::Init("Sandbox Application", frame, viewport);
+    if (Chinstrap::Application::Init("Sandbox Application", frame, viewport) != 0)
+        return -1;
     Chinstrap::Application::PushScene<Game::TestGLScene>();
     //Chinstrap::Application::PushScene<Game::TestGUIScene>();
 

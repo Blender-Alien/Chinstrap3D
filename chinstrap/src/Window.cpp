@@ -9,6 +9,7 @@
 
 #include "ops/Logging.h"
 #include "events/WindowEvents.h"
+#include "rendering/VulkanFunctions.h"
 
 
 namespace Chinstrap::Window
@@ -31,6 +32,7 @@ namespace Chinstrap::Window
 
     Frame::~Frame()
     {
+        Vulkan::Shutdown(*this);
         if (window)
         {
             glfwDestroyWindow(window);
@@ -59,17 +61,12 @@ namespace Chinstrap::Window
             assert(false);
         }
 
-        uint32_t extensionCount = 0;
-
-        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-        CHIN_LOG_INFO("{} extensions supported!", extensionCount);
+        Vulkan::Init(frame);
 
         glfwMakeContextCurrent(frame.window);
 
         //TODO: Proper aspect ratio handling
         glfwSetWindowAspectRatio(frame.window, 16, 9);
-
-        //TODO: Viewport Size adjust
 
         glfwSwapInterval(frame.frameSpec.vSync ? 1 : 0);
 
