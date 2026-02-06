@@ -16,11 +16,25 @@ namespace Chinstrap::ChinVulkan
 
         VkQueue graphicsQueue = VK_NULL_HANDLE;
 
+        VkSwapchainKHR swapChain = VK_NULL_HANDLE;
+
+        const std::vector<const char*> deviceExtensions = {
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME
+        };
+
         VkDebugUtilsMessengerEXT debugMessenger;
         const std::vector<const char*> validationLayers = {
             "VK_LAYER_KHRONOS_validation"
         };
     };
+
+    struct SwapChainSupportDetails
+    {
+        VkSurfaceCapabilitiesKHR capabilities;
+        std::vector<VkSurfaceFormatKHR> formats;
+        std::vector<VkPresentModeKHR> presentModes;
+    };
+
     struct QueueFamilyIndices
     {
         std::optional<uint32_t> graphicsFamily;

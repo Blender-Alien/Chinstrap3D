@@ -19,14 +19,19 @@ namespace Chinstrap::Window
     {
     }
 
-    FrameSpec::FrameSpec(const std::string &title, int width, int height, bool isResizable,
-                         bool vSync)
-        : title(title), width(width), height(height), isResizable(isResizable), vSync(vSync)
+    FrameSpec::FrameSpec(const std::string &title, int width, int height)
+        : title(title), width(width), height(height)
+    {
+    }
+
+    Frame::Frame(const FrameSpec &spec, const ViewPortSpec &viewportSpec, const UserSettings::GraphicsSettings &graphicsSettings)
+        : frameSpec(spec), viewPortSpec(viewportSpec), graphicsSettings(graphicsSettings)
     {
     }
 
     Frame::Frame(const FrameSpec &spec, const ViewPortSpec &viewportSpec)
-        : frameSpec(spec), viewPortSpec(viewportSpec)
+        : frameSpec(spec), viewPortSpec(viewportSpec),
+          graphicsSettings()
     {
     }
 
@@ -65,13 +70,12 @@ namespace Chinstrap::Window
         ChinVulkan::CreateSurface(frame);
         ChinVulkan::PickPhysicalGPU(frame.vulkanContext);
         ChinVulkan::CreateVirtualGPU(frame.vulkanContext);
+        ChinVulkan::CreateSwapChain(frame);
 
         glfwMakeContextCurrent(frame.window);
 
         //TODO: Proper aspect ratio handling
         glfwSetWindowAspectRatio(frame.window, 16, 9);
-
-        glfwSwapInterval(frame.frameSpec.vSync ? 1 : 0);
 
         SetGLFWCallbacks(frame);
     }

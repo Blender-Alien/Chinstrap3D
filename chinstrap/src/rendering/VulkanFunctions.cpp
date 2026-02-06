@@ -1,16 +1,147 @@
 #include "VulkanFunctions.h"
 
 #define GLFW_INCLUDE_VULKAN
-#include <set>
-
 #include "GLFW/glfw3.h"
 
 #include "../ops/Logging.h"
 #include "../Window.h"
 #include "VulkanData.h"
 
+#include <set>
+#include <limits>
+#include <algorithm>
+#include <any>
+
 namespace Chinstrap::ChinVulkan
 {
+    namespace //* Externally Unavailable Functions *//
+    {
+        SwapChainSupportDetails querySwapChainSupport(VulkanContext& vulkanContext)
+        {
+            SwapChainSupportDetails details;
+
+            vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vulkanContext.physicalGPU, vulkanContext.renderSurface, &details.capabilities);
+
+            uint32_t formatCount;
+            vkGetPhysicalDeviceSurfaceFormatsKHR(vulkanContext.physicalGPU, vulkanContext.renderSurface, &formatCount, nullptr);
+            if (formatCount != 0)
+            {
+                details.formats.resize(formatCount);
+                vkGetPhysicalDeviceSurfaceFormatsKHR(vulkanContext.physicalGPU, vulkanContext.renderSurface, &formatCount, details.formats.data());
+            }
+
+            uint32_t presentationModeCount;
+            vkGetPhysicalDeviceSurfacePresentModesKHR(vulkanContext.physicalGPU, vulkanContext.renderSurface, &presentationModeCount, nullptr);
+            if (presentationModeCount != 0)
+            {
+                details.presentModes.resize(presentationModeCount);
+                vkGetPhysicalDeviceSurfacePresentModesKHR(vulkanContext.physicalGPU, vulkanContext.renderSurface, &presentationModeCount, details.presentModes.data());
+            }
+
+            return details;
+        }
+
+        QueueFamilyIndices findQueueFamilies(VulkanContext& vulkanContext)
+        {
+            QueueFamilyIndices indices;
+
+            uint32_t queueFamilyCount;
+            vkGetPhysicalDeviceQueueFamilyProperties(vulkanContext.physicalGPU, &queueFamilyCount, nullptr);
+            std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+            vkGetPhysicalDeviceQueueFamilyProperties(vulkanContext.physicalGPU, &queueFamilyCount, queueFamilies.data());
+
+            VkBool32 presentationSupport = false;
+
+            int index = 0;
+            for (const auto &queueFamily: queueFamilies)
+            {
+                vkGetPhysicalDeviceSurfaceSupportKHR(vulkanContext.physicalGPU, index, vulkanContext.renderSurface, &presentationSupport);
+                if (presentationSupport)
+                {
+                    indices.graphicsFamily = index;
+                }
+                if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+                {
+                    indices.presentationFamily = index;
+                }
+
+                if (indices.isComplete()) {break;}
+                ++index;
+            }
+
+            return indices;
+        }
+
+        VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats, UserSettings::GraphicsSettings& settings)
+        {
+            using namespace UserSettings;
+            for (const auto& availableFormat: availableFormats)
+            {
+                if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
+                    && settings.colorSpace == ColorSpaceMode::SRGB)
+                {
+                    return availableFormat;
+                }
+                // TODO: Accommodate all the relevant HDR formats
+                if (availableFormat.colorSpace == VK_COLOR_SPACE_HDR10_HLG_EXT || availableFormat.colorSpace == VK_COLOR_SPACE_HDR10_ST2084_EXT
+                    && settings.colorSpace == ColorSpaceMode::HDR)
+                {
+                    return availableFormat;
+                }
+            }
+            settings.colorSpace = UserSettings::ColorSpaceMode::SRGB; // There was no available HDR format
+            return availableFormats[0]; // Whatever Format is actually supported, no matter how crap it is
+        }
+
+        VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes, UserSettings::GraphicsSettings& settings)
+        {
+            using namespace UserSettings;
+            for (const auto& availablePresentMode: availablePresentModes)
+            {
+                if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR
+                  && settings.vSync == VSyncMode::FAST)
+                {
+                    return availablePresentMode;
+                }
+                if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR
+                  && settings.vSync == VSyncMode::OFF)
+                {
+                    return availablePresentMode;
+                }
+            }
+            if (settings.vSync != VSyncMode::ON)
+            {
+                CHIN_LOG_ERROR("Selected VSync Mode is not supported!");
+                settings.vSync = VSyncMode::ON; // Only this mode is guaranteed to be available
+            }
+            return VK_PRESENT_MODE_FIFO_KHR;
+        }
+
+        VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, const Window::Frame& frame, UserSettings::GraphicsSettings& settings)
+        {
+            if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
+            {
+                return capabilities.currentExtent;
+            }
+
+            int width, height;
+            glfwGetFramebufferSize(frame.window, &width, &height);
+
+            VkExtent2D actualExtent = {
+                static_cast<uint32_t>(width),
+                static_cast<uint32_t>(width)
+            };
+            actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width,
+                capabilities.maxImageExtent.width);
+            actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height,
+                capabilities.maxImageExtent.height);
+
+            return actualExtent;
+        }
+    }
+
+    //* Externally Available Functions *//
+
     void Init(VulkanContext &vulkanContext, const std::string& name)
     {
         uint32_t extensionCount = 0;
@@ -100,6 +231,7 @@ namespace Chinstrap::ChinVulkan
 
     void Shutdown(VulkanContext& vulkanContext)
     {
+        vkDestroySwapchainKHR(vulkanContext.virtualGPU, vulkanContext.swapChain, nullptr);
         vkDestroyDevice(vulkanContext.virtualGPU, nullptr);
 #ifdef CHIN_VK_VAL_LAYERS
         const auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(vulkanContext.instance, "vkDestroyDebugUtilsMessengerEXT"));
@@ -123,6 +255,58 @@ namespace Chinstrap::ChinVulkan
         }
     }
 
+    void CreateSwapChain(Window::Frame &frame)
+    {
+        SwapChainSupportDetails swapChainSupportDetails = querySwapChainSupport(frame.vulkanContext);
+
+        VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupportDetails.formats, frame.graphicsSettings);
+        VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupportDetails.presentModes, frame.graphicsSettings);
+        VkExtent2D extent = chooseSwapExtent(swapChainSupportDetails.capabilities, frame, frame.graphicsSettings);
+
+        uint32_t imageCount = swapChainSupportDetails.capabilities.minImageCount + 1;
+        if (swapChainSupportDetails.capabilities.maxImageCount > 0 && imageCount > swapChainSupportDetails.capabilities.maxImageCount)
+        {
+            imageCount = swapChainSupportDetails.capabilities.maxImageCount;
+        }
+
+        VkSwapchainCreateInfoKHR createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+        createInfo.surface = frame.vulkanContext.renderSurface;
+        createInfo.minImageCount = imageCount;
+        createInfo.imageFormat = surfaceFormat.format;
+        createInfo.imageColorSpace = surfaceFormat.colorSpace;
+        createInfo.imageExtent = extent;
+        createInfo.imageArrayLayers = 1;
+        createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+        QueueFamilyIndices indices = findQueueFamilies(frame.vulkanContext);
+        uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentationFamily.value()};
+        if (indices.graphicsFamily != indices.presentationFamily)
+        {
+            createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+            createInfo.queueFamilyIndexCount = 2;
+            createInfo.pQueueFamilyIndices = queueFamilyIndices;
+        }
+        else
+        {
+            createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            createInfo.queueFamilyIndexCount = 0;
+            createInfo.pQueueFamilyIndices = nullptr;
+        }
+
+        createInfo.preTransform = swapChainSupportDetails.capabilities.currentTransform; // No Transformations
+        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        createInfo.presentMode = presentMode;
+        createInfo.clipped = VK_TRUE;
+        createInfo.oldSwapchain = VK_NULL_HANDLE;
+
+        if (vkCreateSwapchainKHR(frame.vulkanContext.virtualGPU, &createInfo, nullptr, &frame.vulkanContext.swapChain) != VK_SUCCESS)
+        {
+            CHIN_LOG_CRITICAL("Failed to create Vulkan swapchain!");
+            assert(false);
+        }
+    }
+
     //TODO: Let user decide and make sure to make the right choice on handhelds like SteamDeck
     void PickPhysicalGPU(VulkanContext& vulkanContext)
     {
@@ -134,6 +318,9 @@ namespace Chinstrap::ChinVulkan
         std::vector<VkPhysicalDevice> devices(deviceCount);
         vkEnumeratePhysicalDevices(vulkanContext.instance, &deviceCount, devices.data());
 
+        uint32_t extensionCount;
+        bool extensionsSupported;
+        bool swapChainAdequate;
         for (const auto &device: devices)
         {
             VkPhysicalDeviceProperties deviceProperties;
@@ -141,14 +328,33 @@ namespace Chinstrap::ChinVulkan
             VkPhysicalDeviceFeatures deviceFeatures;
             vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
 
+            vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+            std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+            vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+
+            std::set<std::string> requiredExtensions(vulkanContext.deviceExtensions.begin(), vulkanContext.deviceExtensions.end());
+            for (const auto& extension : availableExtensions)
+            {
+                requiredExtensions.erase(extension.extensionName);
+            }
+
             VulkanContext temp;
             temp.physicalGPU = device;
             temp.renderSurface = vulkanContext.renderSurface;
             QueueFamilyIndices queues = findQueueFamilies(temp);
 
-            // These requirements are arbitrary for now
-            if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && deviceFeatures.geometryShader
-                && queues.isComplete() && (queues.graphicsFamily == queues.presentationFamily))
+            if ((extensionsSupported = requiredExtensions.empty()))
+            {
+                SwapChainSupportDetails swapChainDetails = querySwapChainSupport(temp);
+                swapChainAdequate = (!swapChainDetails.formats.empty() && !swapChainDetails.presentModes.empty());
+            }
+
+            if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU // Arbitrary
+                && deviceFeatures.geometryShader // Arbitrary
+                && (queues.graphicsFamily == queues.presentationFamily) // Arbitrary
+                && queues.isComplete() // Necessary
+                && extensionsSupported // Necessary
+                && swapChainAdequate)  // Necessary
             {
                 vulkanContext.physicalGPU = device;
                 return;
@@ -157,37 +363,6 @@ namespace Chinstrap::ChinVulkan
         //TODO: System to choose the next best fallback when preferred properties are not met, instead of giving up
         CHIN_LOG_CRITICAL("Failed to choose a GPU with given requirements!");
         assert(false);
-    }
-
-    QueueFamilyIndices findQueueFamilies(VulkanContext& vulkanContext)
-    {
-        QueueFamilyIndices indices;
-
-        uint32_t queueFamilyCount;
-        vkGetPhysicalDeviceQueueFamilyProperties(vulkanContext.physicalGPU, &queueFamilyCount, nullptr);
-        std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-        vkGetPhysicalDeviceQueueFamilyProperties(vulkanContext.physicalGPU, &queueFamilyCount, queueFamilies.data());
-
-        VkBool32 presentationSupport = false;
-
-        int index = 0;
-        for (const auto &queueFamily: queueFamilies)
-        {
-            vkGetPhysicalDeviceSurfaceSupportKHR(vulkanContext.physicalGPU, index, vulkanContext.renderSurface, &presentationSupport);
-            if (presentationSupport)
-            {
-                indices.graphicsFamily = index;
-            }
-            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-            {
-                indices.presentationFamily = index;
-            }
-
-            if (indices.isComplete()) {break;}
-            ++index;
-        }
-
-        return indices;
     }
 
     void CreateVirtualGPU(VulkanContext& vulkanContext)
@@ -217,6 +392,8 @@ namespace Chinstrap::ChinVulkan
         deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
         deviceCreateInfo.queueCreateInfoCount = 1;
         deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
+        deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(vulkanContext.deviceExtensions.size());
+        deviceCreateInfo.ppEnabledExtensionNames = vulkanContext.deviceExtensions.data();
 
         if (vkCreateDevice(vulkanContext.physicalGPU, &deviceCreateInfo, nullptr, &vulkanContext.virtualGPU) != VK_SUCCESS)
         {
@@ -226,4 +403,5 @@ namespace Chinstrap::ChinVulkan
 
         vkGetDeviceQueue(vulkanContext.virtualGPU, indices.graphicsFamily.value(), 0, &vulkanContext.graphicsQueue);
     }
+
 }

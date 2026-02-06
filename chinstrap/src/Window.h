@@ -1,6 +1,7 @@
 #pragma once
 #include "events/Event.h"
 #include "rendering/VulkanData.h"
+#include "UserSettings.h"
 
 #include <string>
 #include <functional>
@@ -26,10 +27,8 @@ namespace Chinstrap::Window
         float dpiScale = 1.0f;
         int width = 1280;
         int height = 720;
-        bool vSync = true;
-        bool isResizable;
 
-        explicit FrameSpec(const std::string &title, int width, int height, bool isResizable, bool vSync);
+        explicit FrameSpec(const std::string &title, int width, int height);
     };
 
     struct Frame
@@ -40,13 +39,15 @@ namespace Chinstrap::Window
 
         GLFWwindow *window = nullptr;
         GLFWmonitor *monitor = nullptr;
-
         ChinVulkan::VulkanContext vulkanContext;
+
+        UserSettings::GraphicsSettings graphicsSettings;
 
         Frame(const Frame&) = delete;
         Frame &operator=(const Frame&) = delete;
 
         explicit Frame(const FrameSpec &spec, const ViewPortSpec &viewportSpec);
+        explicit Frame(const FrameSpec &spec, const ViewPortSpec &viewportSpec, const UserSettings::GraphicsSettings &graphicsSettings);
         ~Frame();
     };
 
@@ -58,3 +59,4 @@ namespace Chinstrap::Window
 
     bool ShouldClose(const Frame &frame);
 }
+

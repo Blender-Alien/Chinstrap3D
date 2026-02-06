@@ -1,6 +1,7 @@
 #pragma once
 
 #define GLFW_INCLUDE_VULKAN
+#include "VulkanData.h"
 #include "../ops/Logging.h"
 #include "GLFW/glfw3.h"
 
@@ -13,13 +14,10 @@ namespace Chinstrap::ChinVulkan
     void Shutdown(VulkanContext &vulkanContext);
 
     void CreateSurface(Window::Frame &frame);
+    void CreateSwapChain(Window::Frame &frame);
 
     void PickPhysicalGPU(VulkanContext &vulkanContext);
-
-    QueueFamilyIndices findQueueFamilies(VulkanContext &vulkanContext);
-
     void CreateVirtualGPU(VulkanContext &vulkanContext);
-
 
     //TODO: 'vkCreateInstance' & 'vkDestroyInstance' Debug functionality
 #ifdef CHIN_VK_VAL_LAYERS
@@ -29,7 +27,7 @@ namespace Chinstrap::ChinVulkan
         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
         void* pUserData)
     {
-        CHIN_LOG_ERROR("Vulkan validation layer: >>>{}<<<", pCallbackData->pMessage);
+        CHIN_LOG_ERROR("[Vulkan validation layer] {}", pCallbackData->pMessage);
         return VK_FALSE;
     }
 #endif

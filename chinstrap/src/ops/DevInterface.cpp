@@ -48,8 +48,8 @@ void Chinstrap::DevInterface::PerformanceInfo(float posScaleX, float posScaleY)
     ImGui::Begin("Performance");
     ImGui::Text("%d FPS", Application::App::Get().framerate);
 
-    ImGui::Checkbox("VSync", &Application::App::Get().frame->frameSpec.vSync);
-    glfwSwapInterval(Application::App::Get().frame->frameSpec.vSync? 1 : 0);
+    //ImGui::Checkbox("VSync", &Application::App::Get().frame->frameSpec.vSync);
+    //glfwSwapInterval(Application::App::Get().frame->frameSpec.vSync? 1 : 0);
 
     for (std::unique_ptr<Scene> &scene: Application::App::Get().sceneStack)
     {
