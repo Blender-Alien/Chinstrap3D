@@ -17,6 +17,9 @@ namespace Chinstrap::ChinVulkan
         VkQueue graphicsQueue = VK_NULL_HANDLE;
 
         VkSwapchainKHR swapChain = VK_NULL_HANDLE;
+        std::vector<VkImage> swapChainImages;
+        VkFormat swapChainImageFormat;
+        VkExtent2D swapChainExtent;
 
         const std::vector<const char*> deviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME

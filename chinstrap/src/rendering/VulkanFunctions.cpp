@@ -305,6 +305,13 @@ namespace Chinstrap::ChinVulkan
             CHIN_LOG_CRITICAL("Failed to create Vulkan swapchain!");
             assert(false);
         }
+
+        vkGetSwapchainImagesKHR(frame.vulkanContext.virtualGPU, frame.vulkanContext.swapChain, &imageCount, nullptr);
+        frame.vulkanContext.swapChainImages.resize(imageCount);
+        vkGetSwapchainImagesKHR(frame.vulkanContext.virtualGPU, frame.vulkanContext.swapChain, &imageCount, frame.vulkanContext.swapChainImages.data());
+
+        frame.vulkanContext.swapChainImageFormat = surfaceFormat.format;
+        frame.vulkanContext.swapChainExtent = extent;
     }
 
     //TODO: Let user decide and make sure to make the right choice on handhelds like SteamDeck
