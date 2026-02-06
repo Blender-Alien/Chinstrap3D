@@ -1,3 +1,1 @@
-#pragma once
-
 #include "VulkanData.h"

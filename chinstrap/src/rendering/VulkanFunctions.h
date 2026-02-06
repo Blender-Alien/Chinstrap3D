@@ -5,14 +5,20 @@
 #include "GLFW/glfw3.h"
 
 namespace Chinstrap::Window {struct Frame;}
+namespace Chinstrap::ChinVulkan {struct QueueFamilyIndices; struct VulkanSetupData;}
 
-namespace Chinstrap::Vulkan
+namespace Chinstrap::ChinVulkan
 {
-    void Init(Window::Frame& frame);
-    void Shutdown(Window::Frame& frame);
+    void Init(VulkanSetupData &vulkanData, const std::string& name);
+    void Shutdown(VulkanSetupData &vulkanData);
+
+    void PickPhysicalGPU(VulkanSetupData &data);
+    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+
+    void CreateVirtualGPU(VulkanSetupData &vulkanData);
+
 
     //TODO: 'vkCreateInstance' & 'vkDestroyInstance' Debug functionality
-
 #ifdef CHIN_VK_VAL_LAYERS
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -20,7 +26,7 @@ namespace Chinstrap::Vulkan
         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
         void* pUserData)
     {
-        CHIN_LOG_ERROR("Vulkan validation layer: %s", pCallbackData->pMessage);
+        CHIN_LOG_ERROR("Vulkan validation layer: >>>{}<<<", pCallbackData->pMessage);
         return VK_FALSE;
     }
 #endif

@@ -1,9 +1,6 @@
 #pragma once
-
-#define GLFW_INCLUDE_VULKAN
-#include "GLFW/glfw3.h"
-
 #include "events/Event.h"
+#include "rendering/VulkanData.h"
 
 #include <string>
 #include <functional>
@@ -44,11 +41,7 @@ namespace Chinstrap::Window
         GLFWwindow *window = nullptr;
         GLFWmonitor *monitor = nullptr;
 
-        VkInstance vulkanInstance;
-        VkDebugUtilsMessengerEXT vulkanDebugMessenger;
-        const std::vector<const char*> validationLayers = {
-            "VK_LAYER_KHRONOS_validation"
-        };
+        ChinVulkan::VulkanSetupData vulkanSetupData;
 
         Frame(const Frame&) = delete;
         Frame &operator=(const Frame&) = delete;

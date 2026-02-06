@@ -32,7 +32,7 @@ namespace Chinstrap::Window
 
     Frame::~Frame()
     {
-        Vulkan::Shutdown(*this);
+        ChinVulkan::Shutdown(this->vulkanSetupData);
         if (window)
         {
             glfwDestroyWindow(window);
@@ -61,7 +61,9 @@ namespace Chinstrap::Window
             assert(false);
         }
 
-        Vulkan::Init(frame);
+        ChinVulkan::Init(frame.vulkanSetupData, frame.frameSpec.title);
+        ChinVulkan::PickPhysicalGPU(frame.vulkanSetupData);
+        ChinVulkan::CreateVirtualGPU(frame.vulkanSetupData);
 
         glfwMakeContextCurrent(frame.window);
 
@@ -86,7 +88,6 @@ namespace Chinstrap::Window
     void SetGLFWCallbacks(Frame &frame)
     {
         glfwSetWindowUserPointer(frame.window, &frame);
-
 
         glfwSetWindowCloseCallback(frame.window, [](GLFWwindow *handle)
         {
