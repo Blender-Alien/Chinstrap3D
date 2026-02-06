@@ -41,7 +41,7 @@ namespace Chinstrap::Window
         GLFWwindow *window = nullptr;
         GLFWmonitor *monitor = nullptr;
 
-        ChinVulkan::VulkanSetupData vulkanSetupData;
+        ChinVulkan::VulkanContext vulkanContext;
 
         Frame(const Frame&) = delete;
         Frame &operator=(const Frame&) = delete;

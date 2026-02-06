@@ -7,11 +7,12 @@
 
 namespace Chinstrap::ChinVulkan
 {
-    struct VulkanSetupData
+    struct VulkanContext
     {
         VkInstance instance;
         VkPhysicalDevice physicalGPU = VK_NULL_HANDLE;
         VkDevice virtualGPU = VK_NULL_HANDLE;
+        VkSurfaceKHR renderSurface = VK_NULL_HANDLE;
 
         VkQueue graphicsQueue = VK_NULL_HANDLE;
 
@@ -23,10 +24,11 @@ namespace Chinstrap::ChinVulkan
     struct QueueFamilyIndices
     {
         std::optional<uint32_t> graphicsFamily;
+        std::optional<uint32_t> presentationFamily;
 
         [[nodiscard]] bool isComplete() const
         {
-            return graphicsFamily.has_value();
+            return graphicsFamily.has_value() && presentationFamily.has_value();
         }
     };
 }

@@ -1,6 +1,8 @@
 #include "VulkanFunctions.h"
 
 #define GLFW_INCLUDE_VULKAN
+#include <set>
+
 #include "GLFW/glfw3.h"
 
 #include "../ops/Logging.h"
@@ -9,7 +11,7 @@
 
 namespace Chinstrap::ChinVulkan
 {
-    void Init(VulkanSetupData &vulkanData, const std::string& name)
+    void Init(VulkanContext &vulkanContext, const std::string& name)
     {
         uint32_t extensionCount = 0;
         vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
@@ -38,7 +40,7 @@ namespace Chinstrap::ChinVulkan
         createInfo.ppEnabledExtensionNames = extensions.data();
         createInfo.enabledLayerCount = 0;
 
-        if (vkCreateInstance(&createInfo, nullptr, &vulkanData.instance) != VK_SUCCESS)
+        if (vkCreateInstance(&createInfo, nullptr, &vulkanContext.instance) != VK_SUCCESS)
         {
             CHIN_LOG_CRITICAL("Failed to create Vulkan Instance!!!");
             assert(false);
@@ -51,7 +53,7 @@ namespace Chinstrap::ChinVulkan
         vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
         bool layerFound = false;
-        for (const char *layerName: vulkanData.validationLayers)
+        for (const char *layerName: vulkanContext.validationLayers)
         {
             layerFound = false;
             for (const auto &layerProperties: availableLayers)
@@ -69,8 +71,8 @@ namespace Chinstrap::ChinVulkan
         {
             CHIN_LOG_CRITICAL("Requested Vulkan Validation Layers, but they are not available!");
         }
-        createInfo.enabledLayerCount = static_cast<uint32_t>(vulkanData.validationLayers.size());
-        createInfo.ppEnabledLayerNames = vulkanData.validationLayers.data();
+        createInfo.enabledLayerCount = static_cast<uint32_t>(vulkanContext.validationLayers.size());
+        createInfo.ppEnabledLayerNames = vulkanContext.validationLayers.data();
 #else
         createInfo.enabledLayerCount = 0;
 #endif
@@ -86,41 +88,51 @@ namespace Chinstrap::ChinVulkan
         createMessengerInfo.pUserData = nullptr;
 
         // Create DebugUtilsMessangerEXT
-        const auto func = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(vulkanData.instance, "vkCreateDebugUtilsMessengerEXT"));
+        const auto func = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(vulkanContext.instance, "vkCreateDebugUtilsMessengerEXT"));
         if (func != nullptr)
         {
-            func(vulkanData.instance, &createMessengerInfo, nullptr, &vulkanData.debugMessenger);
+            func(vulkanContext.instance, &createMessengerInfo, nullptr, &vulkanContext.debugMessenger);
         } else {
             CHIN_LOG_ERROR("Failed to set up Vulkan debug messenger!");
         }
 #endif
     }
 
-    void Shutdown(VulkanSetupData& vulkanData)
+    void Shutdown(VulkanContext& vulkanContext)
     {
-        vkDestroyDevice(vulkanData.virtualGPU, nullptr);
+        vkDestroyDevice(vulkanContext.virtualGPU, nullptr);
 #ifdef CHIN_VK_VAL_LAYERS
-        const auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(vulkanData.instance, "vkDestroyDebugUtilsMessengerEXT"));
+        const auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(vulkanContext.instance, "vkDestroyDebugUtilsMessengerEXT"));
         if (func != nullptr)
         {
-            func(vulkanData.instance, vulkanData.debugMessenger, nullptr);
+            func(vulkanContext.instance, vulkanContext.debugMessenger, nullptr);
         } else {
             CHIN_LOG_ERROR("Failed to destroy Vulkan debug messenger!");
         }
 #endif
-        vkDestroyInstance(vulkanData.instance, nullptr);
+        vkDestroySurfaceKHR(vulkanContext.instance, vulkanContext.renderSurface, nullptr);
+        vkDestroyInstance(vulkanContext.instance, nullptr);
+    }
+
+    void CreateSurface(Window::Frame &frame)
+    {
+        if (glfwCreateWindowSurface(frame.vulkanContext.instance, frame.window, nullptr, &frame.vulkanContext.renderSurface) != VK_SUCCESS)
+        {
+            CHIN_LOG_CRITICAL("Failed to create rendering-surface on window: {}", frame.frameSpec.title);
+            assert(false);
+        }
     }
 
     //TODO: Let user decide and make sure to make the right choice on handhelds like SteamDeck
-    void PickPhysicalGPU(VulkanSetupData& data)
+    void PickPhysicalGPU(VulkanContext& vulkanContext)
     {
         uint32_t deviceCount;
-        vkEnumeratePhysicalDevices(data.instance, &deviceCount, nullptr);
+        vkEnumeratePhysicalDevices(vulkanContext.instance, &deviceCount, nullptr);
         if (deviceCount == 0)
             CHIN_LOG_CRITICAL("Failed to find GPUs with Vulkan support!");
 
         std::vector<VkPhysicalDevice> devices(deviceCount);
-        vkEnumeratePhysicalDevices(data.instance, &deviceCount, devices.data());
+        vkEnumeratePhysicalDevices(vulkanContext.instance, &deviceCount, devices.data());
 
         for (const auto &device: devices)
         {
@@ -128,32 +140,49 @@ namespace Chinstrap::ChinVulkan
             vkGetPhysicalDeviceProperties(device, &deviceProperties);
             VkPhysicalDeviceFeatures deviceFeatures;
             vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+            VulkanContext temp;
+            temp.physicalGPU = device;
+            temp.renderSurface = vulkanContext.renderSurface;
+            QueueFamilyIndices queues = findQueueFamilies(temp);
+
             // These requirements are arbitrary for now
             if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && deviceFeatures.geometryShader
-                || findQueueFamilies(device).isComplete())
+                && queues.isComplete() && (queues.graphicsFamily == queues.presentationFamily))
             {
-                data.physicalGPU = device;
+                vulkanContext.physicalGPU = device;
                 return;
             }
         }
+        //TODO: System to choose the next best fallback when preferred properties are not met, instead of giving up
+        CHIN_LOG_CRITICAL("Failed to choose a GPU with given requirements!");
+        assert(false);
     }
 
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device)
+    QueueFamilyIndices findQueueFamilies(VulkanContext& vulkanContext)
     {
         QueueFamilyIndices indices;
 
         uint32_t queueFamilyCount;
-        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+        vkGetPhysicalDeviceQueueFamilyProperties(vulkanContext.physicalGPU, &queueFamilyCount, nullptr);
         std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+        vkGetPhysicalDeviceQueueFamilyProperties(vulkanContext.physicalGPU, &queueFamilyCount, queueFamilies.data());
+
+        VkBool32 presentationSupport = false;
 
         int index = 0;
         for (const auto &queueFamily: queueFamilies)
         {
-            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+            vkGetPhysicalDeviceSurfaceSupportKHR(vulkanContext.physicalGPU, index, vulkanContext.renderSurface, &presentationSupport);
+            if (presentationSupport)
             {
                 indices.graphicsFamily = index;
             }
+            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+            {
+                indices.presentationFamily = index;
+            }
+
             if (indices.isComplete()) {break;}
             ++index;
         }
@@ -161,30 +190,40 @@ namespace Chinstrap::ChinVulkan
         return indices;
     }
 
-    void CreateVirtualGPU(VulkanSetupData& vulkanData)
+    void CreateVirtualGPU(VulkanContext& vulkanContext)
     {
-        QueueFamilyIndices indices = findQueueFamilies(vulkanData.physicalGPU);
-        VkDeviceQueueCreateInfo queueCreateInfo{};
-        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
-        queueCreateInfo.queueCount = 1;
+        QueueFamilyIndices indices = findQueueFamilies(vulkanContext);
+
+        std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+        std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentationFamily.value()};
+        queueCreateInfos.reserve(uniqueQueueFamilies.size());
         float queuePriority = 1.0f;
-        queueCreateInfo.pQueuePriorities = &queuePriority;
+
+        for (uint32_t queueFamily: uniqueQueueFamilies)
+        {
+            VkDeviceQueueCreateInfo queueCreateInfo = {};
+            queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            queueCreateInfo.queueFamilyIndex = queueFamily;
+            queueCreateInfo.queueCount = 1;
+            queueCreateInfo.pQueuePriorities = &queuePriority;
+            queueCreateInfos.push_back(queueCreateInfo);
+        }
 
         VkPhysicalDeviceFeatures deviceFeatures{};
 
         VkDeviceCreateInfo deviceCreateInfo{};
         deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
+        deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+        deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
         deviceCreateInfo.queueCreateInfoCount = 1;
         deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
 
-        if (vkCreateDevice(vulkanData.physicalGPU, &deviceCreateInfo, nullptr, &vulkanData.virtualGPU) != VK_SUCCESS)
+        if (vkCreateDevice(vulkanContext.physicalGPU, &deviceCreateInfo, nullptr, &vulkanContext.virtualGPU) != VK_SUCCESS)
         {
             CHIN_LOG_CRITICAL("Failed to create a Vulkan virtual GPU!");
             assert(false);
         }
 
-        vkGetDeviceQueue(vulkanData.virtualGPU, indices.graphicsFamily.value(), 0, &vulkanData.graphicsQueue);
+        vkGetDeviceQueue(vulkanContext.virtualGPU, indices.graphicsFamily.value(), 0, &vulkanContext.graphicsQueue);
     }
 }

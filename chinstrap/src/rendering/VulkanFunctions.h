@@ -5,17 +5,20 @@
 #include "GLFW/glfw3.h"
 
 namespace Chinstrap::Window {struct Frame;}
-namespace Chinstrap::ChinVulkan {struct QueueFamilyIndices; struct VulkanSetupData;}
+namespace Chinstrap::ChinVulkan {struct QueueFamilyIndices; struct VulkanContext;}
 
 namespace Chinstrap::ChinVulkan
 {
-    void Init(VulkanSetupData &vulkanData, const std::string& name);
-    void Shutdown(VulkanSetupData &vulkanData);
+    void Init(VulkanContext &vulkanContext, const std::string& name);
+    void Shutdown(VulkanContext &vulkanContext);
 
-    void PickPhysicalGPU(VulkanSetupData &data);
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+    void CreateSurface(Window::Frame &frame);
 
-    void CreateVirtualGPU(VulkanSetupData &vulkanData);
+    void PickPhysicalGPU(VulkanContext &vulkanContext);
+
+    QueueFamilyIndices findQueueFamilies(VulkanContext &vulkanContext);
+
+    void CreateVirtualGPU(VulkanContext &vulkanContext);
 
 
     //TODO: 'vkCreateInstance' & 'vkDestroyInstance' Debug functionality
