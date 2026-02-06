@@ -21,6 +21,8 @@ namespace Chinstrap::ChinVulkan
         VkFormat swapChainImageFormat;
         VkExtent2D swapChainExtent;
 
+        std::vector<VkImageView> swapChainImageViews;
+
         const std::vector<const char*> deviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME
         };

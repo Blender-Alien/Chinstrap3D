@@ -15,6 +15,7 @@ namespace Chinstrap::ChinVulkan
 
     void CreateSurface(Window::Frame &frame);
     void CreateSwapChain(Window::Frame &frame);
+    void CreateImageViews(Window::Frame &frame);
 
     void PickPhysicalGPU(VulkanContext &vulkanContext);
     void CreateVirtualGPU(VulkanContext &vulkanContext);

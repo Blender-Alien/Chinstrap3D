@@ -11,6 +11,7 @@
 #include <limits>
 #include <algorithm>
 #include <any>
+#include <ppltasks.h>
 
 namespace Chinstrap::ChinVulkan
 {
@@ -231,6 +232,10 @@ namespace Chinstrap::ChinVulkan
 
     void Shutdown(VulkanContext& vulkanContext)
     {
+        for (auto imageView : vulkanContext.swapChainImageViews)
+        {
+            vkDestroyImageView(vulkanContext.virtualGPU, imageView, nullptr);
+        }
         vkDestroySwapchainKHR(vulkanContext.virtualGPU, vulkanContext.swapChain, nullptr);
         vkDestroyDevice(vulkanContext.virtualGPU, nullptr);
 #ifdef CHIN_VK_VAL_LAYERS
@@ -312,6 +317,37 @@ namespace Chinstrap::ChinVulkan
 
         frame.vulkanContext.swapChainImageFormat = surfaceFormat.format;
         frame.vulkanContext.swapChainExtent = extent;
+    }
+
+    void CreateImageViews(Window::Frame &frame)
+    {
+        frame.vulkanContext.swapChainImageViews.resize(frame.vulkanContext.swapChainImages.size());
+
+        for (size_t i = 0; i < frame.vulkanContext.swapChainImages.size(); i++)
+        {
+            VkImageViewCreateInfo createInfo{};
+            createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+            createInfo.image = frame.vulkanContext.swapChainImages[i];
+            createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            createInfo.format = frame.vulkanContext.swapChainImageFormat;
+
+            createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+            createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+            createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+            createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+            createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            createInfo.subresourceRange.baseMipLevel = 0;
+            createInfo.subresourceRange.levelCount = 1;
+            createInfo.subresourceRange.baseArrayLayer = 0;
+            createInfo.subresourceRange.layerCount = 1;
+
+            if (vkCreateImageView(frame.vulkanContext.virtualGPU, &createInfo, nullptr, &frame.vulkanContext.swapChainImageViews[i]) != VK_SUCCESS)
+            {
+                CHIN_LOG_CRITICAL("Failed to create Vulkan image view!");
+                assert(false);
+            }
+        }
     }
 
     //TODO: Let user decide and make sure to make the right choice on handhelds like SteamDeck
