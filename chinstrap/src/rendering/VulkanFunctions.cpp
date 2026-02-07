@@ -146,7 +146,7 @@ namespace Chinstrap::ChinVulkan
     {
         uint32_t extensionCount = 0;
         vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-        CHIN_LOG_INFO("{} extensions supported!", extensionCount);
+
 
         VkApplicationInfo appInfo = {};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -227,6 +227,7 @@ namespace Chinstrap::ChinVulkan
             CHIN_LOG_ERROR("Failed to set up Vulkan debug messenger!");
         }
 #endif
+        CHIN_LOG_INFO("<Vulkan> Successfully initialized");
     }
 
     void Shutdown(VulkanContext& vulkanContext)
@@ -248,6 +249,7 @@ namespace Chinstrap::ChinVulkan
 #endif
         vkDestroySurfaceKHR(vulkanContext.instance, vulkanContext.renderSurface, nullptr);
         vkDestroyInstance(vulkanContext.instance, nullptr);
+        CHIN_LOG_INFO("<Vulkan> Successfully shut down");
     }
 
     void CreateSurface(Window::Frame &frame)
@@ -257,6 +259,7 @@ namespace Chinstrap::ChinVulkan
             CHIN_LOG_CRITICAL("Failed to create rendering-surface on window: {}", frame.frameSpec.title);
             assert(false);
         }
+        CHIN_LOG_INFO("<Vulkan> Successfully created rendering surface");
     }
 
     void CreateSwapChain(Window::Frame &frame)
@@ -316,6 +319,7 @@ namespace Chinstrap::ChinVulkan
 
         frame.vulkanContext.swapChainImageFormat = surfaceFormat.format;
         frame.vulkanContext.swapChainExtent = extent;
+        CHIN_LOG_INFO("<Vulkan> Successfully created SwapChain");
     }
 
     void CreateImageViews(Window::Frame &frame)
@@ -347,6 +351,7 @@ namespace Chinstrap::ChinVulkan
                 assert(false);
             }
         }
+        CHIN_LOG_INFO("<Vulkan> Successfully created ImageViews");
     }
 
     //TODO: Let user decide and make sure to make the right choice on handhelds like SteamDeck
@@ -355,7 +360,7 @@ namespace Chinstrap::ChinVulkan
         uint32_t deviceCount;
         vkEnumeratePhysicalDevices(vulkanContext.instance, &deviceCount, nullptr);
         if (deviceCount == 0)
-            CHIN_LOG_CRITICAL("Failed to find GPUs with Vulkan support!");
+            CHIN_LOG_CRITICAL("<Vulkan> Failed to find GPUs with Vulkan support!");
 
         std::vector<VkPhysicalDevice> devices(deviceCount);
         vkEnumeratePhysicalDevices(vulkanContext.instance, &deviceCount, devices.data());
@@ -399,11 +404,12 @@ namespace Chinstrap::ChinVulkan
                 && swapChainAdequate)  // Necessary
             {
                 vulkanContext.physicalGPU = device;
+                CHIN_LOG_INFO("<Vulkan> Successfully chose GPU");
                 return;
             }
         }
         //TODO: System to choose the next best fallback when preferred properties are not met, instead of giving up
-        CHIN_LOG_CRITICAL("Failed to choose a GPU with given requirements!");
+        CHIN_LOG_CRITICAL("<Vulkan> Failed to choose a GPU with given requirements!");
         assert(false);
     }
 
@@ -439,11 +445,12 @@ namespace Chinstrap::ChinVulkan
 
         if (vkCreateDevice(vulkanContext.physicalGPU, &deviceCreateInfo, nullptr, &vulkanContext.virtualGPU) != VK_SUCCESS)
         {
-            CHIN_LOG_CRITICAL("Failed to create a Vulkan virtual GPU!");
+            CHIN_LOG_CRITICAL("<Vulkan> Failed to create a Vulkan virtual GPU!");
             assert(false);
         }
 
         vkGetDeviceQueue(vulkanContext.virtualGPU, indices.graphicsFamily.value(), 0, &vulkanContext.graphicsQueue);
+        CHIN_LOG_INFO("<Vulkan> Successfully created virtual GPU");
     }
 
 }
