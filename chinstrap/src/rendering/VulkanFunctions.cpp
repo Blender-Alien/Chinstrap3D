@@ -11,7 +11,6 @@
 #include <limits>
 #include <algorithm>
 #include <any>
-#include <ppltasks.h>
 
 namespace Chinstrap::ChinVulkan
 {
