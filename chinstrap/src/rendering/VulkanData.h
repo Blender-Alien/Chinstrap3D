@@ -10,6 +10,7 @@ namespace Chinstrap::ChinVulkan
     struct VulkanContext
     {
         VkInstance instance;
+
         VkPhysicalDevice physicalGPU = VK_NULL_HANDLE;
         VkDevice virtualGPU = VK_NULL_HANDLE;
         VkSurfaceKHR renderSurface = VK_NULL_HANDLE;
@@ -20,8 +21,20 @@ namespace Chinstrap::ChinVulkan
         std::vector<VkImage> swapChainImages;
         VkFormat swapChainImageFormat;
         VkExtent2D swapChainExtent;
-
+        std::vector<VkFramebuffer> swapChainFramebuffers;
         std::vector<VkImageView> swapChainImageViews;
+
+        VkPipeline graphicsPipeline = VK_NULL_HANDLE;
+        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+
+        VkRenderPass renderPass = VK_NULL_HANDLE;
+
+        VkCommandPool commandPool = VK_NULL_HANDLE;
+        VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+
+        VkSemaphore imageAvailableSemaphore = VK_NULL_HANDLE;
+        VkSemaphore renderFinishedSemaphore = VK_NULL_HANDLE;
+        VkFence inFlightFence = VK_NULL_HANDLE;
 
         const std::vector<const char*> deviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME

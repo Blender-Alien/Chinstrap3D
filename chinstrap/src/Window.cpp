@@ -37,16 +37,9 @@ namespace Chinstrap::Window
 
     Frame::~Frame()
     {
-        ChinVulkan::Shutdown(this->vulkanContext);
-        if (window)
-        {
-            glfwDestroyWindow(window);
-        }
-        window = nullptr;
     }
 
     void SetGLFWCallbacks(Frame &frame);
-
     void Create(Frame &frame)
     {
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -71,6 +64,13 @@ namespace Chinstrap::Window
         ChinVulkan::PickPhysicalGPU(frame.vulkanContext);
         ChinVulkan::CreateVirtualGPU(frame.vulkanContext);
         ChinVulkan::CreateSwapChain(frame);
+        ChinVulkan::CreateImageViews(frame);
+        ChinVulkan::CreateRenderPass(frame.vulkanContext);
+        ChinVulkan::CreateGraphicsPipeline(frame.vulkanContext);
+        ChinVulkan::CreateFramebuffers(frame.vulkanContext);
+        ChinVulkan::CreateCommandPool(frame.vulkanContext);
+        ChinVulkan::CreateCommandBuffer(frame.vulkanContext);
+        ChinVulkan::CreateSyncObjects(frame.vulkanContext);
 
         glfwMakeContextCurrent(frame.window);
 
@@ -78,6 +78,17 @@ namespace Chinstrap::Window
         glfwSetWindowAspectRatio(frame.window, 16, 9);
 
         SetGLFWCallbacks(frame);
+    }
+
+    void Destroy(Frame &frame)
+    {
+        ChinVulkan::Shutdown(frame.vulkanContext);
+        if (frame.window)
+        {
+            glfwDestroyWindow(frame.window);
+        }
+        frame.window = nullptr;
+        glfwTerminate();
     }
 
     bool ShouldClose(const Frame &frame)

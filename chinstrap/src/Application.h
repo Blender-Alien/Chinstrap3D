@@ -29,7 +29,6 @@ namespace Chinstrap::Application
         App(App const&)  = delete;
         App(App const&&) = delete;
         App();
-        ~App();
     };
 
     int Init(const std::string& appName, Window::FrameSpec& spec, Window::ViewPortSpec& viewportSpec);

@@ -10,6 +10,8 @@
 #include <cassert>
 #include <memory>
 
+#include "rendering/VulkanFunctions.h"
+
 namespace Chinstrap::Application
 {
     namespace
@@ -32,12 +34,6 @@ namespace Chinstrap::Application
     {
         assert(appInstance == nullptr);
         running = false;
-    }
-
-    App::~App()
-    {
-        appInstance = nullptr;
-        glfwTerminate();
     }
 
     App &App::Get()
@@ -116,6 +112,10 @@ namespace Chinstrap::Application
                 timeAtPreviousSecond = currentTime;
             }
         }
+
+        // Cleanup after running
+        Window::Destroy(*appInstance->frame);
+        delete appInstance;
     }
 
     void Stop()

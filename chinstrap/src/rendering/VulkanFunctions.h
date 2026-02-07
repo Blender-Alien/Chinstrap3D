@@ -20,6 +20,31 @@ namespace Chinstrap::ChinVulkan
     void PickPhysicalGPU(VulkanContext &vulkanContext);
     void CreateVirtualGPU(VulkanContext &vulkanContext);
 
+    void CreateGraphicsPipeline(VulkanContext &vulkanContext);
+    void CreateRenderPass(VulkanContext &vulkanContext);
+    void CreateFramebuffers(VulkanContext &vulkanContext);
+
+    void CreateCommandPool(VulkanContext &vulkanContext);
+    void CreateCommandBuffer(VulkanContext &vulkanContext);
+
+    void RecordCommandBuffer(VkCommandBuffer &targetCommandBuffer, VulkanContext &vulkanContext, uint32_t imageIndex);
+    void CreateSyncObjects(VulkanContext &vulkanContext);
+
+    // TODO: Handle shaders properly
+    inline VkShaderModule CreateShaderModule(VulkanContext &vulkanContext, const std::vector<char>& code)
+    {
+        VkShaderModuleCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        createInfo.codeSize = code.size();
+        createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+
+        VkShaderModule shaderModule;
+        if (vkCreateShaderModule(vulkanContext.virtualGPU, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+        {
+            CHIN_LOG_ERROR("Failed to create shader module!");
+        }
+        return shaderModule;
+    }
     //TODO: 'vkCreateInstance' & 'vkDestroyInstance' Debug functionality
 #ifdef CHIN_VK_VAL_LAYERS
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(

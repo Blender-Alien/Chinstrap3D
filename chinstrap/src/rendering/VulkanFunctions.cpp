@@ -6,6 +6,7 @@
 #include "../ops/Logging.h"
 #include "../Window.h"
 #include "VulkanData.h"
+#include "Renderer.h"
 
 #include <set>
 #include <limits>
@@ -227,15 +228,31 @@ namespace Chinstrap::ChinVulkan
             CHIN_LOG_ERROR("Failed to set up Vulkan debug messenger!");
         }
 #endif
-        CHIN_LOG_INFO("<Vulkan> Successfully initialized");
+        CHIN_LOG_INFO("[Vulkan] Successfully initialized");
     }
 
     void Shutdown(VulkanContext& vulkanContext)
     {
+        vkDestroySemaphore(vulkanContext.virtualGPU, vulkanContext.imageAvailableSemaphore, nullptr);
+        vkDestroySemaphore(vulkanContext.virtualGPU, vulkanContext.renderFinishedSemaphore, nullptr);
+        vkDestroyFence(vulkanContext.virtualGPU, vulkanContext.inFlightFence, nullptr);
+
+        vkDestroyCommandPool(vulkanContext.virtualGPU, vulkanContext.commandPool, nullptr);
+
+        for (auto framebuffer : vulkanContext.swapChainFramebuffers)
+        {
+            vkDestroyFramebuffer(vulkanContext.virtualGPU, framebuffer, nullptr);
+        }
+
+        vkDestroyPipeline(vulkanContext.virtualGPU, vulkanContext.graphicsPipeline, nullptr);
+        vkDestroyPipelineLayout(vulkanContext.virtualGPU, vulkanContext.pipelineLayout, nullptr);
+        vkDestroyRenderPass(vulkanContext.virtualGPU, vulkanContext.renderPass, nullptr);
+
         for (auto imageView : vulkanContext.swapChainImageViews)
         {
             vkDestroyImageView(vulkanContext.virtualGPU, imageView, nullptr);
         }
+
         vkDestroySwapchainKHR(vulkanContext.virtualGPU, vulkanContext.swapChain, nullptr);
         vkDestroyDevice(vulkanContext.virtualGPU, nullptr);
 #ifdef CHIN_VK_VAL_LAYERS
@@ -249,7 +266,7 @@ namespace Chinstrap::ChinVulkan
 #endif
         vkDestroySurfaceKHR(vulkanContext.instance, vulkanContext.renderSurface, nullptr);
         vkDestroyInstance(vulkanContext.instance, nullptr);
-        CHIN_LOG_INFO("<Vulkan> Successfully shut down");
+        CHIN_LOG_INFO("[Vulkan] Successfully shut down");
     }
 
     void CreateSurface(Window::Frame &frame)
@@ -259,7 +276,7 @@ namespace Chinstrap::ChinVulkan
             CHIN_LOG_CRITICAL("Failed to create rendering-surface on window: {}", frame.frameSpec.title);
             assert(false);
         }
-        CHIN_LOG_INFO("<Vulkan> Successfully created rendering surface");
+        CHIN_LOG_INFO("[Vulkan] Successfully created rendering surface");
     }
 
     void CreateSwapChain(Window::Frame &frame)
@@ -319,7 +336,7 @@ namespace Chinstrap::ChinVulkan
 
         frame.vulkanContext.swapChainImageFormat = surfaceFormat.format;
         frame.vulkanContext.swapChainExtent = extent;
-        CHIN_LOG_INFO("<Vulkan> Successfully created SwapChain");
+        CHIN_LOG_INFO("[Vulkan] Successfully created SwapChain");
     }
 
     void CreateImageViews(Window::Frame &frame)
@@ -351,7 +368,7 @@ namespace Chinstrap::ChinVulkan
                 assert(false);
             }
         }
-        CHIN_LOG_INFO("<Vulkan> Successfully created ImageViews");
+        CHIN_LOG_INFO("[Vulkan] Successfully created ImageViews");
     }
 
     //TODO: Let user decide and make sure to make the right choice on handhelds like SteamDeck
@@ -360,7 +377,7 @@ namespace Chinstrap::ChinVulkan
         uint32_t deviceCount;
         vkEnumeratePhysicalDevices(vulkanContext.instance, &deviceCount, nullptr);
         if (deviceCount == 0)
-            CHIN_LOG_CRITICAL("<Vulkan> Failed to find GPUs with Vulkan support!");
+            CHIN_LOG_CRITICAL("[Vulkan] Failed to find GPUs with Vulkan support!");
 
         std::vector<VkPhysicalDevice> devices(deviceCount);
         vkEnumeratePhysicalDevices(vulkanContext.instance, &deviceCount, devices.data());
@@ -404,12 +421,12 @@ namespace Chinstrap::ChinVulkan
                 && swapChainAdequate)  // Necessary
             {
                 vulkanContext.physicalGPU = device;
-                CHIN_LOG_INFO("<Vulkan> Successfully chose GPU");
+                CHIN_LOG_INFO("[Vulkan] Successfully chose GPU");
                 return;
             }
         }
         //TODO: System to choose the next best fallback when preferred properties are not met, instead of giving up
-        CHIN_LOG_CRITICAL("<Vulkan> Failed to choose a GPU with given requirements!");
+        CHIN_LOG_CRITICAL("[Vulkan] Failed to choose a GPU with given requirements!");
         assert(false);
     }
 
@@ -445,12 +462,324 @@ namespace Chinstrap::ChinVulkan
 
         if (vkCreateDevice(vulkanContext.physicalGPU, &deviceCreateInfo, nullptr, &vulkanContext.virtualGPU) != VK_SUCCESS)
         {
-            CHIN_LOG_CRITICAL("<Vulkan> Failed to create a Vulkan virtual GPU!");
+            CHIN_LOG_CRITICAL("[Vulkan] Failed to create a Vulkan virtual GPU!");
             assert(false);
         }
 
         vkGetDeviceQueue(vulkanContext.virtualGPU, indices.graphicsFamily.value(), 0, &vulkanContext.graphicsQueue);
-        CHIN_LOG_INFO("<Vulkan> Successfully created virtual GPU");
+        CHIN_LOG_INFO("[Vulkan] Successfully created virtual GPU");
     }
 
+    void CreateGraphicsPipeline(VulkanContext &vulkanContext)
+    {
+        auto vertShaderCode = readFile("../../../chinstrap/res/shaders/BasicVertex.spv");
+        auto fragShaderCode = readFile("../../../chinstrap/res/shaders/BasicFragment.spv");
+
+        CHIN_LOG_INFO("[Vulkan] FragShader size: {0}; VertShader size: {1}", fragShaderCode.size(), vertShaderCode.size());
+
+        VkShaderModule vertShaderModule = CreateShaderModule(vulkanContext, vertShaderCode);
+        VkShaderModule fragShaderModule = CreateShaderModule(vulkanContext, fragShaderCode);
+
+        VkPipelineShaderStageCreateInfo vertShaderStageCreateInfo = {};
+        vertShaderStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        vertShaderStageCreateInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+        vertShaderStageCreateInfo.module = vertShaderModule;
+        vertShaderStageCreateInfo.pName = "main";
+
+        VkPipelineShaderStageCreateInfo fragShaderStageCreateInfo = {};
+        fragShaderStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        fragShaderStageCreateInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        fragShaderStageCreateInfo.module = fragShaderModule;
+        fragShaderStageCreateInfo.pName = "main";
+
+        VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageCreateInfo, fragShaderStageCreateInfo};
+
+        std::vector<VkDynamicState> dynamicStates = {
+            VK_DYNAMIC_STATE_VIEWPORT,
+            VK_DYNAMIC_STATE_SCISSOR
+        };
+        VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo{};
+        dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        dynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
+        dynamicStateCreateInfo.pDynamicStates = dynamicStates.data();
+
+        // Hard coding vertex info in vertex shader for now, thus no input
+        VkPipelineVertexInputStateCreateInfo vertexInputStateCreateInfo = {};
+        vertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+        vertexInputStateCreateInfo.vertexBindingDescriptionCount = 0;
+        vertexInputStateCreateInfo.pVertexBindingDescriptions = nullptr;
+        vertexInputStateCreateInfo.vertexAttributeDescriptionCount = 0;
+        vertexInputStateCreateInfo.pVertexAttributeDescriptions = nullptr;
+
+        VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo = {};
+        inputAssemblyStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+        inputAssemblyStateCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        inputAssemblyStateCreateInfo.primitiveRestartEnable = VK_FALSE;
+
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = static_cast<float>(vulkanContext.swapChainExtent.width);
+        viewport.height = static_cast<float>(vulkanContext.swapChainExtent.height);
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+
+        VkRect2D scissor{};
+        scissor.offset = { 0, 0 };
+        scissor.extent = vulkanContext.swapChainExtent;
+
+        VkPipelineViewportStateCreateInfo viewportStateCreateInfo = {};
+        viewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+        viewportStateCreateInfo.viewportCount = 1;
+        viewportStateCreateInfo.pViewports = &viewport;
+        viewportStateCreateInfo.scissorCount = 1;
+        viewportStateCreateInfo.pScissors = &scissor;
+
+        VkPipelineRasterizationStateCreateInfo rasterizationStateCreateInfo = {};
+        rasterizationStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+        rasterizationStateCreateInfo.depthClampEnable = VK_FALSE;
+        rasterizationStateCreateInfo.rasterizerDiscardEnable = VK_FALSE;
+        rasterizationStateCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
+        rasterizationStateCreateInfo.lineWidth = 1.0f;
+        rasterizationStateCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+        rasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+
+        rasterizationStateCreateInfo.depthBiasEnable = VK_FALSE;
+        rasterizationStateCreateInfo.depthBiasConstantFactor = 0.0f;
+        rasterizationStateCreateInfo.depthBiasClamp = 0.0f;
+        rasterizationStateCreateInfo.depthBiasSlopeFactor = 0.0f;
+
+        // Disabled for now
+        VkPipelineMultisampleStateCreateInfo multisampleStateCreateInfo = {};
+        multisampleStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+        multisampleStateCreateInfo.sampleShadingEnable = VK_FALSE;
+        multisampleStateCreateInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+        multisampleStateCreateInfo.minSampleShading = 1.0f;
+        multisampleStateCreateInfo.pSampleMask = nullptr;
+        multisampleStateCreateInfo.alphaToCoverageEnable = VK_FALSE;
+        multisampleStateCreateInfo.alphaToOneEnable = VK_FALSE;
+
+        VkPipelineColorBlendAttachmentState colorBlendAttachmentState = {};
+        colorBlendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        colorBlendAttachmentState.blendEnable = VK_FALSE;
+
+        VkPipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = {};
+        colorBlendStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        colorBlendStateCreateInfo.logicOpEnable = VK_FALSE;
+        colorBlendStateCreateInfo.logicOp = VK_LOGIC_OP_COPY;
+        colorBlendStateCreateInfo.attachmentCount = 1;
+        colorBlendStateCreateInfo.pAttachments = &colorBlendAttachmentState;
+
+        VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
+        pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+
+        if (vkCreatePipelineLayout(vulkanContext.virtualGPU, &pipelineLayoutCreateInfo, nullptr, &vulkanContext.pipelineLayout) != VK_SUCCESS)
+        {
+            CHIN_LOG_CRITICAL("[Vulkan] Failed to create pipeline layout!");
+            assert(false);
+        }
+
+        VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
+        graphicsPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        graphicsPipelineCreateInfo.stageCount = 2;
+        graphicsPipelineCreateInfo.pStages = shaderStages;
+        graphicsPipelineCreateInfo.pVertexInputState = &vertexInputStateCreateInfo;
+        graphicsPipelineCreateInfo.pInputAssemblyState = &inputAssemblyStateCreateInfo;
+        graphicsPipelineCreateInfo.pViewportState = &viewportStateCreateInfo;
+        graphicsPipelineCreateInfo.pRasterizationState = &rasterizationStateCreateInfo;
+        graphicsPipelineCreateInfo.pMultisampleState = &multisampleStateCreateInfo;
+        graphicsPipelineCreateInfo.pColorBlendState = &colorBlendStateCreateInfo;
+        graphicsPipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
+        graphicsPipelineCreateInfo.layout = vulkanContext.pipelineLayout;
+
+        graphicsPipelineCreateInfo.renderPass = vulkanContext.renderPass;
+        graphicsPipelineCreateInfo.subpass = 0;
+
+        graphicsPipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
+        graphicsPipelineCreateInfo.basePipelineIndex = -1;
+
+        if (vkCreateGraphicsPipelines(vulkanContext.virtualGPU, VK_NULL_HANDLE, 1, &graphicsPipelineCreateInfo, nullptr, &vulkanContext.graphicsPipeline)
+            != VK_SUCCESS)
+        {
+            CHIN_LOG_CRITICAL("[Vulkan] Failed to create graphics pipeline!");
+            assert(false);
+        }
+
+        CHIN_LOG_INFO("[Vulkan] Successfully created graphics pipeline");
+
+        vkDestroyShaderModule(vulkanContext.virtualGPU, vertShaderModule, nullptr);
+        vkDestroyShaderModule(vulkanContext.virtualGPU, fragShaderModule, nullptr);
+    }
+
+    void CreateRenderPass(VulkanContext &vulkanContext)
+    {
+
+        VkAttachmentDescription attachmentDescription = {};
+        attachmentDescription.format = vulkanContext.swapChainImageFormat;
+        attachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
+
+        attachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        attachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+        attachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+        attachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        attachmentDescription.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+        VkAttachmentReference attachmentReference = {};
+        attachmentReference.attachment = 0;
+        attachmentReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkSubpassDescription subpassDescription = {};
+        subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpassDescription.colorAttachmentCount = 1;
+        subpassDescription.pColorAttachments = &attachmentReference;
+
+        VkSubpassDependency subpassDependency = {};
+        subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        subpassDependency.dstSubpass = 0;
+        subpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        subpassDependency.srcAccessMask = 0;
+        subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        subpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+        VkRenderPassCreateInfo renderPassCreateInfo = {};
+        renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        renderPassCreateInfo.attachmentCount = 1;
+        renderPassCreateInfo.pAttachments = &attachmentDescription;
+        renderPassCreateInfo.subpassCount = 1;
+        renderPassCreateInfo.pSubpasses = &subpassDescription;
+        renderPassCreateInfo.dependencyCount = 1;
+        renderPassCreateInfo.pDependencies = &subpassDependency;
+
+        if (vkCreateRenderPass(vulkanContext.virtualGPU, &renderPassCreateInfo, nullptr, &vulkanContext.renderPass) != VK_SUCCESS)
+        {
+            CHIN_LOG_CRITICAL("[Vulkan] Failed to create render pass!");
+            assert(false);
+        }
+        CHIN_LOG_INFO("[Vulkan] Successfully created render pass");
+    }
+
+    void CreateFramebuffers(VulkanContext &vulkanContext)
+    {
+        vulkanContext.swapChainFramebuffers.resize(vulkanContext.swapChainImageViews.size());
+
+        for (size_t i = 0; i < vulkanContext.swapChainImageViews.size(); ++i)
+        {
+            const VkImageView attachments[] = { vulkanContext.swapChainImageViews[i] };
+
+            VkFramebufferCreateInfo framebufferCreateInfo = {};
+            framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            framebufferCreateInfo.renderPass = vulkanContext.renderPass;
+            framebufferCreateInfo.attachmentCount = 1;
+            framebufferCreateInfo.pAttachments = attachments;
+            framebufferCreateInfo.width = vulkanContext.swapChainExtent.width;
+            framebufferCreateInfo.height = vulkanContext.swapChainExtent.height;
+            framebufferCreateInfo.layers = 1;
+
+            if (vkCreateFramebuffer(vulkanContext.virtualGPU, &framebufferCreateInfo, nullptr, &vulkanContext.swapChainFramebuffers[i])
+                != VK_SUCCESS)
+            {
+                CHIN_LOG_ERROR("[Vulkan] Failed to create framebuffer!");
+            }
+        }
+    }
+
+    void CreateCommandPool(VulkanContext &vulkanContext)
+    {
+        QueueFamilyIndices queueFamilyIndices = findQueueFamilies(vulkanContext);
+
+        VkCommandPoolCreateInfo poolCreateInfo = {};
+        poolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        poolCreateInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+
+        if (vkCreateCommandPool(vulkanContext.virtualGPU, &poolCreateInfo, nullptr, &vulkanContext.commandPool) != VK_SUCCESS)
+        {
+            CHIN_LOG_CRITICAL("[Vulkan] Failed to create graphics command pool!");
+        }
+    }
+
+    void CreateCommandBuffer(VulkanContext &vulkanContext)
+    {
+        VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
+        commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        commandBufferAllocateInfo.commandPool = vulkanContext.commandPool;
+        commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        commandBufferAllocateInfo.commandBufferCount = 1;
+
+        if (vkAllocateCommandBuffers(vulkanContext.virtualGPU, &commandBufferAllocateInfo, &vulkanContext.commandBuffer) != VK_SUCCESS)
+        {
+            CHIN_LOG_CRITICAL("[Vulkan] Failed to create graphics command buffer!");
+        }
+    }
+
+    void RecordCommandBuffer(VkCommandBuffer &targetCommandBuffer, VulkanContext &vulkanContext, uint32_t imageIndex)
+    {
+        VkCommandBufferBeginInfo beginInfo = {};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+        if (vkBeginCommandBuffer(targetCommandBuffer, &beginInfo) != VK_SUCCESS)
+        {
+            CHIN_LOG_ERROR("[Vulkan] Failed to begin recording command buffer!");
+        }
+
+        VkRenderPassBeginInfo renderPassBeginInfo = {};
+        renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassBeginInfo.renderPass = vulkanContext.renderPass;
+        renderPassBeginInfo.framebuffer = vulkanContext.swapChainFramebuffers[imageIndex];
+        renderPassBeginInfo.renderArea.offset = { 0, 0 };
+        renderPassBeginInfo.renderArea.extent = vulkanContext.swapChainExtent;
+
+        constexpr VkClearValue clearValue = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+        renderPassBeginInfo.pClearValues = &clearValue;
+        renderPassBeginInfo.clearValueCount = 1;
+
+        vkCmdBeginRenderPass(targetCommandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        vkCmdBindPipeline(targetCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkanContext.graphicsPipeline);
+
+        VkViewport viewport = {};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = static_cast<float>(vulkanContext.swapChainExtent.width);
+        viewport.height = static_cast<float>(vulkanContext.swapChainExtent.height);
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(targetCommandBuffer, 0, 1, &viewport);
+
+        VkRect2D scissor = {};
+        scissor.offset = { 0, 0 };
+        scissor.extent = vulkanContext.swapChainExtent;
+        vkCmdSetScissor(targetCommandBuffer, 0, 1, &scissor);
+
+        vkCmdDraw(targetCommandBuffer, 3, 1, 0, 0);
+
+        vkCmdEndRenderPass(targetCommandBuffer);
+        if (vkEndCommandBuffer(targetCommandBuffer) != VK_SUCCESS)
+        {
+            CHIN_LOG_ERROR("[Vulkan] Failed to end recording command buffer!");
+        }
+    }
+
+    void CreateSyncObjects(VulkanContext &vulkanContext)
+    {
+        VkSemaphoreCreateInfo semaphoreCreateInfo = {};
+        semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+        VkFenceCreateInfo fenceCreateInfo = {};
+        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+        if (vkCreateSemaphore(vulkanContext.virtualGPU, &semaphoreCreateInfo, nullptr, &vulkanContext.imageAvailableSemaphore)
+            != VK_SUCCESS ||
+            vkCreateSemaphore(vulkanContext.virtualGPU, &semaphoreCreateInfo, nullptr, &vulkanContext.renderFinishedSemaphore)
+            != VK_SUCCESS ||
+            vkCreateFence(vulkanContext.virtualGPU, &fenceCreateInfo, nullptr, &vulkanContext.inFlightFence)
+            != VK_SUCCESS)
+        {
+            CHIN_LOG_CRITICAL("[Vulkan] Failed to create semaphores!");
+        }
+    }
 }

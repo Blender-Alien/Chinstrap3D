@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fstream>
 #include <set>
 #include <limits>
 #include <algorithm>
