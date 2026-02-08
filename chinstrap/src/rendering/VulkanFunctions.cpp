@@ -90,7 +90,12 @@ namespace Chinstrap::ChinVulkan
                     return availableFormat;
                 }
             }
-            settings.colorSpace = UserSettings::ColorSpaceMode::SRGB; // There was no available HDR format
+            if (settings.colorSpace != UserSettings::ColorSpaceMode::SRGB)
+            {
+                CHIN_LOG_ERROR_VULKAN("HDR is not supported!");
+                settings.colorSpace = UserSettings::ColorSpaceMode::SRGB; // There was no available HDR format
+            }
+            CHIN_LOG_ERROR_VULKAN("Chose fallback format and colorspace!");
             return availableFormats[0]; // Whatever Format is actually supported, no matter how crap it is
         }
 
@@ -112,7 +117,7 @@ namespace Chinstrap::ChinVulkan
             }
             if (settings.vSync != VSyncMode::ON)
             {
-                CHIN_LOG_ERROR("Selected VSync Mode is not supported!");
+                CHIN_LOG_ERROR_VULKAN("Selected VSync Mode is not supported!");
                 settings.vSync = VSyncMode::ON; // Only this mode is guaranteed to be available
             }
             return VK_PRESENT_MODE_FIFO_KHR;
@@ -174,7 +179,7 @@ namespace Chinstrap::ChinVulkan
 
         if (vkCreateInstance(&createInfo, nullptr, &vulkanContext.instance) != VK_SUCCESS)
         {
-            CHIN_LOG_CRITICAL("Failed to create Vulkan Instance!!!");
+            CHIN_LOG_CRITICAL_VULKAN("Failed to create instance!!!");
             assert(false);
         }
 
@@ -201,7 +206,7 @@ namespace Chinstrap::ChinVulkan
         }
         if (!layerFound)
         {
-            CHIN_LOG_CRITICAL("Requested Vulkan Validation Layers, but they are not available!");
+            CHIN_LOG_CRITICAL_VULKAN("Requested validation Layers, but they are not available!");
         }
         createInfo.enabledLayerCount = static_cast<uint32_t>(vulkanContext.validationLayers.size());
         createInfo.ppEnabledLayerNames = vulkanContext.validationLayers.data();
@@ -225,10 +230,10 @@ namespace Chinstrap::ChinVulkan
         {
             func(vulkanContext.instance, &createMessengerInfo, nullptr, &vulkanContext.debugMessenger);
         } else {
-            CHIN_LOG_ERROR("Failed to set up Vulkan debug messenger!");
+            CHIN_LOG_ERROR_VULKAN("Failed to set up Vulkan debug messenger!");
         }
 #endif
-        CHIN_LOG_INFO("[Vulkan] Successfully initialized");
+        CHIN_LOG_INFO_VULKAN("Successfully initialized");
     }
 
     void Shutdown(VulkanContext& vulkanContext)
@@ -261,22 +266,22 @@ namespace Chinstrap::ChinVulkan
         {
             func(vulkanContext.instance, vulkanContext.debugMessenger, nullptr);
         } else {
-            CHIN_LOG_ERROR("Failed to destroy Vulkan debug messenger!");
+            CHIN_LOG_ERROR_VULKAN("Failed to destroy debug messenger!");
         }
 #endif
         vkDestroySurfaceKHR(vulkanContext.instance, vulkanContext.renderSurface, nullptr);
         vkDestroyInstance(vulkanContext.instance, nullptr);
-        CHIN_LOG_INFO("[Vulkan] Successfully shut down");
+        CHIN_LOG_INFO_VULKAN("Successfully shut down");
     }
 
     void CreateSurface(Window::Frame &frame)
     {
         if (glfwCreateWindowSurface(frame.vulkanContext.instance, frame.window, nullptr, &frame.vulkanContext.renderSurface) != VK_SUCCESS)
         {
-            CHIN_LOG_CRITICAL("Failed to create rendering-surface on window: {}", frame.frameSpec.title);
+            CHIN_LOG_CRITICAL_VULKAN_F("Failed to create rendering-surface on window: {}", frame.frameSpec.title);
             assert(false);
         }
-        CHIN_LOG_INFO("[Vulkan] Successfully created rendering surface");
+        CHIN_LOG_INFO_VULKAN("Successfully created rendering surface");
     }
 
     void CreateSwapChain(Window::Frame &frame)
@@ -286,6 +291,8 @@ namespace Chinstrap::ChinVulkan
         VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupportDetails.formats, frame.graphicsSettings);
         VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupportDetails.presentModes, frame.graphicsSettings);
         VkExtent2D extent = chooseSwapExtent(swapChainSupportDetails.capabilities, frame, frame.graphicsSettings);
+
+        CHIN_LOG_INFO_VULKAN_F("SwapChain Info: Res: {0}x{1}", extent.width, extent.height);
 
         uint32_t imageCount = swapChainSupportDetails.capabilities.minImageCount + 1;
         if (swapChainSupportDetails.capabilities.maxImageCount > 0 && imageCount > swapChainSupportDetails.capabilities.maxImageCount)
@@ -326,7 +333,7 @@ namespace Chinstrap::ChinVulkan
 
         if (vkCreateSwapchainKHR(frame.vulkanContext.virtualGPU, &createInfo, nullptr, &frame.vulkanContext.swapChain) != VK_SUCCESS)
         {
-            CHIN_LOG_CRITICAL("Failed to create Vulkan swapchain!");
+            CHIN_LOG_CRITICAL_VULKAN("Failed to create SwapChain!");
             assert(false);
         }
 
@@ -336,7 +343,7 @@ namespace Chinstrap::ChinVulkan
 
         frame.vulkanContext.swapChainImageFormat = surfaceFormat.format;
         frame.vulkanContext.swapChainExtent = extent;
-        CHIN_LOG_INFO("[Vulkan] Successfully created SwapChain");
+        CHIN_LOG_INFO_VULKAN("Successfully created SwapChain");
     }
 
     void CreateImageViews(Window::Frame &frame)
@@ -364,11 +371,11 @@ namespace Chinstrap::ChinVulkan
 
             if (vkCreateImageView(frame.vulkanContext.virtualGPU, &createInfo, nullptr, &frame.vulkanContext.swapChainImageViews[i]) != VK_SUCCESS)
             {
-                CHIN_LOG_CRITICAL("Failed to create Vulkan image view!");
+                CHIN_LOG_CRITICAL_VULKAN("Failed to create Vulkan image view!");
                 assert(false);
             }
         }
-        CHIN_LOG_INFO("[Vulkan] Successfully created ImageViews");
+        CHIN_LOG_INFO_VULKAN("Successfully created ImageViews");
     }
 
     //TODO: Let user decide and make sure to make the right choice on handhelds like SteamDeck
@@ -377,7 +384,7 @@ namespace Chinstrap::ChinVulkan
         uint32_t deviceCount;
         vkEnumeratePhysicalDevices(vulkanContext.instance, &deviceCount, nullptr);
         if (deviceCount == 0)
-            CHIN_LOG_CRITICAL("[Vulkan] Failed to find GPUs with Vulkan support!");
+            CHIN_LOG_CRITICAL_VULKAN("Failed to find GPUs with Vulkan support!");
 
         std::vector<VkPhysicalDevice> devices(deviceCount);
         vkEnumeratePhysicalDevices(vulkanContext.instance, &deviceCount, devices.data());
@@ -421,12 +428,12 @@ namespace Chinstrap::ChinVulkan
                 && swapChainAdequate)  // Necessary
             {
                 vulkanContext.physicalGPU = device;
-                CHIN_LOG_INFO("[Vulkan] Successfully chose GPU");
+                CHIN_LOG_INFO_VULKAN("Successfully chose GPU");
                 return;
             }
         }
         //TODO: System to choose the next best fallback when preferred properties are not met, instead of giving up
-        CHIN_LOG_CRITICAL("[Vulkan] Failed to choose a GPU with given requirements!");
+        CHIN_LOG_CRITICAL_VULKAN("Failed to choose a GPU with given requirements!");
         assert(false);
     }
 
@@ -462,12 +469,12 @@ namespace Chinstrap::ChinVulkan
 
         if (vkCreateDevice(vulkanContext.physicalGPU, &deviceCreateInfo, nullptr, &vulkanContext.virtualGPU) != VK_SUCCESS)
         {
-            CHIN_LOG_CRITICAL("[Vulkan] Failed to create a Vulkan virtual GPU!");
+            CHIN_LOG_CRITICAL_VULKAN("Failed to create a Vulkan virtual GPU!");
             assert(false);
         }
 
         vkGetDeviceQueue(vulkanContext.virtualGPU, indices.graphicsFamily.value(), 0, &vulkanContext.graphicsQueue);
-        CHIN_LOG_INFO("[Vulkan] Successfully created virtual GPU");
+        CHIN_LOG_INFO_VULKAN("Successfully created virtual GPU");
     }
 
     void CreateGraphicsPipeline(VulkanContext &vulkanContext)
@@ -475,7 +482,7 @@ namespace Chinstrap::ChinVulkan
         auto vertShaderCode = readFile("../../../chinstrap/res/shaders/BasicVertex.spv");
         auto fragShaderCode = readFile("../../../chinstrap/res/shaders/BasicFragment.spv");
 
-        CHIN_LOG_INFO("[Vulkan] FragShader size: {0}; VertShader size: {1}", fragShaderCode.size(), vertShaderCode.size());
+        CHIN_LOG_INFO_VULKAN_F("FragShader size: {0}; VertShader size: {1}", fragShaderCode.size(), vertShaderCode.size());
 
         VkShaderModule vertShaderModule = CreateShaderModule(vulkanContext, vertShaderCode);
         VkShaderModule fragShaderModule = CreateShaderModule(vulkanContext, fragShaderCode);
@@ -575,7 +582,7 @@ namespace Chinstrap::ChinVulkan
 
         if (vkCreatePipelineLayout(vulkanContext.virtualGPU, &pipelineLayoutCreateInfo, nullptr, &vulkanContext.pipelineLayout) != VK_SUCCESS)
         {
-            CHIN_LOG_CRITICAL("[Vulkan] Failed to create pipeline layout!");
+            CHIN_LOG_CRITICAL_VULKAN("Failed to create pipeline layout!");
             assert(false);
         }
 
@@ -601,11 +608,11 @@ namespace Chinstrap::ChinVulkan
         if (vkCreateGraphicsPipelines(vulkanContext.virtualGPU, VK_NULL_HANDLE, 1, &graphicsPipelineCreateInfo, nullptr, &vulkanContext.graphicsPipeline)
             != VK_SUCCESS)
         {
-            CHIN_LOG_CRITICAL("[Vulkan] Failed to create graphics pipeline!");
+            CHIN_LOG_CRITICAL_VULKAN("Failed to create graphics pipeline!");
             assert(false);
         }
 
-        CHIN_LOG_INFO("[Vulkan] Successfully created graphics pipeline");
+        CHIN_LOG_INFO_VULKAN("Successfully created graphics pipeline");
 
         vkDestroyShaderModule(vulkanContext.virtualGPU, vertShaderModule, nullptr);
         vkDestroyShaderModule(vulkanContext.virtualGPU, fragShaderModule, nullptr);
@@ -655,10 +662,10 @@ namespace Chinstrap::ChinVulkan
 
         if (vkCreateRenderPass(vulkanContext.virtualGPU, &renderPassCreateInfo, nullptr, &vulkanContext.renderPass) != VK_SUCCESS)
         {
-            CHIN_LOG_CRITICAL("[Vulkan] Failed to create render pass!");
+            CHIN_LOG_CRITICAL_VULKAN("Failed to create render pass!");
             assert(false);
         }
-        CHIN_LOG_INFO("[Vulkan] Successfully created render pass");
+        CHIN_LOG_INFO_VULKAN("Successfully created render pass");
     }
 
     void CreateFramebuffers(VulkanContext &vulkanContext)
@@ -681,7 +688,7 @@ namespace Chinstrap::ChinVulkan
             if (vkCreateFramebuffer(vulkanContext.virtualGPU, &framebufferCreateInfo, nullptr, &vulkanContext.swapChainFramebuffers[i])
                 != VK_SUCCESS)
             {
-                CHIN_LOG_ERROR("[Vulkan] Failed to create framebuffer!");
+                CHIN_LOG_ERROR_VULKAN("Failed to create framebuffer!");
             }
         }
     }
@@ -697,7 +704,7 @@ namespace Chinstrap::ChinVulkan
 
         if (vkCreateCommandPool(vulkanContext.virtualGPU, &poolCreateInfo, nullptr, &vulkanContext.commandPool) != VK_SUCCESS)
         {
-            CHIN_LOG_CRITICAL("[Vulkan] Failed to create graphics command pool!");
+            CHIN_LOG_CRITICAL_VULKAN("Failed to create graphics command pool!");
         }
     }
 
@@ -711,7 +718,7 @@ namespace Chinstrap::ChinVulkan
 
         if (vkAllocateCommandBuffers(vulkanContext.virtualGPU, &commandBufferAllocateInfo, &vulkanContext.commandBuffer) != VK_SUCCESS)
         {
-            CHIN_LOG_CRITICAL("[Vulkan] Failed to create graphics command buffer!");
+            CHIN_LOG_CRITICAL_VULKAN("Failed to create graphics command buffer!");
         }
     }
 
@@ -722,7 +729,7 @@ namespace Chinstrap::ChinVulkan
 
         if (vkBeginCommandBuffer(targetCommandBuffer, &beginInfo) != VK_SUCCESS)
         {
-            CHIN_LOG_ERROR("[Vulkan] Failed to begin recording command buffer!");
+            CHIN_LOG_ERROR_VULKAN("Failed to begin recording command buffer!");
         }
 
         VkRenderPassBeginInfo renderPassBeginInfo = {};
@@ -759,7 +766,7 @@ namespace Chinstrap::ChinVulkan
         vkCmdEndRenderPass(targetCommandBuffer);
         if (vkEndCommandBuffer(targetCommandBuffer) != VK_SUCCESS)
         {
-            CHIN_LOG_ERROR("[Vulkan] Failed to end recording command buffer!");
+            CHIN_LOG_ERROR_VULKAN("Failed to end recording command buffer!");
         }
     }
 
@@ -779,7 +786,7 @@ namespace Chinstrap::ChinVulkan
             vkCreateFence(vulkanContext.virtualGPU, &fenceCreateInfo, nullptr, &vulkanContext.inFlightFence)
             != VK_SUCCESS)
         {
-            CHIN_LOG_CRITICAL("[Vulkan] Failed to create semaphores!");
+            CHIN_LOG_CRITICAL_VULKAN("Failed to create semaphores!");
         }
     }
 }

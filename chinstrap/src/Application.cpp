@@ -52,7 +52,8 @@ namespace Chinstrap::Application
             return -1;
         }
 
-        appInstance->frame = std::make_unique<Window::Frame>(frameSpec, viewportSpec);
+        UserSettings::GraphicsSettings settings(UserSettings::VSyncMode::ON, UserSettings::ColorSpaceMode::SRGB);
+        appInstance->frame = std::make_unique<Window::Frame>(frameSpec, viewportSpec, settings);
 
         Window::Create(*appInstance->frame);
 
