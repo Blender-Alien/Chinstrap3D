@@ -66,7 +66,7 @@ namespace Chinstrap::ChinVulkan
         VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
 
         const VulkanContext& vulkanContext;
-        Restaurant(const VulkanContext& vulkanContext);
+        explicit Restaurant(const VulkanContext& vulkanContext);
         ~Restaurant();
     };
 

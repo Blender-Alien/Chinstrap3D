@@ -5,7 +5,6 @@
 #include "../rendering/VulkanFunctions.h"
 #include "Roboto/Roboto-Regular.h"
 
-#define IMGUI_IMPL_OPENGL_LOADER_CUSTOM
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_glfw.cpp"

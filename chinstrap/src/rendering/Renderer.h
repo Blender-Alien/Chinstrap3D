@@ -10,6 +10,7 @@
 namespace Chinstrap::Renderer
 {
     void Setup();
+    void Delete();
     void DrawFrame();
 }
 

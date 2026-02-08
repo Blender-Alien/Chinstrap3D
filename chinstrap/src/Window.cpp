@@ -64,7 +64,6 @@ namespace Chinstrap::Window
         ChinVulkan::PickPhysicalGPU(frame.vulkanContext);
         ChinVulkan::CreateVirtualGPU(frame.vulkanContext);
         ChinVulkan::CreateSwapChain(frame);
-
         ChinVulkan::CreateSyncObjects(frame.vulkanContext);
 
         glfwMakeContextCurrent(frame.window);

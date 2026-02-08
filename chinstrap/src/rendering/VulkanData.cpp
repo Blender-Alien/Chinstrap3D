@@ -9,9 +9,9 @@ namespace Chinstrap::ChinVulkan
         const VkRenderPass& renderPass,
         const std::vector<char> &vertexShaderCode,
         const std::vector<char> &fragmentShaderCode)
-            : vulkanContext(vulkanContext),
-            vertexShaderCode(vertexShaderCode),
-            fragmentShaderCode(fragmentShaderCode)
+            : vertexShaderCode(vertexShaderCode),
+            fragmentShaderCode(fragmentShaderCode),
+            vulkanContext(vulkanContext)
     {
         /* Test configuration */
         CreateKitchen(vulkanContext, *this, renderPass);
@@ -46,7 +46,7 @@ namespace Chinstrap::ChinVulkan
     Restaurant::~Restaurant()
     {
         vkDestroyCommandPool(vulkanContext.virtualGPU, commandPool, nullptr);
-        for (auto framebuffer : swapChainFramebuffers)
+        for (auto &framebuffer : swapChainFramebuffers)
         {
             vkDestroyFramebuffer(vulkanContext.virtualGPU, framebuffer, nullptr);
         }
@@ -55,7 +55,7 @@ namespace Chinstrap::ChinVulkan
             kitchen.Cleanup();
         }
         vkDestroyRenderPass(vulkanContext.virtualGPU, renderPass, nullptr);
-        for (auto imageView : swapChainImageViews)
+        for (auto &imageView : swapChainImageViews)
         {
             vkDestroyImageView(vulkanContext.virtualGPU, imageView, nullptr);
         }
