@@ -5,6 +5,16 @@
 
 namespace Chinstrap::Renderer
 {
+    /* TEMPORARY HACK */
+    namespace
+    {
+        ChinVulkan::Restaurant* restaurant = nullptr;
+    }
+    void Setup()
+    {
+        restaurant = new ChinVulkan::Restaurant(Application::App::Get().frame->vulkanContext);
+    }
+    /* END OF HACK */
     void DrawFrame()
     {
         ChinVulkan::VulkanContext context = Application::App::Get().frame->vulkanContext;
@@ -14,9 +24,9 @@ namespace Chinstrap::Renderer
         uint32_t imageIndex;
         vkAcquireNextImageKHR(context.virtualGPU, context.swapChain, UINT64_MAX, context.imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
 
-        vkResetCommandBuffer(context.commandBuffer, 0);
+        vkResetCommandBuffer(restaurant->commandBuffer, 0);
 
-        ChinVulkan::RecordCommandBuffer(context.commandBuffer, context, imageIndex);
+        ChinVulkan::TestRecordCommandBuffer(restaurant->commandBuffer, *restaurant, restaurant->kitchens.front(), imageIndex);
         VkSubmitInfo submitinfo = {};
         submitinfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -27,7 +37,7 @@ namespace Chinstrap::Renderer
         submitinfo.pWaitDstStageMask = waitStages;
 
         submitinfo.commandBufferCount = 1;
-        submitinfo.pCommandBuffers = &context.commandBuffer;
+        submitinfo.pCommandBuffers = &restaurant->commandBuffer;
 
         VkSemaphore signalSemaphores[] = { context.renderFinishedSemaphore };
         submitinfo.signalSemaphoreCount = 1;

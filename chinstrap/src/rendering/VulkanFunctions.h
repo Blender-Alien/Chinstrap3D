@@ -15,25 +15,23 @@ namespace Chinstrap::ChinVulkan
 
     void CreateSurface(Window::Frame &frame);
     void CreateSwapChain(Window::Frame &frame);
-    void CreateImageViews(Window::Frame &frame);
+    void CreateImageViews(const VulkanContext &vulkanContext, std::vector<VkImageView> &imageViews);
 
     void PickPhysicalGPU(VulkanContext &vulkanContext);
     void CreateVirtualGPU(VulkanContext &vulkanContext);
 
-    void CreateGraphicsPipeline(VulkanContext &vulkanContext);
-    void CreateRenderPass(VulkanContext &vulkanContext);
-    void CreateFramebuffers(VulkanContext &vulkanContext);
+    void CreateKitchen(const VulkanContext &vulkanContext, Kitchen &kitchen, const VkRenderPass& renderPass);
+    void CreateRenderPass(const VulkanContext &vulkanContext, VkRenderPass& renderPass);
+    void CreateFramebuffers(const VulkanContext &vulkanContext, std::vector<VkFramebuffer>& framebuffers, const std::vector<VkImageView>& imageViews, const VkRenderPass& renderPass);
 
-    void CreateCommandPool(VulkanContext &vulkanContext);
-    void CreateCommandBuffer(VulkanContext &vulkanContext);
+    void CreateCommandPool(const VulkanContext &vulkanContext, VkCommandPool& commandPool);
+    void CreateCommandBuffer(const VulkanContext &vulkanContext, VkCommandBuffer& commandBuffer, const VkCommandPool& commandPool);
 
-    void RecordCommandBuffer(VkCommandBuffer &targetCommandBuffer, VulkanContext &vulkanContext, uint32_t imageIndex);
+    void TestRecordCommandBuffer(VkCommandBuffer &targetCommandBuffer, const Restaurant& restaurant, const Kitchen& kitchen, uint32_t imageIndex);
     void CreateSyncObjects(VulkanContext &vulkanContext);
 
-    QueueFamilyIndices findQueueFamilies(VulkanContext& vulkanContext);
-
     // TODO: Handle shaders properly
-    inline VkShaderModule CreateShaderModule(VulkanContext &vulkanContext, const std::vector<char>& code)
+    inline VkShaderModule CreateShaderModule(const VulkanContext &vulkanContext, const std::vector<char>& code)
     {
         VkShaderModuleCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;

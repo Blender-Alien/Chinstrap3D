@@ -13,25 +13,15 @@ namespace Chinstrap::ChinVulkan
         VkInstance instance;
 
         VkPhysicalDevice physicalGPU = VK_NULL_HANDLE;
-        VkDevice virtualGPU = VK_NULL_HANDLE;
-        VkSurfaceKHR renderSurface = VK_NULL_HANDLE;
+        VkSurfaceKHR windowSurface = VK_NULL_HANDLE;
 
+        VkDevice virtualGPU = VK_NULL_HANDLE;
         VkQueue graphicsQueue = VK_NULL_HANDLE;
 
         VkSwapchainKHR swapChain = VK_NULL_HANDLE;
         std::vector<VkImage> swapChainImages;
         VkFormat swapChainImageFormat;
         VkExtent2D swapChainExtent;
-        std::vector<VkFramebuffer> swapChainFramebuffers;
-        std::vector<VkImageView> swapChainImageViews;
-
-        VkPipeline graphicsPipeline = VK_NULL_HANDLE;
-        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-
-        VkRenderPass renderPass = VK_NULL_HANDLE;
-
-        VkCommandPool commandPool = VK_NULL_HANDLE;
-        VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
 
         VkSemaphore imageAvailableSemaphore = VK_NULL_HANDLE;
         VkSemaphore renderFinishedSemaphore = VK_NULL_HANDLE;
@@ -47,8 +37,37 @@ namespace Chinstrap::ChinVulkan
         };
     };
 
-    struct Pipeline
+    struct Kitchen
     {
+        VkPipeline pipeline = VK_NULL_HANDLE;
+        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+
+        const std::vector<char> vertexShaderCode;
+        const std::vector<char> fragmentShaderCode;
+
+        const VulkanContext& vulkanContext;
+        Kitchen(const VulkanContext& vulkanContext,
+            const VkRenderPass& renderPass,
+            const std::vector<char>& vertexShaderCode,
+            const std::vector<char>& fragmentShaderCode);
+
+        void Cleanup();
+    };
+
+    struct Restaurant
+    {
+        std::vector<Kitchen> kitchens;
+
+        VkRenderPass renderPass = VK_NULL_HANDLE;
+        std::vector<VkFramebuffer> swapChainFramebuffers;
+        std::vector<VkImageView> swapChainImageViews;
+
+        VkCommandPool commandPool = VK_NULL_HANDLE;
+        VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+
+        const VulkanContext& vulkanContext;
+        Restaurant(const VulkanContext& vulkanContext);
+        ~Restaurant();
     };
 
     struct SwapChainSupportDetails

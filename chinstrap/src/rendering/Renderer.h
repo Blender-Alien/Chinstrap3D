@@ -9,6 +9,7 @@
 
 namespace Chinstrap::Renderer
 {
+    void Setup();
     void DrawFrame();
 }
 

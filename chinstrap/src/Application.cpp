@@ -74,6 +74,9 @@ namespace Chinstrap::Application
         double currentTime = 0.0f;
         int frameCount = 0;
 
+        Renderer::Setup();
+
+        unsigned int renderIndex = 0;
         while (appInstance->running)
         {
             if (Window::ShouldClose(*appInstance->frame))
@@ -84,11 +87,14 @@ namespace Chinstrap::Application
             Window::Update(*appInstance->frame);
             glfwPollEvents();
 
+            for (renderIndex = appInstance->sceneStack.size(); renderIndex > 0; renderIndex--)
+            {
+                CHIN_PROFILE_TIME(appInstance->sceneStack[renderIndex-1]->OnRender(), appInstance->sceneStack[renderIndex-1]->OnRenderProfile);
+            }
             currentTime = glfwGetTime();
             for (std::unique_ptr<Scene> &scene: appInstance->sceneStack)
             {
                 CHIN_PROFILE_TIME(scene->OnUpdate(static_cast<float>((currentTime - timeAtPreviousFrame)*1000)), scene->OnUpdateProfile);
-                CHIN_PROFILE_TIME(scene->OnRender(), scene->OnRenderProfile);
 
                 if (scene->CreateQueued != nullptr) // scene has requested change to new scene
                 {
