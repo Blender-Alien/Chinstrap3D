@@ -14,6 +14,10 @@ namespace Chinstrap::Renderer
     {
         restaurant = new ChinVulkan::Restaurant(Application::App::Get().frame->vulkanContext);
     }
+    void Delete()
+    {
+        delete restaurant;
+    }
     /* END OF HACK */
     void DrawFrame()
     {

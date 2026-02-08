@@ -123,6 +123,7 @@ namespace Chinstrap::Application
         }
 
         vkDeviceWaitIdle(appInstance->frame->vulkanContext.virtualGPU);
+        Renderer::Delete();
         Window::Destroy(*appInstance->frame);
         delete appInstance;
     }
