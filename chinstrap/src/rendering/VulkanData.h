@@ -28,7 +28,8 @@ namespace Chinstrap::ChinVulkan
         VkFence inFlightFence = VK_NULL_HANDLE;
 
         const std::vector<const char*> deviceExtensions = {
-            VK_KHR_SWAPCHAIN_EXTENSION_NAME
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+            VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME
         };
 
         VkDebugUtilsMessengerEXT debugMessenger;
@@ -47,7 +48,6 @@ namespace Chinstrap::ChinVulkan
 
         const VulkanContext& vulkanContext;
         Kitchen(const VulkanContext& vulkanContext,
-            const VkRenderPass& renderPass,
             const std::vector<char>& vertexShaderCode,
             const std::vector<char>& fragmentShaderCode);
 
@@ -58,8 +58,6 @@ namespace Chinstrap::ChinVulkan
     {
         std::vector<Kitchen> kitchens;
 
-        VkRenderPass renderPass = VK_NULL_HANDLE;
-        std::vector<VkFramebuffer> swapChainFramebuffers;
         std::vector<VkImageView> swapChainImageViews;
 
         VkCommandPool commandPool = VK_NULL_HANDLE;

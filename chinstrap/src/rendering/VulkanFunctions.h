@@ -20,9 +20,7 @@ namespace Chinstrap::ChinVulkan
     void PickPhysicalGPU(VulkanContext &vulkanContext);
     void CreateVirtualGPU(VulkanContext &vulkanContext);
 
-    void CreateKitchen(const VulkanContext &vulkanContext, Kitchen &kitchen, const VkRenderPass& renderPass);
-    void CreateRenderPass(const VulkanContext &vulkanContext, VkRenderPass& renderPass);
-    void CreateFramebuffers(const VulkanContext &vulkanContext, std::vector<VkFramebuffer>& framebuffers, const std::vector<VkImageView>& imageViews, const VkRenderPass& renderPass);
+    void CreateKitchen(const VulkanContext &vulkanContext, Kitchen &kitchen);
 
     void CreateCommandPool(const VulkanContext &vulkanContext, VkCommandPool& commandPool);
     void CreateCommandBuffer(const VulkanContext &vulkanContext, VkCommandBuffer& commandBuffer, const VkCommandPool& commandPool);

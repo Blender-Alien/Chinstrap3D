@@ -6,7 +6,6 @@
 #include "../ops/Logging.h"
 #include "../Window.h"
 #include "VulkanData.h"
-#include "Renderer.h"
 
 #include <set>
 #include <limits>
@@ -159,7 +158,7 @@ namespace Chinstrap::ChinVulkan
         appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.pEngineName = "Chinstrap3D";
         appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.apiVersion = VK_API_VERSION_1_0;
+        appInfo.apiVersion = VK_API_VERSION_1_3;
 
         VkInstanceCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -438,7 +437,7 @@ namespace Chinstrap::ChinVulkan
         CHIN_LOG_INFO_VULKAN("Successfully created virtual GPU");
     }
 
-    void CreateKitchen(const VulkanContext &vulkanContext, Kitchen &kitchen, const VkRenderPass& renderPass)
+    void CreateKitchen(const VulkanContext &vulkanContext, Kitchen &kitchen)
     {
         CHIN_LOG_INFO_VULKAN_F("FragShader size: {0}; VertShader size: {1}", kitchen.fragmentShaderCode.size(), kitchen.vertexShaderCode.size());
 
@@ -544,8 +543,16 @@ namespace Chinstrap::ChinVulkan
             assert(false);
         }
 
+        VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo = {};
+        pipelineRenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+        pipelineRenderingCreateInfo.pNext = VK_NULL_HANDLE;
+        pipelineRenderingCreateInfo.colorAttachmentCount = 1;
+        pipelineRenderingCreateInfo.pColorAttachmentFormats = &kitchen.vulkanContext.swapChainImageFormat;
+
         VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
         graphicsPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        graphicsPipelineCreateInfo.pNext = &pipelineRenderingCreateInfo;
+        graphicsPipelineCreateInfo.renderPass = VK_NULL_HANDLE;
         graphicsPipelineCreateInfo.stageCount = 2;
         graphicsPipelineCreateInfo.pStages = shaderStages;
         graphicsPipelineCreateInfo.pVertexInputState = &vertexInputStateCreateInfo;
@@ -556,12 +563,6 @@ namespace Chinstrap::ChinVulkan
         graphicsPipelineCreateInfo.pColorBlendState = &colorBlendStateCreateInfo;
         graphicsPipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
         graphicsPipelineCreateInfo.layout = kitchen.pipelineLayout;
-
-        graphicsPipelineCreateInfo.renderPass = renderPass;
-        graphicsPipelineCreateInfo.subpass = 0;
-
-        graphicsPipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
-        graphicsPipelineCreateInfo.basePipelineIndex = -1;
 
         if (vkCreateGraphicsPipelines(vulkanContext.virtualGPU, VK_NULL_HANDLE, 1, &graphicsPipelineCreateInfo, nullptr, &kitchen.pipeline)
             != VK_SUCCESS)
@@ -574,81 +575,6 @@ namespace Chinstrap::ChinVulkan
 
         vkDestroyShaderModule(vulkanContext.virtualGPU, vertShaderModule, nullptr);
         vkDestroyShaderModule(vulkanContext.virtualGPU, fragShaderModule, nullptr);
-    }
-
-    void CreateRenderPass(const VulkanContext &vulkanContext, VkRenderPass& renderPass)
-    {
-
-        VkAttachmentDescription attachmentDescription = {};
-        attachmentDescription.format = vulkanContext.swapChainImageFormat;
-        attachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
-
-        attachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        attachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-
-        attachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        attachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-
-        attachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        attachmentDescription.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-        VkAttachmentReference attachmentReference = {};
-        attachmentReference.attachment = 0;
-        attachmentReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-        VkSubpassDescription subpassDescription = {};
-        subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpassDescription.colorAttachmentCount = 1;
-        subpassDescription.pColorAttachments = &attachmentReference;
-
-        VkSubpassDependency subpassDependency = {};
-        subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-        subpassDependency.dstSubpass = 0;
-        subpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        subpassDependency.srcAccessMask = 0;
-        subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        subpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-        VkRenderPassCreateInfo renderPassCreateInfo = {};
-        renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        renderPassCreateInfo.attachmentCount = 1;
-        renderPassCreateInfo.pAttachments = &attachmentDescription;
-        renderPassCreateInfo.subpassCount = 1;
-        renderPassCreateInfo.pSubpasses = &subpassDescription;
-        renderPassCreateInfo.dependencyCount = 1;
-        renderPassCreateInfo.pDependencies = &subpassDependency;
-
-        if (vkCreateRenderPass(vulkanContext.virtualGPU, &renderPassCreateInfo, nullptr, &renderPass) != VK_SUCCESS)
-        {
-            CHIN_LOG_CRITICAL_VULKAN("Failed to create render pass!");
-            assert(false);
-        }
-        CHIN_LOG_INFO_VULKAN("Successfully created render pass");
-    }
-
-    void CreateFramebuffers(const VulkanContext &vulkanContext, std::vector<VkFramebuffer>& framebuffers, const std::vector<VkImageView>& imageViews, const VkRenderPass& renderPass)
-    {
-        framebuffers.resize(imageViews.size());
-
-        for (size_t i = 0; i < imageViews.size(); ++i)
-        {
-            const VkImageView attachments[] = { imageViews[i] };
-
-            VkFramebufferCreateInfo framebufferCreateInfo = {};
-            framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            framebufferCreateInfo.renderPass = renderPass;
-            framebufferCreateInfo.attachmentCount = 1;
-            framebufferCreateInfo.pAttachments = attachments;
-            framebufferCreateInfo.width = vulkanContext.swapChainExtent.width;
-            framebufferCreateInfo.height = vulkanContext.swapChainExtent.height;
-            framebufferCreateInfo.layers = 1;
-
-            if (vkCreateFramebuffer(vulkanContext.virtualGPU, &framebufferCreateInfo, nullptr, &framebuffers[i])
-                != VK_SUCCESS)
-            {
-                CHIN_LOG_ERROR_VULKAN("Failed to create framebuffer!");
-            }
-        }
     }
 
     void CreateCommandPool(const VulkanContext &vulkanContext, VkCommandPool& commandPool)
@@ -690,18 +616,19 @@ namespace Chinstrap::ChinVulkan
             CHIN_LOG_ERROR_VULKAN("Failed to begin recording command buffer!");
         }
 
-        VkRenderPassBeginInfo renderPassBeginInfo = {};
-        renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassBeginInfo.renderPass = restaurant.renderPass;
-        renderPassBeginInfo.framebuffer = restaurant.swapChainFramebuffers[imageIndex];
-        renderPassBeginInfo.renderArea.offset = { 0, 0 };
-        renderPassBeginInfo.renderArea.extent = restaurant.vulkanContext.swapChainExtent;
+        VkRenderingAttachmentInfo colorAttachmentInfo = {};
+        colorAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        colorAttachmentInfo.imageView = restaurant.swapChainImageViews[imageIndex];
 
-        constexpr VkClearValue clearValue = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
-        renderPassBeginInfo.pClearValues = &clearValue;
-        renderPassBeginInfo.clearValueCount = 1;
+        VkRenderingInfo renderInfo = {};
+        renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+        renderInfo.layerCount = 1;
+        renderInfo.colorAttachmentCount = 1;
+        renderInfo.pColorAttachments = &colorAttachmentInfo;
+        renderInfo.renderArea.offset = { 0, 0 };
+        renderInfo.renderArea.extent = restaurant.vulkanContext.swapChainExtent;
 
-        vkCmdBeginRenderPass(targetCommandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRendering(targetCommandBuffer, &renderInfo);
 
         vkCmdBindPipeline(targetCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, kitchen.pipeline);
 
@@ -721,7 +648,7 @@ namespace Chinstrap::ChinVulkan
 
         vkCmdDraw(targetCommandBuffer, 3, 1, 0, 0);
 
-        vkCmdEndRenderPass(targetCommandBuffer);
+        vkCmdEndRendering(targetCommandBuffer);
         if (vkEndCommandBuffer(targetCommandBuffer) != VK_SUCCESS)
         {
             CHIN_LOG_ERROR_VULKAN("Failed to end recording command buffer!");
