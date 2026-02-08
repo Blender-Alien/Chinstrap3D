@@ -42,37 +42,6 @@ namespace Chinstrap::ChinVulkan
             return details;
         }
 
-        QueueFamilyIndices findQueueFamilies(VulkanContext& vulkanContext)
-        {
-            QueueFamilyIndices indices;
-
-            uint32_t queueFamilyCount;
-            vkGetPhysicalDeviceQueueFamilyProperties(vulkanContext.physicalGPU, &queueFamilyCount, nullptr);
-            std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-            vkGetPhysicalDeviceQueueFamilyProperties(vulkanContext.physicalGPU, &queueFamilyCount, queueFamilies.data());
-
-            VkBool32 presentationSupport = false;
-
-            int index = 0;
-            for (const auto &queueFamily: queueFamilies)
-            {
-                vkGetPhysicalDeviceSurfaceSupportKHR(vulkanContext.physicalGPU, index, vulkanContext.renderSurface, &presentationSupport);
-                if (presentationSupport)
-                {
-                    indices.graphicsFamily = index;
-                }
-                if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-                {
-                    indices.presentationFamily = index;
-                }
-
-                if (indices.isComplete()) {break;}
-                ++index;
-            }
-
-            return indices;
-        }
-
         VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats, UserSettings::GraphicsSettings& settings)
         {
             using namespace UserSettings;
@@ -152,7 +121,6 @@ namespace Chinstrap::ChinVulkan
     {
         uint32_t extensionCount = 0;
         vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-
 
         VkApplicationInfo appInfo = {};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -236,44 +204,6 @@ namespace Chinstrap::ChinVulkan
         CHIN_LOG_INFO_VULKAN("Successfully initialized");
     }
 
-    void Shutdown(VulkanContext& vulkanContext)
-    {
-        vkDestroySemaphore(vulkanContext.virtualGPU, vulkanContext.imageAvailableSemaphore, nullptr);
-        vkDestroySemaphore(vulkanContext.virtualGPU, vulkanContext.renderFinishedSemaphore, nullptr);
-        vkDestroyFence(vulkanContext.virtualGPU, vulkanContext.inFlightFence, nullptr);
-
-        vkDestroyCommandPool(vulkanContext.virtualGPU, vulkanContext.commandPool, nullptr);
-
-        for (auto framebuffer : vulkanContext.swapChainFramebuffers)
-        {
-            vkDestroyFramebuffer(vulkanContext.virtualGPU, framebuffer, nullptr);
-        }
-
-        vkDestroyPipeline(vulkanContext.virtualGPU, vulkanContext.graphicsPipeline, nullptr);
-        vkDestroyPipelineLayout(vulkanContext.virtualGPU, vulkanContext.pipelineLayout, nullptr);
-        vkDestroyRenderPass(vulkanContext.virtualGPU, vulkanContext.renderPass, nullptr);
-
-        for (auto imageView : vulkanContext.swapChainImageViews)
-        {
-            vkDestroyImageView(vulkanContext.virtualGPU, imageView, nullptr);
-        }
-
-        vkDestroySwapchainKHR(vulkanContext.virtualGPU, vulkanContext.swapChain, nullptr);
-        vkDestroyDevice(vulkanContext.virtualGPU, nullptr);
-#ifdef CHIN_VK_VAL_LAYERS
-        const auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(vulkanContext.instance, "vkDestroyDebugUtilsMessengerEXT"));
-        if (func != nullptr)
-        {
-            func(vulkanContext.instance, vulkanContext.debugMessenger, nullptr);
-        } else {
-            CHIN_LOG_ERROR_VULKAN("Failed to destroy debug messenger!");
-        }
-#endif
-        vkDestroySurfaceKHR(vulkanContext.instance, vulkanContext.renderSurface, nullptr);
-        vkDestroyInstance(vulkanContext.instance, nullptr);
-        CHIN_LOG_INFO_VULKAN("Successfully shut down");
-    }
-
     void CreateSurface(Window::Frame &frame)
     {
         if (glfwCreateWindowSurface(frame.vulkanContext.instance, frame.window, nullptr, &frame.vulkanContext.renderSurface) != VK_SUCCESS)
@@ -307,7 +237,7 @@ namespace Chinstrap::ChinVulkan
         createInfo.imageFormat = surfaceFormat.format;
         createInfo.imageColorSpace = surfaceFormat.colorSpace;
         createInfo.imageExtent = extent;
-        createInfo.imageArrayLayers = 1;
+        createInfo.imageArrayLayers = 1; // We're not doing VR/3D
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
         QueueFamilyIndices indices = findQueueFamilies(frame.vulkanContext);
@@ -788,5 +718,75 @@ namespace Chinstrap::ChinVulkan
         {
             CHIN_LOG_CRITICAL_VULKAN("Failed to create semaphores!");
         }
+    }
+
+    QueueFamilyIndices findQueueFamilies(VulkanContext& vulkanContext)
+    {
+        QueueFamilyIndices indices;
+
+        uint32_t queueFamilyCount;
+        vkGetPhysicalDeviceQueueFamilyProperties(vulkanContext.physicalGPU, &queueFamilyCount, nullptr);
+        std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(vulkanContext.physicalGPU, &queueFamilyCount, queueFamilies.data());
+
+        VkBool32 presentationSupport = false;
+
+        int index = 0;
+        for (const auto &queueFamily: queueFamilies)
+        {
+            vkGetPhysicalDeviceSurfaceSupportKHR(vulkanContext.physicalGPU, index, vulkanContext.renderSurface, &presentationSupport);
+            if (presentationSupport)
+            {
+                indices.graphicsFamily = index;
+            }
+            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+            {
+                indices.presentationFamily = index;
+            }
+
+            if (indices.isComplete()) {break;}
+            ++index;
+        }
+
+        return indices;
+    }
+
+
+    void Shutdown(VulkanContext& vulkanContext)
+    {
+        vkDestroySemaphore(vulkanContext.virtualGPU, vulkanContext.imageAvailableSemaphore, nullptr);
+        vkDestroySemaphore(vulkanContext.virtualGPU, vulkanContext.renderFinishedSemaphore, nullptr);
+        vkDestroyFence(vulkanContext.virtualGPU, vulkanContext.inFlightFence, nullptr);
+
+        vkDestroyCommandPool(vulkanContext.virtualGPU, vulkanContext.commandPool, nullptr);
+
+        for (auto framebuffer : vulkanContext.swapChainFramebuffers)
+        {
+            vkDestroyFramebuffer(vulkanContext.virtualGPU, framebuffer, nullptr);
+        }
+
+        vkDestroyPipeline(vulkanContext.virtualGPU, vulkanContext.graphicsPipeline, nullptr);
+        vkDestroyPipelineLayout(vulkanContext.virtualGPU, vulkanContext.pipelineLayout, nullptr);
+        vkDestroyRenderPass(vulkanContext.virtualGPU, vulkanContext.renderPass, nullptr);
+
+        for (auto imageView : vulkanContext.swapChainImageViews)
+        {
+            vkDestroyImageView(vulkanContext.virtualGPU, imageView, nullptr);
+        }
+
+        vkDestroySwapchainKHR(vulkanContext.virtualGPU, vulkanContext.swapChain, nullptr);
+        vkDestroyDevice(vulkanContext.virtualGPU, nullptr);
+#ifdef CHIN_VK_VAL_LAYERS
+        const auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(vulkanContext.instance, "vkDestroyDebugUtilsMessengerEXT"));
+        if (func != nullptr)
+        {
+            func(vulkanContext.instance, vulkanContext.debugMessenger, nullptr);
+        } else {
+            CHIN_LOG_ERROR_VULKAN("Failed to destroy debug messenger!");
+        }
+#endif
+        vkDestroySurfaceKHR(vulkanContext.instance, vulkanContext.renderSurface, nullptr);
+        vkDestroyInstance(vulkanContext.instance, nullptr);
+        CHIN_LOG_INFO_VULKAN("Successfully shut down");
     }
 }

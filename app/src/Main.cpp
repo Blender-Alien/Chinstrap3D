@@ -2,7 +2,7 @@
 #include "chinstrap/src/Application.h"
 
 #include "TestGLScene.h"
-//#include "TestGuiScene.h"
+#include "TestGuiScene.h"
 
 int main()
 {
@@ -12,7 +12,7 @@ int main()
     if (Chinstrap::Application::Init("Sandbox Application", frame, viewport) != 0)
         return -1;
     Chinstrap::Application::PushScene<Game::TestGLScene>();
-    //Chinstrap::Application::PushScene<Game::TestGUIScene>();
+    Chinstrap::Application::PushScene<Game::TestGUIScene>();
 
     Chinstrap::Application::Run();
 }

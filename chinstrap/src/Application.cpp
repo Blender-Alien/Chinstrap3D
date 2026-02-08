@@ -10,6 +10,7 @@
 #include <cassert>
 #include <memory>
 
+#include "rendering/Renderer.h"
 #include "rendering/VulkanFunctions.h"
 
 namespace Chinstrap::Application
@@ -52,9 +53,7 @@ namespace Chinstrap::Application
             return -1;
         }
 
-        UserSettings::GraphicsSettings settings(UserSettings::VSyncMode::ON, UserSettings::ColorSpaceMode::SRGB);
-        appInstance->frame = std::make_unique<Window::Frame>(frameSpec, viewportSpec, settings);
-
+        appInstance->frame = std::make_unique<Window::Frame>(frameSpec, viewportSpec);
         Window::Create(*appInstance->frame);
 
         appInstance->frame->EventPassthrough = [](Event& event){ ForwardEvents(event); };
@@ -88,10 +87,7 @@ namespace Chinstrap::Application
             currentTime = glfwGetTime();
             for (std::unique_ptr<Scene> &scene: appInstance->sceneStack)
             {
-                // TODO: Implement multithreaded rendering pipeline
-
                 CHIN_PROFILE_TIME(scene->OnUpdate(static_cast<float>((currentTime - timeAtPreviousFrame)*1000)), scene->OnUpdateProfile);
-
                 CHIN_PROFILE_TIME(scene->OnRender(), scene->OnRenderProfile);
 
                 if (scene->CreateQueued != nullptr) // scene has requested change to new scene
@@ -113,8 +109,13 @@ namespace Chinstrap::Application
                 timeAtPreviousSecond = currentTime;
             }
         }
-
         // Cleanup after running
+
+        for (std::unique_ptr<Scene> &scene: appInstance->sceneStack)
+        {
+            scene->OnShutdown();
+        }
+
         vkDeviceWaitIdle(appInstance->frame->vulkanContext.virtualGPU);
         Window::Destroy(*appInstance->frame);
         delete appInstance;

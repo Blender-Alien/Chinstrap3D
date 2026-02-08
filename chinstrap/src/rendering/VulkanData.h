@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <vector>
 
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
@@ -44,6 +45,10 @@ namespace Chinstrap::ChinVulkan
         const std::vector<const char*> validationLayers = {
             "VK_LAYER_KHRONOS_validation"
         };
+    };
+
+    struct Pipeline
+    {
     };
 
     struct SwapChainSupportDetails

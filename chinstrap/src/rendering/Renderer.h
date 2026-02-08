@@ -7,8 +7,9 @@
 
 #include <fstream>
 
-namespace Renderer
+namespace Chinstrap::Renderer
 {
+    void DrawFrame();
 }
 
 static std::vector<char> readFile(const std::string& filePath)

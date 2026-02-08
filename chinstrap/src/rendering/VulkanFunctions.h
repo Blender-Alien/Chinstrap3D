@@ -30,6 +30,8 @@ namespace Chinstrap::ChinVulkan
     void RecordCommandBuffer(VkCommandBuffer &targetCommandBuffer, VulkanContext &vulkanContext, uint32_t imageIndex);
     void CreateSyncObjects(VulkanContext &vulkanContext);
 
+    QueueFamilyIndices findQueueFamilies(VulkanContext& vulkanContext);
+
     // TODO: Handle shaders properly
     inline VkShaderModule CreateShaderModule(VulkanContext &vulkanContext, const std::vector<char>& code)
     {
