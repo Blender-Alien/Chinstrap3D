@@ -617,7 +617,7 @@ namespace Chinstrap::ChinVulkan
         vkDestroyShaderModule(vulkanContext.virtualGPU, fragShaderModule, nullptr);
     }
 
-    void ExampleCreateCommandPool(const VulkanContext &vulkanContext, VkCommandPool& commandPool)
+    VkCommandPool ExampleCreateCommandPool(const VulkanContext &vulkanContext)
     {
         QueueFamilyIndices queueFamilyIndices = findQueueFamilies(vulkanContext.physicalGPU, vulkanContext.windowSurface);
 
@@ -626,13 +626,16 @@ namespace Chinstrap::ChinVulkan
         poolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         poolCreateInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
 
+        VkCommandPool commandPool;
+
         if (vkCreateCommandPool(vulkanContext.virtualGPU, &poolCreateInfo, nullptr, &commandPool) != VK_SUCCESS)
         {
             CHIN_LOG_CRITICAL_VULKAN("Failed to create graphics command pool!");
         }
+        return commandPool;
     }
 
-    void ExampleCreateCommandBuffer(const VulkanContext &vulkanContext, VkCommandBuffer& commandBuffer, const VkCommandPool& commandPool)
+    VkCommandBuffer ExampleCreateCommandBuffer(const VulkanContext &vulkanContext, const VkCommandPool& commandPool)
     {
         VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
         commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -640,10 +643,13 @@ namespace Chinstrap::ChinVulkan
         commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         commandBufferAllocateInfo.commandBufferCount = 1;
 
+        VkCommandBuffer commandBuffer;
+
         if (vkAllocateCommandBuffers(vulkanContext.virtualGPU, &commandBufferAllocateInfo, &commandBuffer) != VK_SUCCESS)
         {
             CHIN_LOG_CRITICAL_VULKAN("Failed to create graphics command buffer!");
         }
+        return commandBuffer;
     }
 
     void ExampleRecordCommandBuffer(VkCommandBuffer &targetCommandBuffer, uint32_t imageIndex, const Restaurant& restaurant, const Material& kitchen, const VulkanContext &vulkanContext)

@@ -34,8 +34,8 @@ namespace Chinstrap::ChinVulkan
 
         ExampleCreateImageViews(vulkanContext, swapChainImageViews);
 
-        ExampleCreateCommandPool(vulkanContext, commandPool);
-        ExampleCreateCommandBuffer(vulkanContext, commandBuffer, commandPool);
+        commandPool = (ExampleCreateCommandPool(vulkanContext));
+        commandBuffers.push_back(ExampleCreateCommandBuffer(vulkanContext, commandPool));
 
         /* End Of Test configuration */
     }

@@ -13,24 +13,25 @@
 #include "rendering/Renderer.h"
 #include "rendering/VulkanFunctions.h"
 
-namespace Chinstrap::Application
+namespace
 {
-    namespace
-    {
-        App *appInstance = nullptr;
+    using namespace Chinstrap;
+    Application::App *appInstance = nullptr;
 
-        void ForwardEvents(Event &event)
+    void ForwardEvents(Event &event)
+    {
+        CHIN_LOG_INFO(event.ToString());
+        for (unsigned int i = appInstance->sceneStack.size(); i > 0; i--)
         {
-            CHIN_LOG_INFO(event.ToString());
-            for (unsigned int i = appInstance->sceneStack.size(); i > 0; i--)
-            {
-                appInstance->sceneStack[i-1]->OnEvent(event);
-                if (event.IsHandled())
-                    return;
-            }
+            appInstance->sceneStack[i-1]->OnEvent(event);
+            if (event.IsHandled())
+                return;
         }
     }
+}
 
+namespace Chinstrap::Application
+{
     App::App()
     {
         assert(appInstance == nullptr);
@@ -42,95 +43,90 @@ namespace Chinstrap::Application
         assert(appInstance);
         return *appInstance;
     }
+}
 
-    int Init(const std::string &appName, Window::FrameSpec &frameSpec, Window::ViewPortSpec &viewportSpec)
+int Chinstrap::Application::Init(const std::string &appName, Window::FrameSpec &frameSpec, Window::ViewPortSpec &viewportSpec)
+{
+    appInstance = new App();
+    appInstance->name = appName;
+
+    if (!glfwInit())
     {
-        appInstance = new App();
-        appInstance->name = appName;
-
-        if (!glfwInit())
-        {
-            return -1;
-        }
-
-        appInstance->frame = std::make_unique<Window::Frame>(frameSpec, viewportSpec);
-        Window::Create(*appInstance->frame);
-
-        appInstance->frame->EventPassthrough = [](Event& event){ ForwardEvents(event); };
-
-        return 0;
+        return -1;
     }
 
-    void Run()
+    appInstance->frame = std::make_unique<Window::Frame>(frameSpec, viewportSpec);
+    Window::Create(*appInstance->frame);
+
+    appInstance->frame->EventPassthrough = [](Event& event){ ForwardEvents(event); };
+
+    return 0;
+}
+
+void Chinstrap::Application::Run()
+{
+    assert(appInstance);
+    appInstance->running = true;
+
+    for (std::unique_ptr<Scene> &scene: appInstance->sceneStack)
+        scene->OnBegin();
+
+    double timeAtPreviousFrame = glfwGetTime(), timeAtPreviousSecond = glfwGetTime();
+    double currentTime = 0.0f;
+    int frameCount = 0;
+
+    Renderer::Setup();
+
+    while (appInstance->running)
     {
-        assert(appInstance);
-        appInstance->running = true;
-
-        for (std::unique_ptr<Scene> &scene: appInstance->sceneStack)
-            scene->OnBegin();
-
-        double timeAtPreviousFrame = glfwGetTime();
-        double timeAtPreviousSecond = glfwGetTime();
-        double currentTime = 0.0f;
-        int frameCount = 0;
-
-        Renderer::Setup();
-
-        unsigned int renderIndex = 0;
-        while (appInstance->running)
+        if (Window::ShouldClose(*appInstance->frame))
         {
-            if (Window::ShouldClose(*appInstance->frame))
-            {
-                Stop();
-            }
-
-            Window::Update(*appInstance->frame);
-            glfwPollEvents();
-
-            for (renderIndex = appInstance->sceneStack.size(); renderIndex > 0; renderIndex--)
-            {
-                CHIN_PROFILE_TIME(appInstance->sceneStack[renderIndex-1]->OnRender(), appInstance->sceneStack[renderIndex-1]->OnRenderProfile);
-            }
-            currentTime = glfwGetTime();
-            for (std::unique_ptr<Scene> &scene: appInstance->sceneStack)
-            {
-                CHIN_PROFILE_TIME(scene->OnUpdate(static_cast<float>((currentTime - timeAtPreviousFrame)*1000)), scene->OnUpdateProfile);
-
-                if (scene->CreateQueued != nullptr) // scene has requested change to new scene
-                {
-                    CHIN_LOG_INFO("Unreferencing Scene: [{}] ...", scene->GetName());
-                    scene = std::move(scene->CreateQueued());
-                    CHIN_LOG_INFO("... Slotted in Scene: [{}]", scene->GetName());
-                    scene->OnBegin();
-                }
-                // DON'T operate on scene in stack after possibly changing the scene
-            }
-            timeAtPreviousFrame = currentTime;
-
-            ++frameCount;
-            if (currentTime - timeAtPreviousSecond >= 1.0f)
-            {
-                Application::App::Get().framerate = frameCount;
-                frameCount = 0;
-                timeAtPreviousSecond = currentTime;
-            }
-        }
-        // Cleanup after running
-
-        for (std::unique_ptr<Scene> &scene: appInstance->sceneStack)
-        {
-            scene->OnShutdown();
+            Stop();
         }
 
-        vkDeviceWaitIdle(appInstance->frame->vulkanContext.virtualGPU);
-        Renderer::Delete();
-        Window::Destroy(*appInstance->frame);
-        delete appInstance;
+        glfwPollEvents();
+
+        currentTime = glfwGetTime();
+        for (auto &scene : appInstance->sceneStack)
+        {
+            CHIN_PROFILE_TIME(scene->OnUpdate(static_cast<float>((currentTime - timeAtPreviousFrame)*1000)), scene->OnUpdateProfile);
+            CHIN_PROFILE_TIME(scene->OnRender(), scene->OnRenderProfile);
+
+            if (scene->CreateQueued != nullptr) // scene has requested change to new scene
+            {
+                CHIN_LOG_INFO("Unreferencing Scene: [{}] ...", scene->GetName());
+                scene = std::move(scene->CreateQueued());
+                CHIN_LOG_INFO("... Slotted in Scene: [{}]", scene->GetName());
+                scene->OnBegin();
+            }
+            // DON'T operate on scene in stack after possibly "thisScene"
+        }
+        timeAtPreviousFrame = currentTime;
+
+        ++frameCount;
+        if (currentTime - timeAtPreviousSecond >= 1.0f)
+        {
+            Application::App::Get().framerate = frameCount;
+            frameCount = 0;
+            timeAtPreviousSecond = currentTime;
+        }
+    }
+    /* Cleanup after running */
+
+    for (std::unique_ptr<Scene> &scene: appInstance->sceneStack)
+    {
+        scene->OnShutdown();
     }
 
-    void Stop()
-    {
-        appInstance->running = false;
-    }
+    vkDeviceWaitIdle(appInstance->frame->vulkanContext.virtualGPU);
+    Renderer::Delete();
+    Window::Destroy(*appInstance->frame);
+
+    delete appInstance;
+}
+
+void Chinstrap::Application::Stop()
+{
+    appInstance->running = false;
 }
 

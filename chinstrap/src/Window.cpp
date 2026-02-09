@@ -92,7 +92,6 @@ namespace Chinstrap::Window
 
     void Update(const Frame &frame)
     {
-        glfwSwapBuffers(frame.window);
     }
 
     void SetGLFWCallbacks(Frame &frame)

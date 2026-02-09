@@ -3,6 +3,7 @@
 #include "../Application.h"
 #include "../Window.h"
 #include "../rendering/VulkanFunctions.h"
+#include "../rendering/Renderer.h"
 #include "Roboto/Roboto-Regular.h"
 
 #include "imgui.h"
@@ -51,9 +52,6 @@ void Chinstrap::DevInterface::Render(void(*lambda)())
     lambda();
 
     ImGui::Render();
-    /* TODO: Need to figure out where to place this in the "graphics pipeline"
-    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), SomeCommandBuffer);
-    */
 }
 
 void Chinstrap::DevInterface::Initialize(float fontSize)

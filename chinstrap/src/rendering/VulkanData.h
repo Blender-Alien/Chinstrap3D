@@ -63,8 +63,8 @@ namespace Chinstrap::ChinVulkan
 
         std::vector<VkImageView> swapChainImageViews;
 
-        VkCommandPool commandPool = VK_NULL_HANDLE;
-        VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+        VkCommandPool commandPool;
+        std::vector<VkCommandBuffer> commandBuffers;
 
         const VulkanContext& vulkanContext;
         explicit Restaurant(const VulkanContext& vulkanContext);
