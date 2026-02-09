@@ -48,7 +48,6 @@ namespace Chinstrap::Window
 
         explicit Frame(const FrameSpec &spec, const ViewPortSpec &viewportSpec);
         explicit Frame(const FrameSpec &spec, const ViewPortSpec &viewportSpec, const UserSettings::GraphicsSettings &graphicsSettings);
-        ~Frame();
     };
 
     void Create(Frame &frame);
