@@ -652,7 +652,7 @@ namespace Chinstrap::ChinVulkan
         return commandBuffer;
     }
 
-    void ExampleRecordCommandBuffer(VkCommandBuffer &targetCommandBuffer, uint32_t imageIndex, const Restaurant& restaurant, const Material& kitchen, const VulkanContext &vulkanContext)
+    void ExampleRecordCommandBuffer(VkCommandBuffer &targetCommandBuffer, uint32_t imageIndex, const Restaurant& restaurant, const Material& material, const VulkanContext &vulkanContext)
     {
         VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -679,7 +679,7 @@ namespace Chinstrap::ChinVulkan
         else
             vkCmdBeginRendering(targetCommandBuffer, &renderInfo);
 
-        vkCmdBindPipeline(targetCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, kitchen.pipeline);
+        vkCmdBindPipeline(targetCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, material.pipeline);
 
         VkViewport viewport = {};
         viewport.x = 0.0f;

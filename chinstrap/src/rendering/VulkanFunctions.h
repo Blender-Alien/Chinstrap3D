@@ -6,7 +6,7 @@
 #include "GLFW/glfw3.h"
 
 namespace Chinstrap::Window {struct Frame;}
-namespace Chinstrap::ChinVulkan {struct QueueFamilyIndices; struct VulkanContext;}
+namespace Chinstrap::ChinVulkan {struct VulkanContext;}
 
 /* Functions to call from some sort of App context when starting up and shutting down in the presented order*/
 namespace Chinstrap::ChinVulkan
@@ -42,7 +42,7 @@ namespace Chinstrap::ChinVulkan
 
     VkCommandBuffer ExampleCreateCommandBuffer(const VulkanContext &vulkanContext, const VkCommandPool& commandPool);
 
-    void ExampleRecordCommandBuffer(VkCommandBuffer &targetCommandBuffer, uint32_t imageIndex, const Restaurant& restaurant, const Material& kitchen, const VulkanContext &vulkanContext);
+    void ExampleRecordCommandBuffer(VkCommandBuffer &targetCommandBuffer, uint32_t imageIndex, const Restaurant& restaurant, const Material& material, const VulkanContext &vulkanContext);
 
 }
 
@@ -82,6 +82,7 @@ namespace Chinstrap::ChinVulkan
                 break;
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
                 CHIN_LOG_INFO("[Vulkan validation layer] {}", pCallbackData->pMessage);
+                break;
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
                 break;
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_FLAG_BITS_MAX_ENUM_EXT:
