@@ -30,7 +30,7 @@ namespace Chinstrap::Renderer
 
         vkResetCommandBuffer(restaurant->commandBuffer, 0);
 
-        ChinVulkan::TestRecordCommandBuffer(restaurant->commandBuffer, *restaurant, restaurant->kitchens.front(), imageIndex);
+        ChinVulkan::ExampleRecordCommandBuffer(restaurant->commandBuffer, imageIndex, *restaurant, restaurant->materials.front(), context);
         VkSubmitInfo submitinfo = {};
         submitinfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 

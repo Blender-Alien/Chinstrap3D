@@ -16,46 +16,46 @@ namespace Chinstrap::ChinVulkan
 {
     namespace //* Externally Unavailable Functions *//
     {
-        SwapChainSupportDetails querySwapChainSupport(const VulkanContext& vulkanContext)
+        SwapChainSupportDetails querySwapChainSupport(const VkPhysicalDevice& physicalGPU, const VkSurfaceKHR& windowSurface)
         {
             SwapChainSupportDetails details;
 
-            vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vulkanContext.physicalGPU, vulkanContext.windowSurface, &details.capabilities);
+            vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalGPU, windowSurface, &details.capabilities);
 
             uint32_t formatCount;
-            vkGetPhysicalDeviceSurfaceFormatsKHR(vulkanContext.physicalGPU, vulkanContext.windowSurface, &formatCount, nullptr);
+            vkGetPhysicalDeviceSurfaceFormatsKHR(physicalGPU, windowSurface, &formatCount, nullptr);
             if (formatCount != 0)
             {
                 details.formats.resize(formatCount);
-                vkGetPhysicalDeviceSurfaceFormatsKHR(vulkanContext.physicalGPU, vulkanContext.windowSurface, &formatCount, details.formats.data());
+                vkGetPhysicalDeviceSurfaceFormatsKHR(physicalGPU, windowSurface, &formatCount, details.formats.data());
             }
 
             uint32_t presentationModeCount;
-            vkGetPhysicalDeviceSurfacePresentModesKHR(vulkanContext.physicalGPU, vulkanContext.windowSurface, &presentationModeCount, nullptr);
+            vkGetPhysicalDeviceSurfacePresentModesKHR(physicalGPU, windowSurface, &presentationModeCount, nullptr);
             if (presentationModeCount != 0)
             {
                 details.presentModes.resize(presentationModeCount);
-                vkGetPhysicalDeviceSurfacePresentModesKHR(vulkanContext.physicalGPU, vulkanContext.windowSurface, &presentationModeCount, details.presentModes.data());
+                vkGetPhysicalDeviceSurfacePresentModesKHR(physicalGPU, windowSurface, &presentationModeCount, details.presentModes.data());
             }
 
             return details;
         }
 
-        QueueFamilyIndices findQueueFamilies(const VulkanContext& vulkanContext)
+        QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice& physicalGPU, const VkSurfaceKHR& windowSurface)
         {
             QueueFamilyIndices indices;
 
             uint32_t queueFamilyCount;
-            vkGetPhysicalDeviceQueueFamilyProperties(vulkanContext.physicalGPU, &queueFamilyCount, nullptr);
+            vkGetPhysicalDeviceQueueFamilyProperties(physicalGPU, &queueFamilyCount, nullptr);
             std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-            vkGetPhysicalDeviceQueueFamilyProperties(vulkanContext.physicalGPU, &queueFamilyCount, queueFamilies.data());
+            vkGetPhysicalDeviceQueueFamilyProperties(physicalGPU, &queueFamilyCount, queueFamilies.data());
 
             VkBool32 presentationSupport = false;
 
             int index = 0;
             for (const auto &queueFamily: queueFamilies)
             {
-                vkGetPhysicalDeviceSurfaceSupportKHR(vulkanContext.physicalGPU, index, vulkanContext.windowSurface, &presentationSupport);
+                vkGetPhysicalDeviceSurfaceSupportKHR(physicalGPU, index, windowSurface, &presentationSupport);
                 if (presentationSupport)
                 {
                     indices.graphicsFamily = index;
@@ -65,7 +65,7 @@ namespace Chinstrap::ChinVulkan
                     indices.presentationFamily = index;
                 }
 
-                if (indices.isComplete()) {break;}
+                if (indices.allSupported()) {break;}
                 ++index;
             }
 
@@ -74,6 +74,12 @@ namespace Chinstrap::ChinVulkan
 
         VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats, UserSettings::GraphicsSettings& settings)
         {
+            // TODO: Find out which ones we need for HDR
+            std::array<VkColorSpaceKHR, 3> supportedHDRSpaces = {
+                VK_COLOR_SPACE_HDR10_ST2084_EXT,
+                VK_COLOR_SPACE_DISPLAY_P3_NONLINEAR_EXT,
+                VK_COLOR_SPACE_DCI_P3_NONLINEAR_EXT,
+            };
             using namespace UserSettings;
             for (const auto& availableFormat: availableFormats)
             {
@@ -82,20 +88,19 @@ namespace Chinstrap::ChinVulkan
                 {
                     return availableFormat;
                 }
-                // TODO: Accommodate all the relevant HDR formats
-                if (availableFormat.colorSpace == VK_COLOR_SPACE_HDR10_HLG_EXT || availableFormat.colorSpace == VK_COLOR_SPACE_HDR10_ST2084_EXT
+                if (std::find(std::begin(supportedHDRSpaces), std::end(supportedHDRSpaces), availableFormat.colorSpace) != std::end(supportedHDRSpaces)
                     && settings.colorSpace == ColorSpaceMode::HDR)
                 {
                     return availableFormat;
                 }
             }
-            if (settings.colorSpace != UserSettings::ColorSpaceMode::SRGB)
+            if (settings.colorSpace != ColorSpaceMode::SRGB)
             {
-                CHIN_LOG_ERROR_VULKAN("HDR is not supported!");
-                settings.colorSpace = UserSettings::ColorSpaceMode::SRGB; // There was no available HDR format
+                CHIN_LOG_ERROR_VULKAN("There was no suitable HDR format available!");
+                settings.colorSpace = ColorSpaceMode::SRGB;
             }
             CHIN_LOG_ERROR_VULKAN("Chose fallback format and colorspace!");
-            return availableFormats[0]; // Whatever Format is actually supported, no matter how crap it is
+            return availableFormats[0]; // Whatever Format is actually supported, no matter which
         }
 
         VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes, UserSettings::GraphicsSettings& settings)
@@ -147,18 +152,30 @@ namespace Chinstrap::ChinVulkan
 
     //* Externally Available Functions *//
 
-    void Init(VulkanContext &vulkanContext, const std::string& name)
+    bool Init(VulkanContext &vulkanContext, const std::string& name)
     {
-        uint32_t extensionCount = 0;
-        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+        uint32_t instanceVersion;
+        vkEnumerateInstanceVersion(&instanceVersion);
+        CHIN_LOG_INFO_VULKAN_F("Supported Instance Version: {}.{}", VK_API_VERSION_MAJOR(instanceVersion), VK_API_VERSION_MINOR(instanceVersion));
+        vulkanContext.instanceSupportedVersion = instanceVersion;
 
         VkApplicationInfo appInfo = {};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         appInfo.pApplicationName = name.c_str();
-        appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.pEngineName = "Chinstrap3D";
-        appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.apiVersion = VK_API_VERSION_1_3;
+        /* We want to use dynamic rendering, which is only supported in Vulkan 1_3 upwards or in Vulkan 1_2 as an extension*/
+        if (vulkanContext.instanceSupportedVersion >= VK_API_VERSION_1_3)
+        {
+            appInfo.apiVersion = VK_API_VERSION_1_3;
+        } else if (vulkanContext.instanceSupportedVersion >= VK_API_VERSION_1_2 && vulkanContext.instanceSupportedVersion < VK_API_VERSION_1_3)
+        {
+            appInfo.apiVersion = VK_API_VERSION_1_2;
+            vulkanContext.neededDeviceExtensions.push_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
+        } else
+        {
+            CHIN_LOG_CRITICAL("Dynamic rendering is not supported!");
+            return false;
+        }
 
         VkInstanceCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -178,7 +195,7 @@ namespace Chinstrap::ChinVulkan
         if (vkCreateInstance(&createInfo, nullptr, &vulkanContext.instance) != VK_SUCCESS)
         {
             CHIN_LOG_CRITICAL_VULKAN("Failed to create instance!!!");
-            assert(false);
+            return false;
         }
 
 #ifdef CHIN_VK_VAL_LAYERS
@@ -231,22 +248,39 @@ namespace Chinstrap::ChinVulkan
             CHIN_LOG_ERROR_VULKAN("Failed to set up Vulkan debug messenger!");
         }
 #endif
-        CHIN_LOG_INFO_VULKAN("Successfully initialized");
+
+        if (vulkanContext.instanceSupportedVersion < VK_API_VERSION_1_3)
+        {
+            const auto begin = reinterpret_cast<PFN_vkCmdBeginRenderingKHR>(vkGetInstanceProcAddr(vulkanContext.instance, "vkCmdBeginRenderingKHR"));
+            const auto end = reinterpret_cast<PFN_vkCmdEndRenderingKHR>(vkGetInstanceProcAddr(vulkanContext.instance, "vkCmdEndRenderingKHR"));
+
+            if (begin == nullptr || end == nullptr)
+            {
+                CHIN_LOG_CRITICAL_VULKAN("Failed to load DynamicRendering Extension functions, but they are required!");
+                return false;
+            }
+            vulkanContext.PFN_vkCmdBeginRenderingKHR = begin;
+            vulkanContext.PFN_vkCmdEndRenderingKHR = end;
+        }
+
+        CHIN_LOG_INFO_VULKAN("Initialized");
+        return true;
     }
 
-    void CreateSurface(Window::Frame &frame)
+    bool CreateSurface(Window::Frame &frame)
     {
         if (glfwCreateWindowSurface(frame.vulkanContext.instance, frame.window, nullptr, &frame.vulkanContext.windowSurface) != VK_SUCCESS)
         {
             CHIN_LOG_CRITICAL_VULKAN_F("Failed to create rendering-surface on window: {}", frame.frameSpec.title);
-            assert(false);
+            return false;
         }
         CHIN_LOG_INFO_VULKAN("Successfully created rendering surface");
+        return true;
     }
 
-    void CreateSwapChain(Window::Frame &frame)
+    bool CreateSwapChain(Window::Frame &frame)
     {
-        SwapChainSupportDetails swapChainSupportDetails = querySwapChainSupport(frame.vulkanContext);
+        SwapChainSupportDetails swapChainSupportDetails = querySwapChainSupport(frame.vulkanContext.physicalGPU, frame.vulkanContext.windowSurface);
 
         VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupportDetails.formats, frame.graphicsSettings);
         VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupportDetails.presentModes, frame.graphicsSettings);
@@ -270,7 +304,7 @@ namespace Chinstrap::ChinVulkan
         createInfo.imageArrayLayers = 1; // We're not doing VR/3D
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-        QueueFamilyIndices indices = findQueueFamilies(frame.vulkanContext);
+        QueueFamilyIndices indices = findQueueFamilies(frame.vulkanContext.physicalGPU, frame.vulkanContext.windowSurface);
         uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentationFamily.value()};
         if (indices.graphicsFamily != indices.presentationFamily)
         {
@@ -294,7 +328,7 @@ namespace Chinstrap::ChinVulkan
         if (vkCreateSwapchainKHR(frame.vulkanContext.virtualGPU, &createInfo, nullptr, &frame.vulkanContext.swapChain) != VK_SUCCESS)
         {
             CHIN_LOG_CRITICAL_VULKAN("Failed to create SwapChain!");
-            assert(false);
+            return false;
         }
 
         vkGetSwapchainImagesKHR(frame.vulkanContext.virtualGPU, frame.vulkanContext.swapChain, &imageCount, nullptr);
@@ -304,9 +338,10 @@ namespace Chinstrap::ChinVulkan
         frame.vulkanContext.swapChainImageFormat = surfaceFormat.format;
         frame.vulkanContext.swapChainExtent = extent;
         CHIN_LOG_INFO_VULKAN("Successfully created SwapChain");
+        return true;
     }
 
-    void CreateImageViews(const VulkanContext &vulkanContext, std::vector<VkImageView> &imageViews)
+    void ExampleCreateImageViews(const VulkanContext &vulkanContext, std::vector<VkImageView> &imageViews)
     {
         imageViews.resize(vulkanContext.swapChainImages.size());
 
@@ -338,20 +373,22 @@ namespace Chinstrap::ChinVulkan
         CHIN_LOG_INFO_VULKAN("Successfully created ImageViews");
     }
 
-    //TODO: Let user decide and make sure to make the right choice on handhelds like SteamDeck
-    void PickPhysicalGPU(VulkanContext& vulkanContext)
+    // TODO: Verify that we make the right choice on Handhelds like SteamDeck
+    bool AutoPickPhysicalGPU(VulkanContext& vulkanContext)
     {
         uint32_t deviceCount;
         vkEnumeratePhysicalDevices(vulkanContext.instance, &deviceCount, nullptr);
         if (deviceCount == 0)
-            CHIN_LOG_CRITICAL_VULKAN("Failed to find GPUs with Vulkan support!");
+        {
+            CHIN_LOG_CRITICAL_VULKAN("Failed to find any GPU with Vulkan support!");
+            return false;
+        }
 
         std::vector<VkPhysicalDevice> devices(deviceCount);
         vkEnumeratePhysicalDevices(vulkanContext.instance, &deviceCount, devices.data());
 
         uint32_t extensionCount;
-        bool extensionsSupported;
-        bool swapChainAdequate;
+        bool extensionsSupported, swapChainAdequate;
         for (const auto &device: devices)
         {
             VkPhysicalDeviceProperties deviceProperties;
@@ -363,43 +400,38 @@ namespace Chinstrap::ChinVulkan
             std::vector<VkExtensionProperties> availableExtensions(extensionCount);
             vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
 
-            std::set<std::string> requiredExtensions(vulkanContext.deviceExtensions.begin(), vulkanContext.deviceExtensions.end());
+            std::set<std::string> requiredExtensions(vulkanContext.neededDeviceExtensions.begin(), vulkanContext.neededDeviceExtensions.end());
             for (const auto& extension : availableExtensions)
             {
                 requiredExtensions.erase(extension.extensionName);
             }
-
-            VulkanContext temp;
-            temp.physicalGPU = device;
-            temp.windowSurface = vulkanContext.windowSurface;
-            QueueFamilyIndices queues = findQueueFamilies(temp);
-
             if ((extensionsSupported = requiredExtensions.empty()))
             {
-                SwapChainSupportDetails swapChainDetails = querySwapChainSupport(temp);
+                SwapChainSupportDetails swapChainDetails = querySwapChainSupport(device, vulkanContext.windowSurface);
                 swapChainAdequate = (!swapChainDetails.formats.empty() && !swapChainDetails.presentModes.empty());
             }
 
+            QueueFamilyIndices queues = findQueueFamilies(device, vulkanContext.windowSurface);
+
             if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU // Arbitrary
                 && deviceFeatures.geometryShader // Arbitrary
-                && (queues.graphicsFamily == queues.presentationFamily) // Arbitrary
-                && queues.isComplete() // Necessary
-                && extensionsSupported // Necessary
-                && swapChainAdequate)  // Necessary
+                && queues.graphicsFamily == queues.presentationFamily // Arbitrary
+                && queues.allSupported() // Necessary
+                && extensionsSupported   // Necessary
+                && swapChainAdequate)    // Necessary
             {
                 vulkanContext.physicalGPU = device;
-                CHIN_LOG_INFO_VULKAN("Successfully chose GPU");
-                return;
+                CHIN_LOG_INFO_VULKAN("Successfully chose a GPU");
+                return true;
             }
         }
-        //TODO: System to choose the next best fallback when preferred properties are not met, instead of giving up
-        CHIN_LOG_CRITICAL_VULKAN("Failed to choose a GPU with given requirements!");
-        assert(false);
+        CHIN_LOG_CRITICAL_VULKAN("Failed to choose a GPU that meets requirements!");
+        return false;
     }
 
-    void CreateVirtualGPU(VulkanContext& vulkanContext)
+    bool CreateVirtualGPU(VulkanContext& vulkanContext)
     {
-        QueueFamilyIndices indices = findQueueFamilies(vulkanContext);
+        QueueFamilyIndices indices = findQueueFamilies(vulkanContext.physicalGPU, vulkanContext.windowSurface);
 
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
         std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentationFamily.value()};
@@ -418,31 +450,40 @@ namespace Chinstrap::ChinVulkan
 
         VkPhysicalDeviceFeatures deviceFeatures{};
 
+        VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRenderingFeatures = {};
+        dynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
+        if (vulkanContext.instanceSupportedVersion < VK_API_VERSION_1_3)
+        {
+            dynamicRenderingFeatures.dynamicRendering = true;
+        }
+
         VkDeviceCreateInfo deviceCreateInfo{};
         deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        deviceCreateInfo.pNext = &dynamicRenderingFeatures;
         deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
         deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
         deviceCreateInfo.queueCreateInfoCount = 1;
         deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
-        deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(vulkanContext.deviceExtensions.size());
-        deviceCreateInfo.ppEnabledExtensionNames = vulkanContext.deviceExtensions.data();
+        deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(vulkanContext.neededDeviceExtensions.size());
+        deviceCreateInfo.ppEnabledExtensionNames = vulkanContext.neededDeviceExtensions.data();
 
         if (vkCreateDevice(vulkanContext.physicalGPU, &deviceCreateInfo, nullptr, &vulkanContext.virtualGPU) != VK_SUCCESS)
         {
             CHIN_LOG_CRITICAL_VULKAN("Failed to create a Vulkan virtual GPU!");
-            assert(false);
+            return false;
         }
 
         vkGetDeviceQueue(vulkanContext.virtualGPU, indices.graphicsFamily.value(), 0, &vulkanContext.graphicsQueue);
         CHIN_LOG_INFO_VULKAN("Successfully created virtual GPU");
+        return true;
     }
 
-    void CreateKitchen(const VulkanContext &vulkanContext, Kitchen &kitchen)
+    void ExampleCreateMaterial(const VulkanContext &vulkanContext, Material &material)
     {
-        CHIN_LOG_INFO_VULKAN_F("FragShader size: {0}; VertShader size: {1}", kitchen.fragmentShaderCode.size(), kitchen.vertexShaderCode.size());
+        CHIN_LOG_INFO_VULKAN_F("FragShader size: {0}; VertShader size: {1}", material.fragmentShaderCode.size(), material.vertexShaderCode.size());
 
-        VkShaderModule vertShaderModule = CreateShaderModule(vulkanContext, kitchen.vertexShaderCode);
-        VkShaderModule fragShaderModule = CreateShaderModule(vulkanContext, kitchen.fragmentShaderCode);
+        VkShaderModule vertShaderModule = CreateShaderModule(vulkanContext, material.vertexShaderCode);
+        VkShaderModule fragShaderModule = CreateShaderModule(vulkanContext, material.fragmentShaderCode);
 
         VkPipelineShaderStageCreateInfo vertShaderStageCreateInfo = {};
         vertShaderStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -513,7 +554,6 @@ namespace Chinstrap::ChinVulkan
         rasterizationStateCreateInfo.depthBiasClamp = 0.0f;
         rasterizationStateCreateInfo.depthBiasSlopeFactor = 0.0f;
 
-        // Disabled for now
         VkPipelineMultisampleStateCreateInfo multisampleStateCreateInfo = {};
         multisampleStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
         multisampleStateCreateInfo.sampleShadingEnable = VK_FALSE;
@@ -537,7 +577,7 @@ namespace Chinstrap::ChinVulkan
         VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
         pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
-        if (vkCreatePipelineLayout(vulkanContext.virtualGPU, &pipelineLayoutCreateInfo, nullptr, &kitchen.pipelineLayout) != VK_SUCCESS)
+        if (vkCreatePipelineLayout(vulkanContext.virtualGPU, &pipelineLayoutCreateInfo, nullptr, &material.pipelineLayout) != VK_SUCCESS)
         {
             CHIN_LOG_CRITICAL_VULKAN("Failed to create pipeline layout!");
             assert(false);
@@ -547,7 +587,7 @@ namespace Chinstrap::ChinVulkan
         pipelineRenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
         pipelineRenderingCreateInfo.pNext = VK_NULL_HANDLE;
         pipelineRenderingCreateInfo.colorAttachmentCount = 1;
-        pipelineRenderingCreateInfo.pColorAttachmentFormats = &kitchen.vulkanContext.swapChainImageFormat;
+        pipelineRenderingCreateInfo.pColorAttachmentFormats = &material.vulkanContext.swapChainImageFormat;
 
         VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
         graphicsPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -562,24 +602,24 @@ namespace Chinstrap::ChinVulkan
         graphicsPipelineCreateInfo.pMultisampleState = &multisampleStateCreateInfo;
         graphicsPipelineCreateInfo.pColorBlendState = &colorBlendStateCreateInfo;
         graphicsPipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
-        graphicsPipelineCreateInfo.layout = kitchen.pipelineLayout;
+        graphicsPipelineCreateInfo.layout = material.pipelineLayout;
 
-        if (vkCreateGraphicsPipelines(vulkanContext.virtualGPU, VK_NULL_HANDLE, 1, &graphicsPipelineCreateInfo, nullptr, &kitchen.pipeline)
+        if (vkCreateGraphicsPipelines(vulkanContext.virtualGPU, VK_NULL_HANDLE, 1, &graphicsPipelineCreateInfo, nullptr, &material.pipeline)
             != VK_SUCCESS)
         {
             CHIN_LOG_CRITICAL_VULKAN("Failed to create graphics pipeline!");
             assert(false);
         }
 
-        CHIN_LOG_INFO_VULKAN("Successfully created graphics pipeline");
+        CHIN_LOG_INFO_VULKAN("Successfully created barebones material");
 
         vkDestroyShaderModule(vulkanContext.virtualGPU, vertShaderModule, nullptr);
         vkDestroyShaderModule(vulkanContext.virtualGPU, fragShaderModule, nullptr);
     }
 
-    void CreateCommandPool(const VulkanContext &vulkanContext, VkCommandPool& commandPool)
+    void ExampleCreateCommandPool(const VulkanContext &vulkanContext, VkCommandPool& commandPool)
     {
-        QueueFamilyIndices queueFamilyIndices = findQueueFamilies(vulkanContext);
+        QueueFamilyIndices queueFamilyIndices = findQueueFamilies(vulkanContext.physicalGPU, vulkanContext.windowSurface);
 
         VkCommandPoolCreateInfo poolCreateInfo = {};
         poolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -592,7 +632,7 @@ namespace Chinstrap::ChinVulkan
         }
     }
 
-    void CreateCommandBuffer(const VulkanContext &vulkanContext, VkCommandBuffer& commandBuffer, const VkCommandPool& commandPool)
+    void ExampleCreateCommandBuffer(const VulkanContext &vulkanContext, VkCommandBuffer& commandBuffer, const VkCommandPool& commandPool)
     {
         VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
         commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -606,7 +646,7 @@ namespace Chinstrap::ChinVulkan
         }
     }
 
-    void TestRecordCommandBuffer(VkCommandBuffer &targetCommandBuffer, const Restaurant& restaurant, const Kitchen& kitchen, uint32_t imageIndex)
+    void ExampleRecordCommandBuffer(VkCommandBuffer &targetCommandBuffer, uint32_t imageIndex, const Restaurant& restaurant, const Material& kitchen, const VulkanContext &vulkanContext)
     {
         VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -628,7 +668,10 @@ namespace Chinstrap::ChinVulkan
         renderInfo.renderArea.offset = { 0, 0 };
         renderInfo.renderArea.extent = restaurant.vulkanContext.swapChainExtent;
 
-        vkCmdBeginRendering(targetCommandBuffer, &renderInfo);
+        if (vulkanContext.instanceSupportedVersion < VK_API_VERSION_1_3)
+            vulkanContext.PFN_vkCmdBeginRenderingKHR(targetCommandBuffer, &renderInfo);
+        else
+            vkCmdBeginRendering(targetCommandBuffer, &renderInfo);
 
         vkCmdBindPipeline(targetCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, kitchen.pipeline);
 
@@ -648,14 +691,18 @@ namespace Chinstrap::ChinVulkan
 
         vkCmdDraw(targetCommandBuffer, 3, 1, 0, 0);
 
-        vkCmdEndRendering(targetCommandBuffer);
+        if (vulkanContext.instanceSupportedVersion < VK_API_VERSION_1_3)
+            vulkanContext.PFN_vkCmdEndRenderingKHR(targetCommandBuffer);
+        else
+            vkCmdEndRendering(targetCommandBuffer);
+
         if (vkEndCommandBuffer(targetCommandBuffer) != VK_SUCCESS)
         {
             CHIN_LOG_ERROR_VULKAN("Failed to end recording command buffer!");
         }
     }
 
-    void CreateSyncObjects(VulkanContext &vulkanContext)
+    bool CreateSyncObjects(VulkanContext &vulkanContext)
     {
         VkSemaphoreCreateInfo semaphoreCreateInfo = {};
         semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -672,7 +719,9 @@ namespace Chinstrap::ChinVulkan
             != VK_SUCCESS)
         {
             CHIN_LOG_CRITICAL_VULKAN("Failed to create semaphores!");
+            return false;
         }
+        return true;
     }
 
     void Shutdown(VulkanContext& vulkanContext)
@@ -694,6 +743,6 @@ namespace Chinstrap::ChinVulkan
 #endif
         vkDestroySurfaceKHR(vulkanContext.instance, vulkanContext.windowSurface, nullptr);
         vkDestroyInstance(vulkanContext.instance, nullptr);
-        CHIN_LOG_INFO_VULKAN("Successfully shut down");
+        CHIN_LOG_INFO_VULKAN("Successfully shut a context down");
     }
 }

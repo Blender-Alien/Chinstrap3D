@@ -5,7 +5,7 @@
 
 namespace Chinstrap::ChinVulkan
 {
-    Kitchen::Kitchen(const VulkanContext &vulkanContext,
+    Material::Material(const VulkanContext &vulkanContext,
         const std::vector<char> &vertexShaderCode,
         const std::vector<char> &fragmentShaderCode)
             : vertexShaderCode(vertexShaderCode),
@@ -13,14 +13,14 @@ namespace Chinstrap::ChinVulkan
             vulkanContext(vulkanContext)
     {
         /* Test configuration */
-        CreateKitchen(vulkanContext, *this);
+        ExampleCreateMaterial(vulkanContext, *this);
     }
 
-    void Kitchen::Cleanup()
+    void Material::Cleanup()
     {
         vkDestroyPipeline(vulkanContext.virtualGPU, pipeline, nullptr);
         vkDestroyPipelineLayout(vulkanContext.virtualGPU, pipelineLayout, nullptr);
-        CHIN_LOG_INFO_VULKAN("Destroyed Kitchen and resources");
+        CHIN_LOG_INFO_VULKAN("Destroyed Material and resources");
     }
 
     Restaurant::Restaurant(const VulkanContext &vulkanContext)
@@ -30,12 +30,12 @@ namespace Chinstrap::ChinVulkan
 
         auto vertShaderCode = readFile("../../../chinstrap/res/shaders/BasicVertex.spv");
         auto fragShaderCode = readFile("../../../chinstrap/res/shaders/BasicFragment.spv");
-        kitchens.emplace_back(vulkanContext, vertShaderCode, fragShaderCode);
+        materials.emplace_back(vulkanContext, vertShaderCode, fragShaderCode);
 
-        CreateImageViews(vulkanContext, swapChainImageViews);
+        ExampleCreateImageViews(vulkanContext, swapChainImageViews);
 
-        CreateCommandPool(vulkanContext, commandPool);
-        CreateCommandBuffer(vulkanContext, commandBuffer, commandPool);
+        ExampleCreateCommandPool(vulkanContext, commandPool);
+        ExampleCreateCommandBuffer(vulkanContext, commandBuffer, commandPool);
 
         /* End Of Test configuration */
     }
@@ -43,9 +43,9 @@ namespace Chinstrap::ChinVulkan
     Restaurant::~Restaurant()
     {
         vkDestroyCommandPool(vulkanContext.virtualGPU, commandPool, nullptr);
-        for (auto &kitchen : kitchens)
+        for (auto &material : materials)
         {
-            kitchen.Cleanup();
+            material.Cleanup();
         }
         for (auto &imageView : swapChainImageViews)
         {

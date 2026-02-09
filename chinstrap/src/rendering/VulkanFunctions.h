@@ -8,26 +8,47 @@
 namespace Chinstrap::Window {struct Frame;}
 namespace Chinstrap::ChinVulkan {struct QueueFamilyIndices; struct VulkanContext;}
 
+/* Functions to call from some sort of App context when starting up and shutting down in the presented order*/
 namespace Chinstrap::ChinVulkan
 {
-    void Init(VulkanContext &vulkanContext, const std::string& name);
+    // Create VulkanContext make sure the API minimum requirements are met, enable validation layers
+    bool Init(VulkanContext &vulkanContext, const std::string& name);
+
+    bool CreateSurface(Window::Frame &frame);
+
+    bool CreateSwapChain(Window::Frame &frame);
+
+    // Function for automatically picking a GPU at startup, with a few (arbitrary) requirements,
+    // the user may choose one later through a different system
+    bool AutoPickPhysicalGPU(VulkanContext &vulkanContext);
+
+    bool CreateVirtualGPU(VulkanContext &vulkanContext);
+
+    bool CreateSyncObjects(VulkanContext &vulkanContext);
+
+    // Deallocate everything inside the vulkanContext object, as well as globally enabled validation layers
+    // Other allocated Vulkan objects must be properly deallocated in by their respective containers
     void Shutdown(VulkanContext &vulkanContext);
+}
 
-    void CreateSurface(Window::Frame &frame);
-    void CreateSwapChain(Window::Frame &frame);
-    void CreateImageViews(const VulkanContext &vulkanContext, std::vector<VkImageView> &imageViews);
+/* Some Boilerplate code to facilitate building up */
+namespace Chinstrap::ChinVulkan
+{
+    void ExampleCreateMaterial(const VulkanContext &vulkanContext, Material &material);
 
-    void PickPhysicalGPU(VulkanContext &vulkanContext);
-    void CreateVirtualGPU(VulkanContext &vulkanContext);
+    void ExampleCreateImageViews(const VulkanContext &vulkanContext, std::vector<VkImageView> &imageViews);
 
-    void CreateKitchen(const VulkanContext &vulkanContext, Kitchen &kitchen);
+    void ExampleCreateCommandPool(const VulkanContext &vulkanContext, VkCommandPool& commandPool);
 
-    void CreateCommandPool(const VulkanContext &vulkanContext, VkCommandPool& commandPool);
-    void CreateCommandBuffer(const VulkanContext &vulkanContext, VkCommandBuffer& commandBuffer, const VkCommandPool& commandPool);
+    void ExampleCreateCommandBuffer(const VulkanContext &vulkanContext, VkCommandBuffer& commandBuffer, const VkCommandPool& commandPool);
 
-    void TestRecordCommandBuffer(VkCommandBuffer &targetCommandBuffer, const Restaurant& restaurant, const Kitchen& kitchen, uint32_t imageIndex);
-    void CreateSyncObjects(VulkanContext &vulkanContext);
+    void ExampleRecordCommandBuffer(VkCommandBuffer &targetCommandBuffer, uint32_t imageIndex, const Restaurant& restaurant, const Material& kitchen, const VulkanContext &vulkanContext);
 
+}
+
+/* Global Vulkan helper functions */
+namespace Chinstrap::ChinVulkan
+{
     // TODO: Handle shaders properly
     inline VkShaderModule CreateShaderModule(const VulkanContext &vulkanContext, const std::vector<char>& code)
     {

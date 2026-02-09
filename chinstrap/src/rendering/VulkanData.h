@@ -11,6 +11,7 @@ namespace Chinstrap::ChinVulkan
     struct VulkanContext
     {
         VkInstance instance;
+        uint32_t instanceSupportedVersion;
 
         VkPhysicalDevice physicalGPU = VK_NULL_HANDLE;
         VkSurfaceKHR windowSurface = VK_NULL_HANDLE;
@@ -27,10 +28,12 @@ namespace Chinstrap::ChinVulkan
         VkSemaphore renderFinishedSemaphore = VK_NULL_HANDLE;
         VkFence inFlightFence = VK_NULL_HANDLE;
 
-        const std::vector<const char*> deviceExtensions = {
+        std::vector<const char*> neededDeviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-            VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME
         };
+
+        PFN_vkCmdBeginRenderingKHR PFN_vkCmdBeginRenderingKHR;
+        PFN_vkCmdEndRenderingKHR PFN_vkCmdEndRenderingKHR;
 
         VkDebugUtilsMessengerEXT debugMessenger;
         const std::vector<const char*> validationLayers = {
@@ -38,7 +41,7 @@ namespace Chinstrap::ChinVulkan
         };
     };
 
-    struct Kitchen
+    struct Material
     {
         VkPipeline pipeline = VK_NULL_HANDLE;
         VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
@@ -47,7 +50,7 @@ namespace Chinstrap::ChinVulkan
         const std::vector<char> fragmentShaderCode;
 
         const VulkanContext& vulkanContext;
-        Kitchen(const VulkanContext& vulkanContext,
+        Material(const VulkanContext& vulkanContext,
             const std::vector<char>& vertexShaderCode,
             const std::vector<char>& fragmentShaderCode);
 
@@ -56,7 +59,7 @@ namespace Chinstrap::ChinVulkan
 
     struct Restaurant
     {
-        std::vector<Kitchen> kitchens;
+        std::vector<Material> materials;
 
         std::vector<VkImageView> swapChainImageViews;
 
@@ -80,7 +83,7 @@ namespace Chinstrap::ChinVulkan
         std::optional<uint32_t> graphicsFamily;
         std::optional<uint32_t> presentationFamily;
 
-        [[nodiscard]] bool isComplete() const
+        [[nodiscard]] bool allSupported() const
         {
             return graphicsFamily.has_value() && presentationFamily.has_value();
         }

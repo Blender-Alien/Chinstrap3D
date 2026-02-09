@@ -59,12 +59,12 @@ namespace Chinstrap::Window
             assert(false);
         }
 
-        ChinVulkan::Init(frame.vulkanContext, frame.frameSpec.title);
-        ChinVulkan::CreateSurface(frame);
-        ChinVulkan::PickPhysicalGPU(frame.vulkanContext);
-        ChinVulkan::CreateVirtualGPU(frame.vulkanContext);
-        ChinVulkan::CreateSwapChain(frame);
-        ChinVulkan::CreateSyncObjects(frame.vulkanContext);
+        if (ChinVulkan::Init(frame.vulkanContext, frame.frameSpec.title) != true) {assert(false);}
+        if (ChinVulkan::CreateSurface(frame) != true) {assert(false);}
+        if (ChinVulkan::AutoPickPhysicalGPU(frame.vulkanContext) != true) {assert(false);}
+        if (ChinVulkan::CreateVirtualGPU(frame.vulkanContext) != true) {assert(false);}
+        if (ChinVulkan::CreateSwapChain(frame) != true) {assert(false);}
+        if (ChinVulkan::CreateSyncObjects(frame.vulkanContext) != true) {assert(false);}
 
         glfwMakeContextCurrent(frame.window);
 
