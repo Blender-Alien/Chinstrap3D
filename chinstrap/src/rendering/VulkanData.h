@@ -46,6 +46,9 @@ namespace Chinstrap::ChinVulkan
         VkPipeline pipeline = VK_NULL_HANDLE;
         VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
 
+        /* TODO: Don't save shader code in Material unless we have to,
+         * this is wasted memory when vectoring materials together
+        */
         const std::vector<char> vertexShaderCode;
         const std::vector<char> fragmentShaderCode;
 
