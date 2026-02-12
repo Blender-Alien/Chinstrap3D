@@ -492,13 +492,13 @@ bool Chinstrap::ChinVulkan::CreateSyncObjects(VulkanContext &vulkanContext)
     return true;
 }
 
-void Chinstrap::ChinVulkan::ExampleCreateMaterial(const VulkanContext &vulkanContext, Material &material)
+void Chinstrap::ChinVulkan::ExampleCreateMaterial(const VulkanContext &vulkanContext, Material &material, const std::vector<char>& vertexCode, const std::vector<char>& fragmentCode)
 {
-    CHIN_LOG_INFO_VULKAN_F("FragShader size: {0}; VertShader size: {1}", material.fragmentShaderCode.size(),
-                           material.vertexShaderCode.size());
+    CHIN_LOG_INFO_VULKAN_F("VertexShader size: {0}; FragmentShader size: {1}", vertexCode.size(),
+                           fragmentCode.size());
 
-    VkShaderModule vertShaderModule = CreateShaderModule(vulkanContext, material.vertexShaderCode);
-    VkShaderModule fragShaderModule = CreateShaderModule(vulkanContext, material.fragmentShaderCode);
+    VkShaderModule vertShaderModule = CreateShaderModule(vulkanContext, vertexCode);
+    VkShaderModule fragShaderModule = CreateShaderModule(vulkanContext, fragmentCode);
 
     VkPipelineShaderStageCreateInfo vertShaderStageCreateInfo = {};
     vertShaderStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;

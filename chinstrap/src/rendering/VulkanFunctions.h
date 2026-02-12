@@ -34,7 +34,7 @@ namespace Chinstrap::ChinVulkan
 /* Some Boilerplate code to facilitate building up */
 namespace Chinstrap::ChinVulkan
 {
-    void ExampleCreateMaterial(const VulkanContext &vulkanContext, Material &material);
+    void ExampleCreateMaterial(const VulkanContext &vulkanContext, Material &material, const std::vector<char>& vertexCode, const std::vector<char>& fragmentCode);
 
     void ExampleCreateImageViews(const VulkanContext &vulkanContext, std::vector<VkImageView> &imageViews);
 

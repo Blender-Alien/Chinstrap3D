@@ -118,8 +118,7 @@ void Chinstrap::Application::Run()
         scene->OnShutdown();
     }
 
-    vkDeviceWaitIdle(appInstance->frame->vulkanContext.virtualGPU);
-    Renderer::Delete();
+    Renderer::Shutdown(appInstance->frame->vulkanContext);
     Window::Destroy(*appInstance->frame);
 
     delete appInstance;

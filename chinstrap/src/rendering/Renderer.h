@@ -7,10 +7,13 @@
 
 #include <fstream>
 
+namespace Chinstrap::ChinVulkan { struct VulkanContext; }
+
 namespace Chinstrap::Renderer
 {
+    void Shutdown(const ChinVulkan::VulkanContext &context);
+
     void Setup();
-    void Delete();
     void DrawFrame();
 }
 

@@ -6,12 +6,10 @@
 Chinstrap::ChinVulkan::Material::Material(const VulkanContext &vulkanContext,
                    const std::vector<char> &vertexShaderCode,
                    const std::vector<char> &fragmentShaderCode)
-    : vertexShaderCode(vertexShaderCode),
-      fragmentShaderCode(fragmentShaderCode),
-      vulkanContext(vulkanContext)
+    : vulkanContext(vulkanContext)
 {
     /* Test configuration */
-    ExampleCreateMaterial(vulkanContext, *this);
+    ExampleCreateMaterial(vulkanContext, *this, vertexShaderCode, fragmentShaderCode);
 }
 
 void Chinstrap::ChinVulkan::Material::Cleanup()
