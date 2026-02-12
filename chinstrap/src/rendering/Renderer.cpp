@@ -27,21 +27,21 @@ void Chinstrap::Renderer::Setup()
 
 void Chinstrap::Renderer::DrawFrame()
 {
-    const ChinVulkan::VulkanContext context = Application::App::Get().frame->vulkanContext;
-    vkWaitForFences(context.virtualGPU, 1, &context.inFlightFence, VK_TRUE, UINT64_MAX);
-    vkResetFences(context.virtualGPU, 1, &context.inFlightFence);
+    ChinVulkan::VulkanContext context = Application::App::Get().frame->vulkanContext;
+    vkWaitForFences(context.virtualGPU, 1, &context.inFlightFences[context.currentFrame], VK_TRUE, UINT64_MAX);
+    vkResetFences(context.virtualGPU, 1, &context.inFlightFences[context.currentFrame]);
 
     uint32_t imageIndex;
-    vkAcquireNextImageKHR(context.virtualGPU, context.swapChain, UINT64_MAX, context.imageAvailableSemaphore,
+    vkAcquireNextImageKHR(context.virtualGPU, context.swapChain, UINT64_MAX, context.imageAvailableSemaphores[context.currentFrame],
                           VK_NULL_HANDLE, &imageIndex);
 
-    vkResetCommandBuffer(restaurant->commandBuffers.front(), 0);
+    vkResetCommandBuffer(restaurant->commandBuffers[context.currentFrame], 0);
 
-    ChinVulkan::ExampleRecordCommandBuffer(restaurant->commandBuffers.front(), imageIndex, *restaurant,
+    ChinVulkan::ExampleRecordCommandBuffer(restaurant->commandBuffers[context.currentFrame], imageIndex, *restaurant,
                                            restaurant->materials.front(), context);
 
-    VkSemaphore waitSemaphores[] = {context.imageAvailableSemaphore};
-    VkSemaphore signalSemaphores[] = {context.renderFinishedSemaphore};
+    VkSemaphore waitSemaphores[] = {context.imageAvailableSemaphores[context.currentFrame]};
+    VkSemaphore signalSemaphores[] = {context.renderFinishedSemaphores[context.currentFrame]};
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
     VkSubmitInfo submitInfo = {};
@@ -50,10 +50,10 @@ void Chinstrap::Renderer::DrawFrame()
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &restaurant->commandBuffers.front();
+    submitInfo.pCommandBuffers = &restaurant->commandBuffers[context.currentFrame];
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
-    if (vkQueueSubmit(context.graphicsQueue, 1, &submitInfo, context.inFlightFence) != VK_SUCCESS)
+    if (vkQueueSubmit(context.graphicsQueue, 1, &submitInfo, context.inFlightFences[context.currentFrame]) != VK_SUCCESS)
     {
         CHIN_LOG_ERROR_VULKAN("Failed to submit draw command buffer!");
     }
@@ -68,4 +68,6 @@ void Chinstrap::Renderer::DrawFrame()
     presentInfo.pSwapchains = swapChains;
     presentInfo.pImageIndices = &imageIndex;
     vkQueuePresentKHR(context.graphicsQueue, &presentInfo);
+
+    context.currentFrame = (context.currentFrame + 1) % context.MAX_FRAMES_IN_FLIGHT;
 }

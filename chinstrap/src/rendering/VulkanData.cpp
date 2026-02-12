@@ -31,7 +31,7 @@ Chinstrap::ChinVulkan::Restaurant::Restaurant(const VulkanContext &vulkanContext
     ExampleCreateImageViews(vulkanContext, swapChainImageViews);
 
     commandPool = (ExampleCreateCommandPool(vulkanContext));
-    commandBuffers.push_back(ExampleCreateCommandBuffer(vulkanContext, commandPool));
+    ExampleCreateCommandBuffers(vulkanContext, commandBuffers, commandPool);
 
     /* End Of Test configuration */
 }

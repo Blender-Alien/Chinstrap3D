@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <vector>
+#include <vulkan/vulkan_core.h>
 
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
@@ -23,10 +24,12 @@ namespace Chinstrap::ChinVulkan
         std::vector<VkImage> swapChainImages;
         VkFormat swapChainImageFormat;
         VkExtent2D swapChainExtent;
+        uint32_t currentFrame = 0;
 
-        VkSemaphore imageAvailableSemaphore = VK_NULL_HANDLE;
-        VkSemaphore renderFinishedSemaphore = VK_NULL_HANDLE;
-        VkFence inFlightFence = VK_NULL_HANDLE;
+        const int MAX_FRAMES_IN_FLIGHT = 2;
+        std::vector<VkSemaphore>imageAvailableSemaphores;
+        std::vector<VkSemaphore> renderFinishedSemaphores;
+        std::vector<VkFence> inFlightFences;
 
         std::vector<const char*> neededDeviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME,

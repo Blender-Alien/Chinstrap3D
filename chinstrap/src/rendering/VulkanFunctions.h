@@ -40,7 +40,7 @@ namespace Chinstrap::ChinVulkan
 
     VkCommandPool ExampleCreateCommandPool(const VulkanContext &vulkanContext);
 
-    VkCommandBuffer ExampleCreateCommandBuffer(const VulkanContext &vulkanContext, const VkCommandPool& commandPool);
+    void ExampleCreateCommandBuffers(const VulkanContext &vulkanContext, std::vector<VkCommandBuffer>& buffers, const VkCommandPool &commandPool);
 
     void ExampleRecordCommandBuffer(VkCommandBuffer &targetCommandBuffer, uint32_t imageIndex, const Restaurant& restaurant, const Material& material, const VulkanContext &vulkanContext);
 
