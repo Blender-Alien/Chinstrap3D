@@ -1,34 +1,37 @@
 #pragma once
 
-#include "RendererData.h"
+#define GLFW_INCLUDE_VULKAN
+#include "GLFW/glfw3.h"
 
-#ifdef CHIN_DEBUG
-#define GLCall(x) Chinstrap::GLDebug::GLClearError();\
-    x;\
-    Chinstrap::GLDebug::GLLogCall(#x, __FILE__, __LINE__)
-#else
-#define GLCall(x) x;\
+#include "../ops/Logging.h"
 
-#endif
+#include <fstream>
 
-namespace Chinstrap
+namespace Chinstrap::ChinVulkan { struct VulkanContext; }
+
+namespace Chinstrap::Renderer
 {
-    namespace Renderer
+    void Shutdown(const ChinVulkan::VulkanContext &context);
+
+    void Setup();
+    void DrawFrame();
+}
+
+static std::vector<char> readFile(const std::string& filePath)
+{
+    std::ifstream file(filePath, std::ios::binary | std::ios::ate);
+
+    if (!file.is_open())
     {
-        void BindShader(const RendererData::Shader& shader);
-        void UnbindShader();
-
-        //TODO: Multithreaded shader-compile handler
-        void CompileShader(RendererData::Shader& shader);
-
-        void setUniformBool(RendererData::Shader& shader, const std::string &name, bool value);
-        void setUniformInt(RendererData::Shader& shader, const std::string &name, int value);
-        void setUniformFloat(RendererData::Shader& shader, const std::string &name, float value);
+        CHIN_LOG_ERROR("Failed to open file {}!", filePath);
     }
 
-    namespace GLDebug
-    {
-        void GLClearError();
-        bool GLLogCall(const char* function, const char* file, int line);
-    }
+    size_t fileSize = file.tellg();
+    std::vector<char> buffer(fileSize);
+
+    file.seekg(0);
+    file.read(buffer.data(), fileSize);
+
+    file.close();
+    return buffer;
 }

@@ -12,6 +12,7 @@ namespace Chinstrap {
     
     struct Scene
     {
+        std::function<std::unique_ptr<Scene>()> CreateQueued;
         float OnUpdateProfile = 0.0f;
         float OnRenderProfile = 0.0f;
         float OnEventProfile  = 0.0f;
@@ -19,6 +20,7 @@ namespace Chinstrap {
         virtual ~Scene() = default;
 
         virtual void OnBegin() {}
+        virtual void OnShutdown() {}
         virtual void OnUpdate(float deltaTime) {}
         virtual void OnRender() {}
 
@@ -28,10 +30,9 @@ namespace Chinstrap {
         template<typename TScene>
         void QueueChangeToScene()
         {
-            assert(queued == nullptr);
-            queued = std::make_unique<TScene>();
+            assert(CreateQueued == nullptr);
+            CreateQueued = [](){ return std::move(std::make_unique<TScene>()); };
         }
-        std::unique_ptr<Scene> queued = nullptr;
 
         [[nodiscard]] virtual std::string GetName() const { assert(false); return ""; }
     };

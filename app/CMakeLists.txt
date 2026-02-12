@@ -1,21 +1,13 @@
 # app
 
-set(SOURCES
-        pch.h
+file(GLOB sources
+        "src/*.cpp"
+        "src/*.h"
 
-        src/Main.cpp
-        src/TestGLScene.cpp
-        src/TestGLScene.h
-        src/TestMenuScene.cpp
-        src/TestMenuScene.h
-        src/TestGuiScene.cpp
-        src/TestGuiScene.h
-
-        ../vendor/fonts/Roboto/Roboto-Regular.h
+        "../vendor/fonts/Roboto/Roboto-Regular.h"
 )
 
-add_executable(app) 
-target_sources(app PRIVATE ${SOURCES})
+add_executable(app ${sources})
 
 add_compile_definitions(
         GLFW_INCLUDE_NONE

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "chinstrap/src/Application.h"
 #include "chinstrap/src/Scene.h"
 
 namespace Game
@@ -7,6 +8,7 @@ namespace Game
     struct TestGLScene : public Chinstrap::Scene
     {
         void OnBegin() override;
+        void OnShutdown() override;
         void OnUpdate(float deltaTime) override;
         void OnRender() override;
 

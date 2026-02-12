@@ -1,6 +1,7 @@
 #pragma once
-
 #include "events/Event.h"
+#include "rendering/VulkanData.h"
+#include "UserSettings.h"
 
 #include <string>
 #include <functional>
@@ -8,52 +9,53 @@
 class GLFWwindow;
 class GLFWmonitor;
 
-namespace Chinstrap
+namespace Chinstrap::Window
 {
-    namespace Window
+    struct ViewPortSpec
     {
-        struct ViewPortSpec
-        {
-            float posScaleX;
-            float posScaleY;
-            float sizeScaleX;
-            float sizeScaleY;
+        float posScaleX;
+        float posScaleY;
+        float sizeScaleX;
+        float sizeScaleY;
 
-            explicit ViewPortSpec(float posScaleX, float posScaleY, float sizeScaleX, float sizeScaleY);
-        };
+        explicit ViewPortSpec(float posScaleX, float posScaleY, float sizeScaleX, float sizeScaleY);
+    };
 
-        struct FrameSpec
-        {
-            std::string title;
-            float dpiScale = 1.0f;
-            int width = 1280;
-            int height = 720;
-            bool isResizable;
-            bool vSync = true;
+    struct FrameSpec
+    {
+        std::string title;
+        float dpiScale = 1.0f;
+        int width = 1280;
+        int height = 720;
 
-            explicit FrameSpec(const std::string &title, int width, int height, bool isResizable,
-                      bool vSync);
-        };
+        explicit FrameSpec(const std::string &title, int width, int height);
+    };
 
-        struct Frame
-        {
-            GLFWwindow *window = nullptr;
-            GLFWmonitor *monitor = nullptr;
-            FrameSpec frameSpec;
-            ViewPortSpec viewPortSpec;
-            std::function<void(Event&)> EventPassthrough;
+    struct Frame
+    {
+        std::function<void(Event&)> EventPassthrough;
+        FrameSpec frameSpec;
+        ViewPortSpec viewPortSpec;
 
+        GLFWwindow *window = nullptr;
+        GLFWmonitor *monitor = nullptr;
+        ChinVulkan::VulkanContext vulkanContext;
 
-            explicit Frame(const FrameSpec &spec, const ViewPortSpec &viewportSpec);
-            ~Frame();
-        };
+        UserSettings::GraphicsSettings graphicsSettings;
 
-        void Create(Frame &frame);
+        Frame(const Frame&) = delete;
+        Frame &operator=(const Frame&) = delete;
 
-        void Destroy(Frame &frame);
+        explicit Frame(const FrameSpec &spec, const ViewPortSpec &viewportSpec);
+        explicit Frame(const FrameSpec &spec, const ViewPortSpec &viewportSpec, const UserSettings::GraphicsSettings &graphicsSettings);
+    };
 
-        void Update(const Frame &frame);
+    void Create(Frame &frame);
 
-        bool ShouldClose(const Frame &frame);
-    }
+    void Destroy(Frame &frame);
+
+    void Update(const Frame &frame);
+
+    bool ShouldClose(const Frame &frame);
 }
+

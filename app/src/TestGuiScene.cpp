@@ -4,14 +4,14 @@
 #include "chinstrap/src/Application.h"
 #include "../../chinstrap/src/ops/DevInterface.h"
 
-Game::TestGUIScene::~TestGUIScene()
-{
-    Chinstrap::DevInterface::Shutdown();
-}
-
 void Game::TestGUIScene::OnBegin()
 {
     Chinstrap::DevInterface::Initialize();
+}
+
+void Game::TestGUIScene::OnShutdown()
+{
+    Chinstrap::DevInterface::Shutdown();
 }
 
 void Game::TestGUIScene::OnUpdate(float deltaTime)
