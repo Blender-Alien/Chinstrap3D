@@ -17,7 +17,9 @@
 #define CHIN_LOG_INFO(...)
 #define CHIN_LOG_WARN(...)
 
+#define CHIN_LOG_INFO_VULKAN_F(x, ...)
 #define CHIN_LOG_INFO_VULKAN(x)
+#define CHIN_LOG_WARN_VULKAN_F(x, ...)
 #define CHIN_LOG_WARN_VULKAN(x, ...)
 
 #endif
