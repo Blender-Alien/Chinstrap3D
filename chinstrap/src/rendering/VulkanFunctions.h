@@ -64,7 +64,7 @@ namespace Chinstrap::ChinVulkan
 namespace Chinstrap::ChinVulkan
 {
     void RecordImGUICommandBuffer(VkCommandBuffer& targetCommandBuffer, const VkImageView &targetImageView,
-                                  const ChinVulkan::Restaurant &restaurant, const ChinVulkan::Material &material);
+                                  const ChinVulkan::Restaurant &restaurant);
 }
 /* Global Vulkan helper functions */
 namespace Chinstrap::ChinVulkan

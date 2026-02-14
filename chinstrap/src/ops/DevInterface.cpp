@@ -22,15 +22,38 @@ void Chinstrap::DevInterface::ContextInfo(float posScaleX, float posScaleY)
 // Profile sceneStack function performance and overall FPS
 void Chinstrap::DevInterface::PerformanceInfo(float posScaleX, float posScaleY)
 {
-    //int x, y;
-    //glfwGetWindowSize(Application::App::Get().frame->window, &x, &y);
-    //ImGui::SetNextWindowPos(ImVec2(x * posScaleX, y * posScaleY));
+    /*
+    int x, y;
+    glfwGetWindowSize(Application::App::Get().frame->window, &x, &y);
+    ImGui::SetNextWindowPos(ImVec2(x * posScaleX, y * posScaleY));
+    */
 
     ImGui::Begin("Performance");
     ImGui::Text("%d FPS", Application::App::Get().framerate);
 
-    //ImGui::Checkbox("VSync", &Application::App::Get().frame->frameSpec.vSync);
-    //glfwSwapInterval(Application::App::Get().frame->frameSpec.vSync? 1 : 0);
+    using namespace UserSettings;
+    VSyncMode& setting = Application::App::Get().frame->graphicsSettings.vSync;
+
+    bool vsync;
+    switch (setting)
+    {
+        case VSyncMode::OFF:
+            vsync = false;
+            break;
+        case VSyncMode::ON:
+        case VSyncMode::FAST:
+            vsync = true;
+            break;
+    }
+    ImGui::Checkbox("VSync", &vsync);
+    if (vsync && setting == VSyncMode::OFF) {
+        setting = VSyncMode::ON;
+        ChinVulkan::RecreateSwapChain(*Application::App::Get().frame);
+    } else if (!vsync && setting == VSyncMode::ON)
+    {
+        setting = VSyncMode::OFF;
+        ChinVulkan::RecreateSwapChain(*Application::App::Get().frame);
+    }
 
     for (std::unique_ptr<Scene> &scene: Application::App::Get().sceneStack)
     {
@@ -102,7 +125,6 @@ void Chinstrap::DevInterface::Initialize(float fontSize)
     info.QueueFamily = VK_QUEUE_GRAPHICS_BIT;
     info.Queue = context.graphicsQueue;
     info.DescriptorPool = context.imguiPool;
-    info.Allocator = context.imguiAllocator;
     info.MinImageCount = 3;
     info.ImageCount = 3;
     info.UseDynamicRendering = true;

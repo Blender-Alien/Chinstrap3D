@@ -39,7 +39,6 @@ namespace Chinstrap::ChinVulkan
         };
 
         VkDescriptorPool imguiPool;
-        VkAllocationCallbacks* imguiAllocator;
 
         PFN_vkCmdBeginRenderingKHR PFN_vkCmdBeginRenderingKHR;
         PFN_vkCmdEndRenderingKHR PFN_vkCmdEndRenderingKHR;

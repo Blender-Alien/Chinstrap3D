@@ -766,6 +766,11 @@ void Chinstrap::ChinVulkan::ExampleRecordCommandBuffer(VkCommandBuffer &targetCo
 
     VkRenderingAttachmentInfo colorAttachmentInfo = {};
     colorAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+    colorAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    colorAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+    colorAttachmentInfo.clearValue = clearColor;
+    colorAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     colorAttachmentInfo.imageView = vulkanContext.defaultImageViews[imageIndex];
 
     VkRenderingInfo renderInfo = {};
@@ -811,7 +816,7 @@ void Chinstrap::ChinVulkan::ExampleRecordCommandBuffer(VkCommandBuffer &targetCo
 }
 
 void Chinstrap::ChinVulkan::RecordImGUICommandBuffer(VkCommandBuffer& targetCommandBuffer, const VkImageView &targetImageView,
-                                                       const ChinVulkan::Restaurant &restaurant, const ChinVulkan::Material &material)
+                                                       const ChinVulkan::Restaurant &restaurant)
 {
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -823,6 +828,7 @@ void Chinstrap::ChinVulkan::RecordImGUICommandBuffer(VkCommandBuffer& targetComm
 
     VkRenderingAttachmentInfo colorAttachmentInfo = {};
     colorAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+    colorAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     colorAttachmentInfo.imageView = targetImageView;
     colorAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
     colorAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;

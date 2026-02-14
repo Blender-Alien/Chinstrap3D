@@ -74,7 +74,7 @@ void Chinstrap::Renderer::DrawFrame()
     });
     vkResetCommandBuffer(imGuiRestaurant->commandBuffers[drawStuff.context->currentFrame], 0);
     ChinVulkan::RecordImGUICommandBuffer(imGuiRestaurant->commandBuffers[drawStuff.context->currentFrame],
-                                           drawStuff.context->defaultImageViews[drawStuff.imageIndex], *imGuiRestaurant, imGuiRestaurant->materials.front());
+                                           drawStuff.context->defaultImageViews[drawStuff.imageIndex], *imGuiRestaurant);
 
     VkSemaphore waitSemaphores[] = {drawStuff.context->imageAvailableSemaphores[drawStuff.context->currentFrame]};
     VkSemaphore firstStageSemaphores[] = {drawStuff.context->firstStageFinishedSemaphores[drawStuff.context->currentFrame]};
