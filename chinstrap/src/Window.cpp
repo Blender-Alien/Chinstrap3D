@@ -7,7 +7,6 @@
 #include "events/InputEvents.h"
 #include "Window.h"
 
-#include "ops/Logging.h"
 #include "events/WindowEvents.h"
 #include "rendering/VulkanFunctions.h"
 
@@ -60,7 +59,7 @@ void Chinstrap::Window::Update(const Frame &frame)
 void Chinstrap::Window::Create(Frame &frame)
 {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     glfwWindowHint(GLFW_SCALE_TO_MONITOR, 1);
 
     frame.window = glfwCreateWindow(
@@ -76,18 +75,25 @@ void Chinstrap::Window::Create(Frame &frame)
         assert(false);
     }
 
-    if (ChinVulkan::Init(frame.vulkanContext, frame.frameSpec.title) != true) { assert(false); }
-    if (ChinVulkan::CreateSurface(frame) != true) { assert(false); }
-    if (ChinVulkan::AutoPickPhysicalGPU(frame.vulkanContext) != true) { assert(false); }
-    if (ChinVulkan::CreateVirtualGPU(frame.vulkanContext) != true) { assert(false); }
-    if (ChinVulkan::CreateSwapChain(frame) != true) { assert(false); }
-    if (ChinVulkan::CreateSyncObjects(frame.vulkanContext) != true) { assert(false); }
+    if (!ChinVulkan::Initialize(frame))
+    {
+        assert(false);
+    }
 
     glfwMakeContextCurrent(frame.window);
 
     glfwSetWindowUserPointer(frame.window, &frame);
 
     /* Set all the event callbacks */
+
+    glfwSetFramebufferSizeCallback(frame.window,[](GLFWwindow* handle, int width, int height)
+    {
+        Frame &userFrame = *static_cast<Frame *>(glfwGetWindowUserPointer(handle));
+        userFrame.vulkanContext.frameResized = true;
+
+        WindowResizedEvent event(width, height);
+        userFrame.EventPassthrough(event);
+    });
     glfwSetWindowCloseCallback(frame.window, [](GLFWwindow *handle)
     {
         const Frame &userFrame = *static_cast<Frame *>(glfwGetWindowUserPointer(handle));

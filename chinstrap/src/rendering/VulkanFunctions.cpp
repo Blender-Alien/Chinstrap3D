@@ -10,7 +10,6 @@
 #include <set>
 #include <limits>
 #include <algorithm>
-#include <any>
 
 //* Externally Unavailable Functions *//
 namespace Chinstrap::ChinVulkan
@@ -159,9 +158,22 @@ namespace Chinstrap::ChinVulkan
     }
 }
 
-//* Externally Available Functions *//
+bool Chinstrap::ChinVulkan::Initialize(Window::Frame &frame)
+{
+    if (   !ChinVulkan::CreateContext(frame.vulkanContext, frame.frameSpec.title) 
+        || !ChinVulkan::CreateSurface(frame)
+        || !ChinVulkan::AutoPickPhysicalGPU(frame.vulkanContext)
+        || !ChinVulkan::CreateVirtualGPU(frame.vulkanContext) 
+        || !ChinVulkan::CreateSwapChain(frame)
+        || !ChinVulkan::CreateDefaultImageViews(frame.vulkanContext)
+        || !ChinVulkan::CreateSyncObjects(frame.vulkanContext))
+    {
+        return false;
+    }
+    return true;
+}
 
-bool Chinstrap::ChinVulkan::Init(VulkanContext &vulkanContext, const std::string &name)
+bool Chinstrap::ChinVulkan::CreateContext(VulkanContext &vulkanContext, const std::string &name)
 {
     uint32_t instanceVersion;
     vkEnumerateInstanceVersion(&instanceVersion);
@@ -360,6 +372,28 @@ bool Chinstrap::ChinVulkan::CreateSwapChain(Window::Frame &frame)
     frame.vulkanContext.swapChainExtent = extent;
     CHIN_LOG_INFO_VULKAN("Successfully created SwapChain");
     return true;
+}
+
+
+bool Chinstrap::ChinVulkan::RecreateSwapChain(Window::Frame &frame)
+{
+    vkDeviceWaitIdle(frame.vulkanContext.virtualGPU);
+
+    CleanupSwapChain(frame.vulkanContext);
+    if (!CreateSwapChain(frame) || !CreateDefaultImageViews(frame.vulkanContext))
+    {
+        return false;
+    }
+    return true;
+}
+
+void Chinstrap::ChinVulkan::CleanupSwapChain(VulkanContext &vulkanContext)
+{
+    for (auto &imageView: vulkanContext.defaultImageViews)
+    {
+        vkDestroyImageView(vulkanContext.virtualGPU, imageView, nullptr);
+    }
+    vkDestroySwapchainKHR(vulkanContext.virtualGPU, vulkanContext.swapChain, nullptr);
 }
 
 // TODO: Verify that we make the right choice on Handhelds like SteamDeck
@@ -642,11 +676,11 @@ void Chinstrap::ChinVulkan::ExampleCreateMaterial(const VulkanContext &vulkanCon
     vkDestroyShaderModule(vulkanContext.virtualGPU, fragShaderModule, nullptr);
 }
 
-void Chinstrap::ChinVulkan::ExampleCreateImageViews(const VulkanContext &vulkanContext, std::vector<VkImageView> &imageViews)
+bool Chinstrap::ChinVulkan::CreateDefaultImageViews(VulkanContext &vulkanContext)
 {
-    imageViews.resize(vulkanContext.swapChainImages.size());
+    vulkanContext.defaultImageViews.resize(vulkanContext.swapChainImages.size());
 
-    for (size_t i = 0; i < vulkanContext.swapChainImages.size(); i++)
+    for (size_t i = 0; i < vulkanContext.swapChainImages.size(); ++i)
     {
         VkImageViewCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -665,13 +699,14 @@ void Chinstrap::ChinVulkan::ExampleCreateImageViews(const VulkanContext &vulkanC
         createInfo.subresourceRange.baseArrayLayer = 0;
         createInfo.subresourceRange.layerCount = 1;
 
-        if (vkCreateImageView(vulkanContext.virtualGPU, &createInfo, nullptr, &imageViews[i]) != VK_SUCCESS)
+        if (vkCreateImageView(vulkanContext.virtualGPU, &createInfo, nullptr, &vulkanContext.defaultImageViews[i]) != VK_SUCCESS)
         {
             CHIN_LOG_CRITICAL_VULKAN("Failed to create Vulkan image view!");
-            assert(false);
+            return false;
         }
     }
-    CHIN_LOG_INFO_VULKAN("Successfully created ImageViews");
+    CHIN_LOG_INFO_VULKAN("Successfully created default ImageViews");
+    return true;
 }
 
 VkCommandPool Chinstrap::ChinVulkan::ExampleCreateCommandPool(const VulkanContext &vulkanContext)
@@ -724,7 +759,7 @@ void Chinstrap::ChinVulkan::ExampleRecordCommandBuffer(VkCommandBuffer &targetCo
 
     VkRenderingAttachmentInfo colorAttachmentInfo = {};
     colorAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-    colorAttachmentInfo.imageView = restaurant.swapChainImageViews[imageIndex];
+    colorAttachmentInfo.imageView = vulkanContext.defaultImageViews[imageIndex];
 
     VkRenderingInfo renderInfo = {};
     renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
@@ -776,7 +811,7 @@ void Chinstrap::ChinVulkan::Shutdown(VulkanContext &vulkanContext)
         vkDestroySemaphore(vulkanContext.virtualGPU, vulkanContext.renderFinishedSemaphores[i], nullptr);
         vkDestroyFence(vulkanContext.virtualGPU, vulkanContext.inFlightFences[i], nullptr);
     }
-    vkDestroySwapchainKHR(vulkanContext.virtualGPU, vulkanContext.swapChain, nullptr);
+    CleanupSwapChain(vulkanContext);
     vkDestroyDevice(vulkanContext.virtualGPU, nullptr);
 #ifdef CHIN_VK_VAL_LAYERS
     const auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(

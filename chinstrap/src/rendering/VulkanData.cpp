@@ -28,8 +28,6 @@ Chinstrap::ChinVulkan::Restaurant::Restaurant(const VulkanContext &vulkanContext
     auto fragShaderCode = readFile("../../../chinstrap/res/shaders/BasicFragment.spv");
     materials.emplace_back(vulkanContext, vertShaderCode, fragShaderCode);
 
-    ExampleCreateImageViews(vulkanContext, swapChainImageViews);
-
     commandPool = (ExampleCreateCommandPool(vulkanContext));
     ExampleCreateCommandBuffers(vulkanContext, commandBuffers, commandPool);
 
@@ -42,10 +40,6 @@ Chinstrap::ChinVulkan::Restaurant::~Restaurant()
     for (auto &material: materials)
     {
         material.Cleanup();
-    }
-    for (auto &imageView: swapChainImageViews)
-    {
-        vkDestroyImageView(vulkanContext.virtualGPU, imageView, nullptr);
     }
     CHIN_LOG_INFO_VULKAN("Destroyed Restaurant and resources");
 }

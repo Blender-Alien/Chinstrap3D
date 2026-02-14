@@ -1,22 +1,41 @@
 #pragma once
 
 #define GLFW_INCLUDE_VULKAN
+#include "GLFW/glfw3.h"
+
 #include "VulkanData.h"
 #include "../ops/Logging.h"
-#include "GLFW/glfw3.h"
 
 namespace Chinstrap::Window {struct Frame;}
 namespace Chinstrap::ChinVulkan {struct VulkanContext;}
 
-/* Functions to call from some sort of App context when starting up and shutting down in the presented order*/
+/* Functions to call from some an App or Frame context to startup and shutdown Vulkan*/
+namespace Chinstrap::ChinVulkan
+{
+    // Completely initialize a frames vulkanContext 
+    bool Initialize(Window::Frame &frame);
+
+    // Deallocate everything inside the vulkanContext object, as well as globally enabled validation layers
+    // Other allocated Vulkan objects must be properly deallocated in by their respective containers
+    void Shutdown(VulkanContext &vulkanContext);
+}
+
+/* Vulkan helper functions */
 namespace Chinstrap::ChinVulkan
 {
     // Create VulkanContext make sure the API minimum requirements are met, enable validation layers
-    bool Init(VulkanContext &vulkanContext, const std::string& name);
+    bool CreateContext(VulkanContext &vulkanContext, const std::string& name);
 
     bool CreateSurface(Window::Frame &frame);
 
     bool CreateSwapChain(Window::Frame &frame);
+
+    bool CreateDefaultImageViews(VulkanContext &vulkanContext);
+
+    // For when the window surface changes due to user input
+    bool RecreateSwapChain(Window::Frame &frame);
+
+    void CleanupSwapChain(VulkanContext &vulkanContext);
 
     // Function for automatically picking a GPU at startup, with a few (arbitrary) requirements,
     // the user may choose one later through a different system
@@ -25,18 +44,12 @@ namespace Chinstrap::ChinVulkan
     bool CreateVirtualGPU(VulkanContext &vulkanContext);
 
     bool CreateSyncObjects(VulkanContext &vulkanContext);
-
-    // Deallocate everything inside the vulkanContext object, as well as globally enabled validation layers
-    // Other allocated Vulkan objects must be properly deallocated in by their respective containers
-    void Shutdown(VulkanContext &vulkanContext);
 }
 
-/* Some Boilerplate code to facilitate building up */
+/* Some example functions that facilitate creating a material */
 namespace Chinstrap::ChinVulkan
 {
     void ExampleCreateMaterial(const VulkanContext &vulkanContext, Material &material, const std::vector<char>& vertexCode, const std::vector<char>& fragmentCode);
-
-    void ExampleCreateImageViews(const VulkanContext &vulkanContext, std::vector<VkImageView> &imageViews);
 
     VkCommandPool ExampleCreateCommandPool(const VulkanContext &vulkanContext);
 

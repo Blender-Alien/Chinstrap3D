@@ -25,6 +25,8 @@ namespace Chinstrap::ChinVulkan
         VkFormat swapChainImageFormat;
         VkExtent2D swapChainExtent;
         uint32_t currentFrame = 0;
+        std::vector<VkImageView> defaultImageViews;
+        bool frameResized = false;
 
         const int MAX_FRAMES_IN_FLIGHT = 2;
         std::vector<VkSemaphore>imageAvailableSemaphores;
@@ -60,8 +62,6 @@ namespace Chinstrap::ChinVulkan
     struct Restaurant
     {
         std::vector<Material> materials;
-
-        std::vector<VkImageView> swapChainImageViews;
 
         VkCommandPool commandPool;
         std::vector<VkCommandBuffer> commandBuffers;
