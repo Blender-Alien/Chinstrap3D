@@ -29,13 +29,17 @@ namespace Chinstrap::ChinVulkan
         bool frameResized = false;
 
         const int MAX_FRAMES_IN_FLIGHT = 2;
-        std::vector<VkSemaphore>imageAvailableSemaphores;
+        std::vector<VkSemaphore> imageAvailableSemaphores;
+        std::vector<VkSemaphore> firstStageFinishedSemaphores;
         std::vector<VkSemaphore> renderFinishedSemaphores;
         std::vector<VkFence> inFlightFences;
 
         std::vector<const char*> neededDeviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         };
+
+        VkDescriptorPool imguiPool;
+        VkAllocationCallbacks* imguiAllocator;
 
         PFN_vkCmdBeginRenderingKHR PFN_vkCmdBeginRenderingKHR;
         PFN_vkCmdEndRenderingKHR PFN_vkCmdEndRenderingKHR;

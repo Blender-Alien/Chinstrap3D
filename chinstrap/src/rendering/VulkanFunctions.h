@@ -1,5 +1,6 @@
 #pragma once
 
+#include "spdlog/fmt/bundled/base.h"
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
 
@@ -59,6 +60,12 @@ namespace Chinstrap::ChinVulkan
 
 }
 
+/* ImGUI related rendering functions */
+namespace Chinstrap::ChinVulkan
+{
+    void RecordImGUICommandBuffer(VkCommandBuffer& targetCommandBuffer, const VkImageView &targetImageView,
+                                  const ChinVulkan::Restaurant &restaurant, const ChinVulkan::Material &material);
+}
 /* Global Vulkan helper functions */
 namespace Chinstrap::ChinVulkan
 {
@@ -97,9 +104,9 @@ namespace Chinstrap::ChinVulkan
                 CHIN_LOG_INFO("[Vulkan validation layer] {}", pCallbackData->pMessage);
                 break;
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-                break;
+                CHIN_LOG_INFO("[Vulkan validation layer] {}", pCallbackData->pMessage);
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_FLAG_BITS_MAX_ENUM_EXT:
-                break;
+                CHIN_LOG_INFO("[Vulkan validation layer] {}", pCallbackData->pMessage);
         }
         return VK_FALSE;
     }

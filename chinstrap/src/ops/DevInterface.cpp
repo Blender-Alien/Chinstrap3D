@@ -13,15 +13,15 @@
 #include "backends/imgui_impl_vulkan.cpp"
 #include "imgui_internal.h"
 #include "../Scene.h"
+#include <vulkan/vulkan_core.h>
 
 void Chinstrap::DevInterface::ContextInfo(float posScaleX, float posScaleY)
 {
 }
 
-// For simple fps counter use different method
+// Profile sceneStack function performance and overall FPS
 void Chinstrap::DevInterface::PerformanceInfo(float posScaleX, float posScaleY)
 {
-#ifdef CHIN_DEBUG
     //int x, y;
     //glfwGetWindowSize(Application::App::Get().frame->window, &x, &y);
     //ImGui::SetNextWindowPos(ImVec2(x * posScaleX, y * posScaleY));
@@ -39,7 +39,6 @@ void Chinstrap::DevInterface::PerformanceInfo(float posScaleX, float posScaleY)
     }
 
     ImGui::End();
-#endif
 }
 
 void Chinstrap::DevInterface::Render(){ Render([](){}); }
@@ -56,15 +55,7 @@ void Chinstrap::DevInterface::Render(void(*lambda)())
 
 void Chinstrap::DevInterface::Initialize(float fontSize)
 {
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGui::StyleColorsDark();
-    ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
-
     Window::Frame& frame = *Application::App::Get().frame;
-    ImGui_ImplGlfw_InitForVulkan(frame.window, true);
 
     VkDescriptorPoolSize pool_sizes[] =
     {
@@ -85,29 +76,43 @@ void Chinstrap::DevInterface::Initialize(float fontSize)
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
     poolInfo.maxSets = 1000;
-    poolInfo.poolSizeCount = std::size(pool_sizes);
+    poolInfo.poolSizeCount = static_cast<uint32_t>(std::size(pool_sizes));
     poolInfo.pPoolSizes = pool_sizes;
 
     ChinVulkan::VulkanContext& context = frame.vulkanContext;
-
-    VkDescriptorPool imguiPool;
-    if (vkCreateDescriptorPool(context.virtualGPU, &poolInfo, nullptr, &imguiPool) != VK_SUCCESS)
+    if (vkCreateDescriptorPool(context.virtualGPU, &poolInfo, nullptr, &context.imguiPool) != VK_SUCCESS)
     {
         assert(false);
     }
 
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui::StyleColorsDark();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
+
+    ImGui_ImplGlfw_InitForVulkan(frame.window, true);
+
     ImGui_ImplVulkan_InitInfo info = {};
+    info.ApiVersion = context.instanceSupportedVersion;
     info.Instance = context.instance;
     info.PhysicalDevice = context.physicalGPU;
     info.Device = context.virtualGPU;
+    info.QueueFamily = VK_QUEUE_GRAPHICS_BIT;
     info.Queue = context.graphicsQueue;
-    info.DescriptorPool = imguiPool;
+    info.DescriptorPool = context.imguiPool;
+    info.Allocator = context.imguiAllocator;
     info.MinImageCount = 3;
     info.ImageCount = 3;
+    info.UseDynamicRendering = true;
+
+    info.PipelineInfoMain.PipelineRenderingCreateInfo = {.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO};
+    info.PipelineInfoMain.PipelineRenderingCreateInfo.colorAttachmentCount = 1;
+    info.PipelineInfoMain.PipelineRenderingCreateInfo.pColorAttachmentFormats = &context.swapChainImageFormat;
+    info.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
     ImGui_ImplVulkan_Init(&info);
-
-    vkDestroyDescriptorPool(context.virtualGPU, imguiPool, nullptr);
 
     float xscale, yscale;
     glfwGetWindowContentScale(Application::App::Get().frame->window, &xscale, &yscale);

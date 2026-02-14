@@ -7,11 +7,15 @@
 #include "../Application.h"
 #include <vulkan/vulkan_core.h>
 
+#include "../ops/DevInterface.h"
+#include "spdlog/fmt/bundled/compile.h"
+
 namespace Chinstrap::Renderer
 {
     namespace
     {
         ChinVulkan::Restaurant *restaurant = nullptr;
+        ChinVulkan::Restaurant *imGuiRestaurant = nullptr;
 
         /* Idea: We need these variables in the DrawFrame() function,
          * but we don't want to allocate and deallocate them to the stack every frame 
@@ -33,11 +37,14 @@ void Chinstrap::Renderer::Shutdown(const ChinVulkan::VulkanContext &context)
 {
     vkDeviceWaitIdle(context.virtualGPU);
     delete restaurant;
+    delete imGuiRestaurant;
 }
 
 void Chinstrap::Renderer::Setup()
 {
-    restaurant = new ChinVulkan::Restaurant(Application::App::Get().frame->vulkanContext);
+    imGuiRestaurant = new ChinVulkan::Restaurant(Application::App::Get().frame->vulkanContext);
+    restaurant      = new ChinVulkan::Restaurant(Application::App::Get().frame->vulkanContext);
+
     drawStuff.context = &Application::App::Get().frame->vulkanContext;
 }
 
@@ -60,19 +67,41 @@ void Chinstrap::Renderer::DrawFrame()
     ChinVulkan::ExampleRecordCommandBuffer(restaurant->commandBuffers[drawStuff.context->currentFrame], drawStuff.imageIndex, *restaurant,
                                            restaurant->materials.front(), *drawStuff.context);
 
+    Chinstrap::DevInterface::Render([]()
+    {
+        Chinstrap::DevInterface::ContextInfo(0.7f, 0.0f);
+        Chinstrap::DevInterface::PerformanceInfo(0.0f, 0.0f);
+    });
+    vkResetCommandBuffer(imGuiRestaurant->commandBuffers[drawStuff.context->currentFrame], 0);
+    ChinVulkan::RecordImGUICommandBuffer(imGuiRestaurant->commandBuffers[drawStuff.context->currentFrame],
+                                           drawStuff.context->defaultImageViews[drawStuff.imageIndex], *imGuiRestaurant, imGuiRestaurant->materials.front());
+
     VkSemaphore waitSemaphores[] = {drawStuff.context->imageAvailableSemaphores[drawStuff.context->currentFrame]};
+    VkSemaphore firstStageSemaphores[] = {drawStuff.context->firstStageFinishedSemaphores[drawStuff.context->currentFrame]};
     VkSemaphore signalSemaphores[] = {drawStuff.context->renderFinishedSemaphores[drawStuff.context->currentFrame]};
 
-    VkSubmitInfo submitInfo = {};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = waitSemaphores;
-    submitInfo.pWaitDstStageMask = drawStuff.waitStages;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &restaurant->commandBuffers[drawStuff.context->currentFrame];
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = signalSemaphores;
-    if (vkQueueSubmit(drawStuff.context->graphicsQueue, 1, &submitInfo, drawStuff.context->inFlightFences[drawStuff.context->currentFrame]) != VK_SUCCESS)
+    VkSubmitInfo triangleSubmit = {};
+    triangleSubmit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    triangleSubmit.waitSemaphoreCount = 1;
+    triangleSubmit.pWaitSemaphores = waitSemaphores;
+    triangleSubmit.pWaitDstStageMask = drawStuff.waitStages;
+    triangleSubmit.commandBufferCount = 1;
+    triangleSubmit.pCommandBuffers = &restaurant->commandBuffers[drawStuff.context->currentFrame];
+    triangleSubmit.signalSemaphoreCount = 1;
+    triangleSubmit.pSignalSemaphores = firstStageSemaphores;
+
+    VkSubmitInfo imGuiSubmit = {};
+    imGuiSubmit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    imGuiSubmit.waitSemaphoreCount = 1;
+    imGuiSubmit.pWaitSemaphores = firstStageSemaphores;
+    imGuiSubmit.pWaitDstStageMask = drawStuff.waitStages;
+    imGuiSubmit.commandBufferCount = 1;
+    imGuiSubmit.pCommandBuffers = &imGuiRestaurant->commandBuffers[drawStuff.context->currentFrame];
+    imGuiSubmit.signalSemaphoreCount = 1;
+    imGuiSubmit.pSignalSemaphores = signalSemaphores;
+    VkSubmitInfo submitInfos[] = { triangleSubmit, imGuiSubmit };
+
+    if (vkQueueSubmit(drawStuff.context->graphicsQueue, 2, submitInfos, drawStuff.context->inFlightFences[drawStuff.context->currentFrame]) != VK_SUCCESS)
     {
         CHIN_LOG_ERROR_VULKAN("Failed to submit draw command buffer!");
     }

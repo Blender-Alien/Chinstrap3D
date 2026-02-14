@@ -1,7 +1,10 @@
 #include "VulkanFunctions.h"
+#include <vulkan/vulkan_core.h>
 
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
+
+#include "backends/imgui_impl_vulkan.h"
 
 #include "../ops/Logging.h"
 #include "../Window.h"
@@ -506,6 +509,7 @@ bool Chinstrap::ChinVulkan::CreateSyncObjects(VulkanContext &vulkanContext)
 {
     vulkanContext.imageAvailableSemaphores.resize(vulkanContext.MAX_FRAMES_IN_FLIGHT);
     vulkanContext.renderFinishedSemaphores.resize(vulkanContext.MAX_FRAMES_IN_FLIGHT);
+    vulkanContext.firstStageFinishedSemaphores.resize(vulkanContext.MAX_FRAMES_IN_FLIGHT);
     vulkanContext.inFlightFences.resize(vulkanContext.MAX_FRAMES_IN_FLIGHT);
 
     VkSemaphoreCreateInfo semaphoreCreateInfo = {};
@@ -522,6 +526,9 @@ bool Chinstrap::ChinVulkan::CreateSyncObjects(VulkanContext &vulkanContext)
             != VK_SUCCESS ||
             vkCreateSemaphore(vulkanContext.virtualGPU, &semaphoreCreateInfo, nullptr,
                               &vulkanContext.renderFinishedSemaphores[i])
+            != VK_SUCCESS ||
+            vkCreateSemaphore(vulkanContext.virtualGPU, &semaphoreCreateInfo, nullptr,
+                              &vulkanContext.firstStageFinishedSemaphores[i])
             != VK_SUCCESS ||
             vkCreateFence(vulkanContext.virtualGPU, &fenceCreateInfo, nullptr, &vulkanContext.inFlightFences[i])
             != VK_SUCCESS)
@@ -803,12 +810,58 @@ void Chinstrap::ChinVulkan::ExampleRecordCommandBuffer(VkCommandBuffer &targetCo
     }
 }
 
+void Chinstrap::ChinVulkan::RecordImGUICommandBuffer(VkCommandBuffer& targetCommandBuffer, const VkImageView &targetImageView,
+                                                       const ChinVulkan::Restaurant &restaurant, const ChinVulkan::Material &material)
+{
+    VkCommandBufferBeginInfo beginInfo = {};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+    if (vkBeginCommandBuffer(targetCommandBuffer, &beginInfo) != VK_SUCCESS)
+    {
+        CHIN_LOG_ERROR_VULKAN("Failed to begin recording ImGui command buffer!");
+    }
+
+    VkRenderingAttachmentInfo colorAttachmentInfo = {};
+    colorAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+    colorAttachmentInfo.imageView = targetImageView;
+    colorAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    colorAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+    VkRenderingInfo renderInfo = {};
+    renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+    renderInfo.layerCount = 1;
+    renderInfo.colorAttachmentCount = 1;
+    renderInfo.pColorAttachments = &colorAttachmentInfo;
+    renderInfo.renderArea.offset = {0, 0};
+    renderInfo.renderArea.extent = restaurant.vulkanContext.swapChainExtent;
+
+    if (restaurant.vulkanContext.instanceSupportedVersion < VK_API_VERSION_1_3)
+        restaurant.vulkanContext.PFN_vkCmdBeginRenderingKHR(targetCommandBuffer, &renderInfo);
+    else
+        vkCmdBeginRendering(targetCommandBuffer, &renderInfo);
+
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), targetCommandBuffer);
+
+    if (restaurant.vulkanContext.instanceSupportedVersion < VK_API_VERSION_1_3)
+        restaurant.vulkanContext.PFN_vkCmdEndRenderingKHR(targetCommandBuffer);
+    else
+        vkCmdEndRendering(targetCommandBuffer);
+
+    if (vkEndCommandBuffer(targetCommandBuffer) != VK_SUCCESS)
+    {
+        CHIN_LOG_ERROR_VULKAN("Failed to end recording command buffer!");
+    }
+}
+
 void Chinstrap::ChinVulkan::Shutdown(VulkanContext &vulkanContext)
 {
+    vkDestroyDescriptorPool(vulkanContext.virtualGPU, vulkanContext.imguiPool, nullptr);
+
     for (size_t i = 0; i < vulkanContext.MAX_FRAMES_IN_FLIGHT; ++i)
     {
         vkDestroySemaphore(vulkanContext.virtualGPU, vulkanContext.imageAvailableSemaphores[i], nullptr);
         vkDestroySemaphore(vulkanContext.virtualGPU, vulkanContext.renderFinishedSemaphores[i], nullptr);
+        vkDestroySemaphore(vulkanContext.virtualGPU, vulkanContext.firstStageFinishedSemaphores[i], nullptr);
         vkDestroyFence(vulkanContext.virtualGPU, vulkanContext.inFlightFences[i], nullptr);
     }
     CleanupSwapChain(vulkanContext);

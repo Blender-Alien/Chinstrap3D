@@ -20,11 +20,6 @@ void Game::TestGUIScene::OnUpdate(float deltaTime)
 
 void Game::TestGUIScene::OnRender()
 {
-    Chinstrap::DevInterface::Render([]()
-    {
-        Chinstrap::DevInterface::ContextInfo(0.7f, 0.0f);
-        Chinstrap::DevInterface::PerformanceInfo(0.0f, 0.0f);
-    });
 }
 
 bool Game::TestGUIScene::OnKeyPress(const Chinstrap::KeyPressedEvent &event)
