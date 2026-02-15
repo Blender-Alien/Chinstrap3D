@@ -28,6 +28,7 @@ namespace Chinstrap::ChinVulkan
         std::vector<VkImageView> defaultImageViews;
         bool frameResized = false;
 
+        // We need vectors of semaphores/fences to support > 1 frames in flight
         const int MAX_FRAMES_IN_FLIGHT = 2;
         std::vector<VkSemaphore> imageAvailableSemaphores;
         std::vector<VkSemaphore> firstStageFinishedSemaphores;
