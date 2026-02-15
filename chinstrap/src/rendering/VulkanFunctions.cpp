@@ -80,7 +80,6 @@ namespace Chinstrap::ChinVulkan
         VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats,
                                                    UserSettings::GraphicsSettings &settings)
         {
-            // TODO: Find out which ones we need for HDR
             std::array<VkColorSpaceKHR, 3> supportedHDRSpaces = {
                 VK_COLOR_SPACE_HDR10_ST2084_EXT,
                 VK_COLOR_SPACE_DISPLAY_P3_NONLINEAR_EXT,
@@ -89,25 +88,30 @@ namespace Chinstrap::ChinVulkan
             using namespace UserSettings;
             for (const auto &availableFormat: availableFormats)
             {
-                if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace ==
-                    VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
-                    && settings.colorSpace == ColorSpaceMode::SRGB)
+                if (settings.colorSpace == ColorSpaceMode::SRGB
+                    && availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB 
+                    && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
                 {
                     return availableFormat;
                 }
-                if (std::find(std::begin(supportedHDRSpaces), std::end(supportedHDRSpaces), availableFormat.colorSpace) !=
-                    std::end(supportedHDRSpaces)
-                    && settings.colorSpace == ColorSpaceMode::HDR)
+                if (settings.colorSpace == ColorSpaceMode::HDR
+                    && (std::find(std::begin(supportedHDRSpaces), std::end(supportedHDRSpaces), availableFormat.colorSpace)
+                    != std::end(supportedHDRSpaces)))
                 {
                     return availableFormat;
                 }
             }
+
             if (settings.colorSpace != ColorSpaceMode::SRGB)
             {
-                CHIN_LOG_ERROR_VULKAN("There was no suitable HDR format available!");
+                CHIN_LOG_ERROR_VULKAN("No HDR format found, switching to SRGB!");
+            #ifdef __linux
+                CHIN_LOG_WARN_VULKAN("On Wayland, gamescope is required to use HDR");
+            #endif
                 settings.colorSpace = ColorSpaceMode::SRGB;
             }
-            CHIN_LOG_ERROR_VULKAN("Chose fallback format and colorspace!");
+
+            CHIN_LOG_ERROR_VULKAN("Choosing first available format as fallback!");
             return availableFormats[0]; // Whatever Format is actually supported, no matter which
         }
 

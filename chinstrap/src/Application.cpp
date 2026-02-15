@@ -1,4 +1,5 @@
 #include "Application.h"
+#include "UserSettings.h"
 #include "Window.h"
 #include "Scene.h"
 #include "events/Event.h"
@@ -55,7 +56,8 @@ int Chinstrap::Application::Init(const std::string &appName, Window::FrameSpec &
         return -1;
     }
 
-    appInstance->frame = std::make_unique<Window::Frame>(frameSpec, viewportSpec);
+    UserSettings::GraphicsSettings settings = UserSettings::GraphicsSettings(UserSettings::VSyncMode::ON, UserSettings::ColorSpaceMode::SRGB);
+    appInstance->frame = std::make_unique<Window::Frame>(frameSpec, viewportSpec, settings);
     Window::Create(*appInstance->frame);
 
     appInstance->frame->EventPassthrough = [](Event& event){ ForwardEvents(event); };

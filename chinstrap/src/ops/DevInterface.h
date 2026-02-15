@@ -2,7 +2,7 @@
 
 namespace Chinstrap::DevInterface
 {
-    void Initialize(float fontSize = 13.0f);
+    void Initialize(float fontSize = 20.0f);
     void Render();
     void Render(void(*lambda)());
     void Shutdown();
