@@ -417,6 +417,8 @@ bool Chinstrap::ChinVulkan::AutoPickPhysicalGPU(VulkanContext &vulkanContext)
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(vulkanContext.instance, &deviceCount, devices.data());
 
+    VkPhysicalDevice suitableIntegratedGPU = VK_NULL_HANDLE;
+
     uint32_t extensionCount;
     bool extensionsSupported, swapChainAdequate;
     for (const auto &device: devices)
@@ -444,18 +446,30 @@ bool Chinstrap::ChinVulkan::AutoPickPhysicalGPU(VulkanContext &vulkanContext)
 
         QueueFamilyIndices queues = findQueueFamilies(device, vulkanContext.windowSurface);
 
-        if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU // Arbitrary
+        if ((deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU 
+            || deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
             && deviceFeatures.geometryShader // Arbitrary
             && queues.graphicsFamily == queues.presentationFamily // Arbitrary
             && queues.allSupported() // Necessary
             && extensionsSupported // Necessary
             && swapChainAdequate) // Necessary
         {
+            if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+            {
+                suitableIntegratedGPU = device;
+                continue; // Don't immediately settle, there could be a discrete GPU left
+            }
             vulkanContext.physicalGPU = device;
-            CHIN_LOG_INFO_VULKAN("Successfully chose a GPU");
+            CHIN_LOG_INFO_VULKAN("Successfully chose a dedicated GPU");
             return true;
         }
     }
+    if (suitableIntegratedGPU != VK_NULL_HANDLE)
+    {
+        CHIN_LOG_INFO("Successfully chose an integrated GPU");
+        return suitableIntegratedGPU;
+    }
+
     CHIN_LOG_CRITICAL_VULKAN("Failed to choose a GPU that meets requirements!");
     return false;
 }
