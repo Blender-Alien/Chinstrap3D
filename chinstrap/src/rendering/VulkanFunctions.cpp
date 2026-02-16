@@ -466,8 +466,9 @@ bool Chinstrap::ChinVulkan::AutoPickPhysicalGPU(VulkanContext &vulkanContext)
     }
     if (suitableIntegratedGPU != VK_NULL_HANDLE)
     {
+        vulkanContext.physicalGPU = suitableIntegratedGPU;
         CHIN_LOG_INFO("Successfully chose an integrated GPU");
-        return suitableIntegratedGPU;
+        return true;
     }
 
     CHIN_LOG_CRITICAL_VULKAN("Failed to choose a GPU that meets requirements!");
