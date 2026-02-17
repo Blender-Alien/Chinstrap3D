@@ -539,9 +539,6 @@ bool Chinstrap::ChinVulkan::CreateSyncObjects(const VulkanContext &vulkanContext
         if (vkCreateSemaphore(vulkanContext.virtualGPU, &semaphoreCreateInfo, nullptr,
                               &frameSyncs[i].imageAvailableSemaphore)
             != VK_SUCCESS ||
-            vkCreateSemaphore(vulkanContext.virtualGPU, &semaphoreCreateInfo, nullptr,
-                              &frameSyncs[i].renderFinishedSemaphore)
-            != VK_SUCCESS ||
             vkCreateFence(vulkanContext.virtualGPU, &fenceCreateInfo, nullptr, &frameSyncs[i].inFlightFence)
             != VK_SUCCESS)
         {
@@ -765,7 +762,7 @@ void Chinstrap::ChinVulkan::ExampleCreateCommandBuffers(const VulkanContext &vul
     }
 }
 
-void Chinstrap::ChinVulkan::ExampleRecordCommandBuffer(VkCommandBuffer &targetCommandBuffer, uint32_t imageIndex, const Restaurant &restaurant,
+void Chinstrap::ChinVulkan::ExampleRecordCommandBuffer(VkCommandBuffer &targetCommandBuffer, const VkImageView& targetImageView, const Restaurant &restaurant,
                                 const Material &material, const VulkanContext &vulkanContext)
 {
     VkCommandBufferBeginInfo beginInfo = {};
@@ -783,7 +780,7 @@ void Chinstrap::ChinVulkan::ExampleRecordCommandBuffer(VkCommandBuffer &targetCo
     VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
     colorAttachmentInfo.clearValue = clearColor;
     colorAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    colorAttachmentInfo.imageView = vulkanContext.defaultImageViews[imageIndex];
+    colorAttachmentInfo.imageView = targetImageView;
 
     VkRenderingInfo renderInfo = {};
     renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
@@ -791,7 +788,7 @@ void Chinstrap::ChinVulkan::ExampleRecordCommandBuffer(VkCommandBuffer &targetCo
     renderInfo.colorAttachmentCount = 1;
     renderInfo.pColorAttachments = &colorAttachmentInfo;
     renderInfo.renderArea.offset = {0, 0};
-    renderInfo.renderArea.extent = restaurant.vulkanContext.swapChainExtent;
+    renderInfo.renderArea.extent = restaurant.pVulkanContext->swapChainExtent;
 
     if (vulkanContext.instanceSupportedVersion < VK_API_VERSION_1_3)
         vulkanContext.PFN_vkCmdBeginRenderingKHR(targetCommandBuffer, &renderInfo);
@@ -803,15 +800,15 @@ void Chinstrap::ChinVulkan::ExampleRecordCommandBuffer(VkCommandBuffer &targetCo
     VkViewport viewport = {};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
-    viewport.width = static_cast<float>(restaurant.vulkanContext.swapChainExtent.width);
-    viewport.height = static_cast<float>(restaurant.vulkanContext.swapChainExtent.height);
+    viewport.width = static_cast<float>(restaurant.pVulkanContext->swapChainExtent.width);
+    viewport.height = static_cast<float>(restaurant.pVulkanContext->swapChainExtent.height);
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
     vkCmdSetViewport(targetCommandBuffer, 0, 1, &viewport);
 
     VkRect2D scissor = {};
     scissor.offset = {0, 0};
-    scissor.extent = restaurant.vulkanContext.swapChainExtent;
+    scissor.extent = restaurant.pVulkanContext->swapChainExtent;
     vkCmdSetScissor(targetCommandBuffer, 0, 1, &scissor);
 
     vkCmdDraw(targetCommandBuffer, 3, 1, 0, 0);
@@ -851,17 +848,17 @@ void Chinstrap::ChinVulkan::RecordImGUICommandBuffer(VkCommandBuffer& targetComm
     renderInfo.colorAttachmentCount = 1;
     renderInfo.pColorAttachments = &colorAttachmentInfo;
     renderInfo.renderArea.offset = {0, 0};
-    renderInfo.renderArea.extent = restaurant.vulkanContext.swapChainExtent;
+    renderInfo.renderArea.extent = restaurant.pVulkanContext->swapChainExtent;
 
-    if (restaurant.vulkanContext.instanceSupportedVersion < VK_API_VERSION_1_3)
-        restaurant.vulkanContext.PFN_vkCmdBeginRenderingKHR(targetCommandBuffer, &renderInfo);
+    if (restaurant.pVulkanContext->instanceSupportedVersion < VK_API_VERSION_1_3)
+        restaurant.pVulkanContext->PFN_vkCmdBeginRenderingKHR(targetCommandBuffer, &renderInfo);
     else
         vkCmdBeginRendering(targetCommandBuffer, &renderInfo);
 
     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), targetCommandBuffer);
 
-    if (restaurant.vulkanContext.instanceSupportedVersion < VK_API_VERSION_1_3)
-        restaurant.vulkanContext.PFN_vkCmdEndRenderingKHR(targetCommandBuffer);
+    if (restaurant.pVulkanContext->instanceSupportedVersion < VK_API_VERSION_1_3)
+        restaurant.pVulkanContext->PFN_vkCmdEndRenderingKHR(targetCommandBuffer);
     else
         vkCmdEndRendering(targetCommandBuffer);
 

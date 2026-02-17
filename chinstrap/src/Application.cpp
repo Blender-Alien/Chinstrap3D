@@ -111,8 +111,11 @@ void Chinstrap::Application::Run()
             }
             // DON'T operate on scene in stack after possibly "thisScene"
         }
-        Renderer::SubmitDrawData(currentFrame); // Temporary
-        Renderer::RenderFrame(currentFrame);
+        if (render) [[likely]]
+        {
+            Renderer::SubmitDrawData(currentFrame);
+            Renderer::RenderFrame(currentFrame);
+        }
         timeAtPreviousFrame = currentTime;
 
         ++frameCount;

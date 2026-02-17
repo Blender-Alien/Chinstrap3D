@@ -2,13 +2,17 @@
 
 #include "../../chinstrap/src/events/InputEvents.h"
 #include "chinstrap/src/ops/Logging.h"
-#include "chinstrap/src/rendering/Renderer.h"
 
 #include "TestMenuScene.h"
-#include "chinstrap/src/Application.h"
 
 void Game::TestGLScene::OnBegin()
 {
+    submitToRender = [this](const uint32_t currentFrame, const VkImageView &imageView, const Chinstrap::ChinVulkan::VulkanContext &vulkanContext)
+    {
+        vkResetCommandBuffer(restaurant.commandBuffers[currentFrame], 0);
+        Chinstrap::ChinVulkan::ExampleRecordCommandBuffer(restaurant.commandBuffers[currentFrame], imageView, restaurant,
+                                               restaurant.materials.front(), vulkanContext);
+    };
 }
 
 void Game::TestGLScene::OnShutdown()
