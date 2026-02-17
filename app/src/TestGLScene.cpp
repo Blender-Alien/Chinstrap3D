@@ -21,7 +21,6 @@ void Game::TestGLScene::OnUpdate(float deltaTime)
 
 void Game::TestGLScene::OnRender()
 {
-    Chinstrap::Renderer::DrawFrame();
 }
 
 bool Game::TestGLScene::OnKeyPress(const Chinstrap::KeyPressedEvent &event)

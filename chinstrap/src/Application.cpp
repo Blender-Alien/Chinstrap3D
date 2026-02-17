@@ -77,6 +77,8 @@ void Chinstrap::Application::Run()
     double currentTime = 0.0f;
     int frameCount = 0;
 
+    bool render = true;
+    uint32_t currentFrame = 0;
     Renderer::Setup();
 
     while (appInstance->running)
@@ -89,10 +91,16 @@ void Chinstrap::Application::Run()
         glfwPollEvents();
 
         currentTime = glfwGetTime();
+
+        currentFrame = appInstance->frame->vulkanContext.currentFrame;
+        render = Renderer::BeginFrame(currentFrame);
         for (auto &scene : appInstance->sceneStack)
         {
             CHIN_PROFILE_TIME(scene->OnUpdate(static_cast<float>((currentTime - timeAtPreviousFrame)*1000)), scene->OnUpdateProfile);
-            CHIN_PROFILE_TIME(scene->OnRender(), scene->OnRenderProfile);
+            if (render) [[likely]]
+            {
+                CHIN_PROFILE_TIME(scene->OnRender(), scene->OnRenderProfile);
+            }
 
             if (scene->CreateQueued != nullptr) // scene has requested change to new scene
             {
@@ -103,6 +111,8 @@ void Chinstrap::Application::Run()
             }
             // DON'T operate on scene in stack after possibly "thisScene"
         }
+        Renderer::SubmitDrawData(currentFrame); // Temporary
+        Renderer::RenderFrame(currentFrame);
         timeAtPreviousFrame = currentTime;
 
         ++frameCount;

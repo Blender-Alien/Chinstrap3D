@@ -89,7 +89,7 @@ void Chinstrap::Window::Create(Frame &frame)
     glfwSetFramebufferSizeCallback(frame.window,[](GLFWwindow* handle, int width, int height)
     {
         Frame &userFrame = *static_cast<Frame *>(glfwGetWindowUserPointer(handle));
-        userFrame.vulkanContext.frameResized = true;
+        userFrame.vulkanContext.swapChainInadequate = true;
 
         WindowResizedEvent event(width, height);
         userFrame.EventPassthrough(event);

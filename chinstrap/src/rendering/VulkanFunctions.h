@@ -44,7 +44,7 @@ namespace Chinstrap::ChinVulkan
 
     bool CreateVirtualGPU(VulkanContext &vulkanContext);
 
-    bool CreateSyncObjects(VulkanContext &vulkanContext);
+    bool CreateSyncObjects(const VulkanContext &vulkanContext, std::vector<FrameSync> &frameSyncs);
 }
 
 /* Some example functions that facilitate creating a material */

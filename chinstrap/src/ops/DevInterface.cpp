@@ -48,11 +48,11 @@ void Chinstrap::DevInterface::PerformanceInfo(float posScaleX, float posScaleY)
     ImGui::Checkbox("VSync", &vsync);
     if (vsync && setting == VSyncMode::OFF) {
         setting = VSyncMode::ON;
-        ChinVulkan::RecreateSwapChain(*Application::App::Get().frame);
+        Application::App::Get().frame->vulkanContext.swapChainInadequate = true;
     } else if (!vsync && setting == VSyncMode::ON)
     {
         setting = VSyncMode::OFF;
-        ChinVulkan::RecreateSwapChain(*Application::App::Get().frame);
+        Application::App::Get().frame->vulkanContext.swapChainInadequate = true;
     }
 
     for (std::unique_ptr<Scene> &scene: Application::App::Get().sceneStack)
@@ -65,7 +65,7 @@ void Chinstrap::DevInterface::PerformanceInfo(float posScaleX, float posScaleY)
 }
 
 void Chinstrap::DevInterface::Render(){ Render([](){}); }
-void Chinstrap::DevInterface::Render(void(*lambda)())
+void Chinstrap::DevInterface::Render(const std::function<void()>& lambda)
 {
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();

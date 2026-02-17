@@ -172,8 +172,7 @@ bool Chinstrap::ChinVulkan::Initialize(Window::Frame &frame)
         || !ChinVulkan::AutoPickPhysicalGPU(frame.vulkanContext)
         || !ChinVulkan::CreateVirtualGPU(frame.vulkanContext) 
         || !ChinVulkan::CreateSwapChain(frame)
-        || !ChinVulkan::CreateDefaultImageViews(frame.vulkanContext)
-        || !ChinVulkan::CreateSyncObjects(frame.vulkanContext))
+        || !ChinVulkan::CreateDefaultImageViews(frame.vulkanContext))
     {
         return false;
     }
@@ -524,12 +523,9 @@ bool Chinstrap::ChinVulkan::CreateVirtualGPU(VulkanContext &vulkanContext)
     return true;
 }
 
-bool Chinstrap::ChinVulkan::CreateSyncObjects(VulkanContext &vulkanContext)
+bool Chinstrap::ChinVulkan::CreateSyncObjects(const VulkanContext &vulkanContext, std::vector<FrameSync> &frameSyncs)
 {
-    vulkanContext.imageAvailableSemaphores.resize(vulkanContext.MAX_FRAMES_IN_FLIGHT);
-    vulkanContext.renderFinishedSemaphores.resize(vulkanContext.MAX_FRAMES_IN_FLIGHT);
-    vulkanContext.firstStageFinishedSemaphores.resize(vulkanContext.MAX_FRAMES_IN_FLIGHT);
-    vulkanContext.inFlightFences.resize(vulkanContext.MAX_FRAMES_IN_FLIGHT);
+    frameSyncs.resize(vulkanContext.MAX_FRAMES_IN_FLIGHT);
 
     VkSemaphoreCreateInfo semaphoreCreateInfo = {};
     semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -541,18 +537,15 @@ bool Chinstrap::ChinVulkan::CreateSyncObjects(VulkanContext &vulkanContext)
     for (size_t i = 0; i < vulkanContext.MAX_FRAMES_IN_FLIGHT; ++i)
     {
         if (vkCreateSemaphore(vulkanContext.virtualGPU, &semaphoreCreateInfo, nullptr,
-                              &vulkanContext.imageAvailableSemaphores[i])
+                              &frameSyncs[i].imageAvailableSemaphore)
             != VK_SUCCESS ||
             vkCreateSemaphore(vulkanContext.virtualGPU, &semaphoreCreateInfo, nullptr,
-                              &vulkanContext.renderFinishedSemaphores[i])
+                              &frameSyncs[i].renderFinishedSemaphore)
             != VK_SUCCESS ||
-            vkCreateSemaphore(vulkanContext.virtualGPU, &semaphoreCreateInfo, nullptr,
-                              &vulkanContext.firstStageFinishedSemaphores[i])
-            != VK_SUCCESS ||
-            vkCreateFence(vulkanContext.virtualGPU, &fenceCreateInfo, nullptr, &vulkanContext.inFlightFences[i])
+            vkCreateFence(vulkanContext.virtualGPU, &fenceCreateInfo, nullptr, &frameSyncs[i].inFlightFence)
             != VK_SUCCESS)
         {
-            CHIN_LOG_CRITICAL_VULKAN("Failed to create semaphores!");
+            CHIN_LOG_CRITICAL_VULKAN("Failed to create semaphores/fences!");
             return false;
         }
     }
@@ -882,13 +875,6 @@ void Chinstrap::ChinVulkan::Shutdown(VulkanContext &vulkanContext)
 {
     vkDestroyDescriptorPool(vulkanContext.virtualGPU, vulkanContext.imguiPool, nullptr);
 
-    for (size_t i = 0; i < vulkanContext.MAX_FRAMES_IN_FLIGHT; ++i)
-    {
-        vkDestroySemaphore(vulkanContext.virtualGPU, vulkanContext.imageAvailableSemaphores[i], nullptr);
-        vkDestroySemaphore(vulkanContext.virtualGPU, vulkanContext.renderFinishedSemaphores[i], nullptr);
-        vkDestroySemaphore(vulkanContext.virtualGPU, vulkanContext.firstStageFinishedSemaphores[i], nullptr);
-        vkDestroyFence(vulkanContext.virtualGPU, vulkanContext.inFlightFences[i], nullptr);
-    }
     CleanupSwapChain(vulkanContext);
     vkDestroyDevice(vulkanContext.virtualGPU, nullptr);
 #ifdef CHIN_VK_VAL_LAYERS

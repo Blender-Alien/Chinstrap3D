@@ -26,14 +26,10 @@ namespace Chinstrap::ChinVulkan
         VkExtent2D swapChainExtent;
         uint32_t currentFrame = 0;
         std::vector<VkImageView> defaultImageViews;
-        bool frameResized = false;
+        bool swapChainInadequate = false;
 
         // We need vectors of semaphores/fences to support > 1 frames in flight
         const int MAX_FRAMES_IN_FLIGHT = 2;
-        std::vector<VkSemaphore> imageAvailableSemaphores;
-        std::vector<VkSemaphore> firstStageFinishedSemaphores;
-        std::vector<VkSemaphore> renderFinishedSemaphores;
-        std::vector<VkFence> inFlightFences;
 
         std::vector<const char*> neededDeviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -73,6 +69,24 @@ namespace Chinstrap::ChinVulkan
         const VulkanContext& vulkanContext;
         explicit Restaurant(const VulkanContext& vulkanContext);
         ~Restaurant();
+    };
+
+    struct SubmitData
+    {
+        VkSemaphore startSemaphore[1];
+        VkSemaphore signalSemaphore[1];
+        VkPipelineStageFlags waitStageMask[1];
+    };
+    // There should be MAX_FRAMES_IN_FLIGHT number of objects of this struct
+    struct FrameSync
+    {
+        std::vector<VkSemaphore> layerSemaphores;
+        std::vector<VkSubmitInfo> submitInfos;
+        std::vector<SubmitData> submitData;
+
+        VkSemaphore imageAvailableSemaphore;
+        VkSemaphore renderFinishedSemaphore;
+        VkFence inFlightFence;
     };
 
     struct SwapChainSupportDetails

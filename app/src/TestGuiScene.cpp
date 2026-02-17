@@ -7,6 +7,11 @@
 void Game::TestGUIScene::OnBegin()
 {
     Chinstrap::DevInterface::Initialize();
+    Chinstrap::Renderer::SetDevInterface([]()
+    {
+        Chinstrap::DevInterface::ContextInfo(0.7f, 0.0f);
+        Chinstrap::DevInterface::PerformanceInfo(0.0f, 0.0f);
+    });
 }
 
 void Game::TestGUIScene::OnShutdown()

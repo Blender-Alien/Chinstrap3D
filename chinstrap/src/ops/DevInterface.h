@@ -4,7 +4,7 @@ namespace Chinstrap::DevInterface
 {
     void Initialize(float fontSize = 20.0f);
     void Render();
-    void Render(void(*lambda)());
+    void Render(const std::function<void()>& lambda);
     void Shutdown();
 
     void ContextInfo(float posScaleX, float posScaleY);
