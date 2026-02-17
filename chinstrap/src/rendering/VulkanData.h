@@ -66,9 +66,9 @@ namespace Chinstrap::ChinVulkan
         VkCommandPool commandPool;
         std::vector<VkCommandBuffer> commandBuffers;
 
-        const VulkanContext& vulkanContext;
-        explicit Restaurant(const VulkanContext& vulkanContext);
-        ~Restaurant();
+        const VulkanContext* pVulkanContext;
+        void Initialize(const VulkanContext* inputVulkanContext);
+        void Cleanup();
     };
 
     struct SubmitData

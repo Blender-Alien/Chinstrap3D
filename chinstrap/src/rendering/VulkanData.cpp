@@ -19,24 +19,23 @@ void Chinstrap::ChinVulkan::Material::Cleanup()
     CHIN_LOG_INFO_VULKAN("Destroyed Material and resources");
 }
 
-Chinstrap::ChinVulkan::Restaurant::Restaurant(const VulkanContext &vulkanContext)
-    : vulkanContext(vulkanContext)
+void Chinstrap::ChinVulkan::Restaurant::Initialize(const VulkanContext* inputVulkanContext)
 {
-    /* Test configuration */
+    this->pVulkanContext = inputVulkanContext;
 
+    /* Test configuration */
     auto vertShaderCode = readFile("../../../chinstrap/res/shaders/BasicVertex.spv");
     auto fragShaderCode = readFile("../../../chinstrap/res/shaders/BasicFragment.spv");
-    materials.emplace_back(vulkanContext, vertShaderCode, fragShaderCode);
+    materials.emplace_back(*pVulkanContext, vertShaderCode, fragShaderCode);
 
-    commandPool = (ExampleCreateCommandPool(vulkanContext));
-    ExampleCreateCommandBuffers(vulkanContext, commandBuffers, commandPool);
-
+    commandPool = (ExampleCreateCommandPool(*pVulkanContext));
+    ExampleCreateCommandBuffers(*pVulkanContext, commandBuffers, commandPool);
     /* End Of Test configuration */
 }
 
-Chinstrap::ChinVulkan::Restaurant::~Restaurant()
+void Chinstrap::ChinVulkan::Restaurant::Cleanup()
 {
-    vkDestroyCommandPool(vulkanContext.virtualGPU, commandPool, nullptr);
+    vkDestroyCommandPool(pVulkanContext->virtualGPU, commandPool, nullptr);
     for (auto &material: materials)
     {
         material.Cleanup();

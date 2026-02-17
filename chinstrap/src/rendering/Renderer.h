@@ -15,8 +15,6 @@ namespace Chinstrap::Renderer
     void SubmitDrawData(const uint32_t currentFrame);
     void RenderFrame(const uint32_t currentFrame);
 
-    // Only call this once in the program
-    void SetDevInterface(void(*lambda)());
 }
 
 static std::vector<char> readFile(const std::string& filePath)

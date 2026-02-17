@@ -2,17 +2,29 @@
 
 #include "events/Event.h"
 #include "events/InputEvents.h"
+#include "rendering/VulkanData.h"
 
 #include <memory>
 #include <cassert>
 #include <string>
 
+#include "Application.h"
+
+namespace Chinstrap::Application {struct App;}
 
 namespace Chinstrap {
     
     struct Scene
     {
         std::function<std::unique_ptr<Scene>()> CreateQueued;
+        std::function<
+            void(const uint32_t currentFrame,
+                const VkImageView &imageView,
+                const Chinstrap::ChinVulkan::VulkanContext &vulkanContext)>
+        submitToRender;
+
+        ChinVulkan::Restaurant restaurant;
+
         float OnUpdateProfile = 0.0f;
         float OnRenderProfile = 0.0f;
         float OnEventProfile  = 0.0f;
