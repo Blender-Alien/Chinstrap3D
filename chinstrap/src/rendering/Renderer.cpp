@@ -7,14 +7,13 @@
 
 #include "../Scene.h"
 
-/* TODO: Handle resizing of sceneStack at runtime with proper synchronization */
 namespace Chinstrap::Renderer
 {
     namespace
     {
         struct RenderContext
         {
-            ChinVulkan::VulkanContext* vulkanContext = nullptr;
+            ChinVulkan::VulkanContext* pVulkanContext = nullptr;
             const std::vector<std::unique_ptr<Scene>>* pSceneStack = nullptr;
 
             std::vector<ChinVulkan::FrameSync> frameSyncs;
@@ -26,17 +25,17 @@ namespace Chinstrap::Renderer
 
 void Chinstrap::Renderer::Setup()
 {
-    context.vulkanContext = &Application::App::Get().frame.vulkanContext;
+    context.pVulkanContext = &Application::App::Get().frame.vulkanContext;
     context.pSceneStack = &Application::App::Get().GetSceneStack();
 
-    context.frameSyncs.resize(context.vulkanContext->MAX_FRAMES_IN_FLIGHT);
+    context.frameSyncs.resize(context.pVulkanContext->MAX_FRAMES_IN_FLIGHT);
 
     for (auto &scene : Application::App::Get().GetSceneStack())
     {
-        scene->restaurant.Initialize(context.vulkanContext);
+        scene->restaurant.Initialize(context.pVulkanContext);
     }
 
-    ChinVulkan::CreateSyncObjects(*context.vulkanContext, context.frameSyncs);
+    ChinVulkan::CreateSyncObjects(*context.pVulkanContext, context.frameSyncs);
 
     VkSemaphoreCreateInfo semaphoreCreateInfo = {};
     semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -50,7 +49,7 @@ void Chinstrap::Renderer::Setup()
 
         for (auto &layer : frameSync.layerSemaphores)
         {
-            if (vkCreateSemaphore(context.vulkanContext->virtualGPU, &semaphoreCreateInfo, nullptr, &layer) != VK_SUCCESS)
+            if (vkCreateSemaphore(context.pVulkanContext->virtualGPU, &semaphoreCreateInfo, nullptr, &layer) != VK_SUCCESS)
             {
                 CHIN_LOG_CRITICAL_VULKAN("Failed to create layer semaphore!");
             }
@@ -60,9 +59,9 @@ void Chinstrap::Renderer::Setup()
 
 bool Chinstrap::Renderer::BeginFrame(const uint32_t currentFrame)
 {
-    vkWaitForFences(context.vulkanContext->virtualGPU, 1, &context.frameSyncs[currentFrame].inFlightFence, VK_TRUE, UINT64_MAX);
+    vkWaitForFences(context.pVulkanContext->virtualGPU, 1, &context.frameSyncs[currentFrame].inFlightFence, VK_TRUE, UINT64_MAX);
 
-    VkResult acquireImageResult = vkAcquireNextImageKHR(context.vulkanContext->virtualGPU, context.vulkanContext->swapChain,
+    VkResult acquireImageResult = vkAcquireNextImageKHR(context.pVulkanContext->virtualGPU, context.pVulkanContext->swapChain,
                       UINT64_MAX, context.frameSyncs[currentFrame].imageAvailableSemaphore,
                       VK_NULL_HANDLE, &context.imageIndex);
     if (acquireImageResult == VK_ERROR_OUT_OF_DATE_KHR) [[unlikely]]
@@ -75,7 +74,7 @@ bool Chinstrap::Renderer::BeginFrame(const uint32_t currentFrame)
 
 void Chinstrap::Renderer::SubmitDrawData(const uint32_t currentFrame)
 {
-    vkResetFences(context.vulkanContext->virtualGPU, 1, &context.frameSyncs[currentFrame].inFlightFence);
+    vkResetFences(context.pVulkanContext->virtualGPU, 1, &context.frameSyncs[currentFrame].inFlightFence);
 
     context.frameSyncs[currentFrame].submitData.at(0) = {
         context.frameSyncs[currentFrame].imageAvailableSemaphore,
@@ -93,7 +92,7 @@ void Chinstrap::Renderer::SubmitDrawData(const uint32_t currentFrame)
 
     for (uint32_t index = 0; index < context.pSceneStack->size(); ++index)
     {
-        context.pSceneStack->at(index)->submitToRender(currentFrame, context.vulkanContext->defaultImageViews[context.imageIndex], *context.vulkanContext);
+        context.pSceneStack->at(index)->submitToRender(currentFrame, context.pVulkanContext->defaultImageViews[context.imageIndex], *context.pVulkanContext);
 
         VkSubmitInfo submit = {};
         submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -111,14 +110,14 @@ void Chinstrap::Renderer::SubmitDrawData(const uint32_t currentFrame)
 
 void Chinstrap::Renderer::RenderFrame(const uint32_t currentFrame)
 {
-    if (vkQueueSubmit(context.vulkanContext->graphicsQueue, context.frameSyncs[currentFrame].submitInfos.size(),
+    if (vkQueueSubmit(context.pVulkanContext->graphicsQueue, context.frameSyncs[currentFrame].submitInfos.size(),
         context.frameSyncs[currentFrame].submitInfos.data(), context.frameSyncs[currentFrame].inFlightFence)
-        != VK_SUCCESS)
+        != VK_SUCCESS) [[unlikely]]
     {
         CHIN_LOG_ERROR_VULKAN("Failed to submit draw command buffer!");
     }
 
-    VkSwapchainKHR swapChains[] = {context.vulkanContext->swapChain};
+    VkSwapchainKHR swapChains[] = {context.pVulkanContext->swapChain};
     VkSemaphore signalSemaphores[] = {context.frameSyncs[currentFrame].layerSemaphores.at(context.pSceneStack->size()-1)};
 
     VkPresentInfoKHR presentInfo = {};
@@ -128,17 +127,17 @@ void Chinstrap::Renderer::RenderFrame(const uint32_t currentFrame)
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
     presentInfo.pImageIndices = &context.imageIndex;
-    VkResult queuePresentResult = vkQueuePresentKHR(context.vulkanContext->graphicsQueue, &presentInfo);
+    VkResult queuePresentResult = vkQueuePresentKHR(context.pVulkanContext->graphicsQueue, &presentInfo);
 
     if (queuePresentResult == VK_ERROR_OUT_OF_DATE_KHR
         || queuePresentResult == VK_SUBOPTIMAL_KHR
-        || context.vulkanContext->swapChainInadequate)
+        || context.pVulkanContext->swapChainInadequate) [[unlikely]]
     {
-        context.vulkanContext->swapChainInadequate = false;
+        context.pVulkanContext->swapChainInadequate = false;
         ChinVulkan::RecreateSwapChain(Application::App::Get().frame);
     }
 
-    context.vulkanContext->currentFrame = (currentFrame + 1) % context.vulkanContext->MAX_FRAMES_IN_FLIGHT;
+    context.pVulkanContext->currentFrame = (currentFrame + 1) % context.pVulkanContext->MAX_FRAMES_IN_FLIGHT;
 }
 
 void Chinstrap::Renderer::Shutdown(const ChinVulkan::VulkanContext &vulkanContext)

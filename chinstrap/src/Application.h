@@ -12,7 +12,6 @@ namespace Chinstrap::Application
     {
         std::string name;
 
-
         // Single object to handle a window and vulkanContext
         Window::Frame frame;
 

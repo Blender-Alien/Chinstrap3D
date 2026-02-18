@@ -9,6 +9,8 @@ file(GLOB sources
         "src/events/*.h"
         "src/rendering/*.cpp"
         "src/rendering/*.h"
+        "src/memory/*.cpp"
+        "src/memory/*.h"
 
         "../vendor/fonts/Roboto/Roboto-Regular.h"
 )
