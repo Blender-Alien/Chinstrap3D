@@ -8,23 +8,22 @@
 
 #include "GLFW/glfw3.h"
 
-#include <cassert>
-#include <memory>
-
 #include "rendering/Renderer.h"
 #include "rendering/VulkanFunctions.h"
 
 namespace
 {
     using namespace Chinstrap;
-    Application::App *appInstance = nullptr;
+
+    // we give out this pointer to the actual stack allocated singleton
+    Application::App *pAppInstance = nullptr;
 
     void ForwardEvents(Event &event)
     {
         CHIN_LOG_INFO(event.ToString());
-        for (unsigned int i = appInstance->sceneStack.size(); i > 0; i--)
+        for (unsigned int i = pAppInstance->GetSceneStack().size(); i > 0; i--)
         {
-            appInstance->sceneStack[i-1]->OnEvent(event);
+            pAppInstance->GetSceneStack()[i-1]->OnEvent(event);
             if (event.IsHandled())
                 return;
         }
@@ -33,114 +32,115 @@ namespace
 
 namespace Chinstrap::Application
 {
-    App::App()
+    App::App(const uint8_t sceneStackSize)
+        : sceneStack(sceneStackSize), frame(), running(false)
     {
-        assert(appInstance == nullptr);
-        running = false;
+        // If this pointer has a value, we have already initialized an app instance
+        assert(!pAppInstance);
     }
 
     App &App::Get()
     {
-        assert(appInstance);
-        return *appInstance;
+        return *pAppInstance;
     }
 }
 
-int Chinstrap::Application::Init(const std::string &appName, Window::FrameSpec &frameSpec, Window::ViewPortSpec &viewportSpec)
+int Chinstrap::Application::App::Init(const std::string &appName, const Window::FrameSpec &frameSpec, const Window::ViewPortSpec &viewportSpec)
 {
-    appInstance = new App();
-    appInstance->name = appName;
+    assert(!pAppInstance); // Have we already initialized?
+    pAppInstance = this;
+
+    running = false;
+    name = appName;
 
     if (!glfwInit())
     {
         return -1;
     }
 
-    UserSettings::GraphicsSettings settings = UserSettings::GraphicsSettings(UserSettings::VSyncMode::ON, UserSettings::ColorSpaceMode::SRGB);
-    appInstance->frame = std::make_unique<Window::Frame>(frameSpec, viewportSpec, settings);
-    Window::Create(*appInstance->frame);
-
-    appInstance->frame->EventPassthrough = [](Event& event){ ForwardEvents(event); };
+    const auto settings = UserSettings::GraphicsSettings(UserSettings::VSyncMode::ON, UserSettings::ColorSpaceMode::SRGB);
+    frame.Create(frameSpec, viewportSpec, settings);
+    frame.EventPassthrough = [](Event& event){ ForwardEvents(event); };
 
     return 0;
 }
 
-void Chinstrap::Application::Run()
+void Chinstrap::Application::App::Run()
 {
-    assert(appInstance);
-    appInstance->running = true;
-
-    for (std::unique_ptr<Scene> &scene: appInstance->sceneStack)
-        scene->OnBegin();
+    assert(pAppInstance);
+    assert(!running); // Are we already running? Don't call Run() recursively!
+    running = true;
 
     double timeAtPreviousFrame = glfwGetTime(), timeAtPreviousSecond = glfwGetTime();
     double currentTime = 0.0f;
-    int frameCount = 0;
-
-    bool render = true;
+    uint32_t frameCount = 0;
     uint32_t currentFrame = 0;
-    Renderer::Setup();
+    bool skipFrame = false;
 
-    while (appInstance->running)
+    for (std::unique_ptr<Scene> &scene: sceneStack)
+        scene->OnBegin();
+
+    Renderer::Setup();
+    while (running)
     {
-        if (Window::ShouldClose(*appInstance->frame))
-        {
-            Stop();
-        }
+        if (Window::ShouldClose(frame)) { Stop(); continue; }
 
         glfwPollEvents();
-
         currentTime = glfwGetTime();
+        currentFrame = frame.vulkanContext.currentFrame;
 
-        currentFrame = appInstance->frame->vulkanContext.currentFrame;
-        render = Renderer::BeginFrame(currentFrame);
-        for (auto &scene : appInstance->sceneStack)
-        {
-            CHIN_PROFILE_TIME(scene->OnUpdate(static_cast<float>((currentTime - timeAtPreviousFrame)*1000)), scene->OnUpdateProfile);
-            if (render) [[likely]]
+        { /* Update and Render */
+            skipFrame = Renderer::BeginFrame(currentFrame);
+            for (auto &scene : sceneStack)
             {
-                CHIN_PROFILE_TIME(scene->OnRender(), scene->OnRenderProfile);
-            }
+                CHIN_PROFILE_TIME(scene->OnUpdate(static_cast<float>((currentTime - timeAtPreviousFrame)*1000)), scene->OnUpdateProfile);
+                if (!skipFrame) [[likely]]
+                {
+                    CHIN_PROFILE_TIME(scene->OnRender(), scene->OnRenderProfile);
+                }
 
-            if (scene->CreateQueued != nullptr) // scene has requested change to new scene
-            {
-                CHIN_LOG_INFO("Unreferencing Scene: [{}] ...", scene->GetName());
-                scene = std::move(scene->CreateQueued());
-                CHIN_LOG_INFO("... Slotted in Scene: [{}]", scene->GetName());
-                scene->OnBegin();
+                if (scene->CreateQueued != nullptr) [[unlikely]] // scene has requested change to new scene
+                {
+                    CHIN_LOG_INFO("Unreferencing Scene: [{}] ...", scene->GetName());
+                    scene = std::move(scene->CreateQueued());
+                    CHIN_LOG_INFO("... Slotted in Scene: [{}]", scene->GetName());
+
+                    scene->restaurant.Initialize(&frame.vulkanContext);
+                    scene->OnBegin();
+                }
+                // DON'T operate on scene in stack after possibly switching it out
             }
-            // DON'T operate on scene in stack after possibly "thisScene"
+            if (!skipFrame) [[likely]]
+            {
+                Renderer::SubmitDrawData(currentFrame);
+                Renderer::RenderFrame(currentFrame);
+            }
         }
-        if (render) [[likely]]
-        {
-            Renderer::SubmitDrawData(currentFrame);
-            Renderer::RenderFrame(currentFrame);
-        }
+
         timeAtPreviousFrame = currentTime;
-
         ++frameCount;
         if (currentTime - timeAtPreviousSecond >= 1.0f)
         {
-            Application::App::Get().framerate = frameCount;
+            pAppInstance->framerate = frameCount;
             frameCount = 0;
             timeAtPreviousSecond = currentTime;
         }
     }
-    /* Cleanup after running */
+    // We're finished running, lets cleanup
+    Cleanup();
+}
 
-    for (std::unique_ptr<Scene> &scene: appInstance->sceneStack)
+void Chinstrap::Application::App::Stop()
+{
+    running = false;
+}
+
+void Application::App::Cleanup()
+{
+    for (std::unique_ptr<Scene> &scene: sceneStack)
     {
         scene->OnShutdown();
     }
-
-    Renderer::Shutdown(appInstance->frame->vulkanContext);
-    Window::Destroy(*appInstance->frame);
-
-    delete appInstance;
+    Renderer::Shutdown(frame.vulkanContext);
+    frame.Destroy();
 }
-
-void Chinstrap::Application::Stop()
-{
-    appInstance->running = false;
-}
-

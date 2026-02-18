@@ -1,10 +1,10 @@
 #pragma once
 #include "GLFW/glfw3.h"
 
-#define CHIN_PROFILE_TIME(func, resultTarget) { Chinstrap::Profile::Timer* timer = new Chinstrap::Profile::Timer;\
+#define CHIN_PROFILE_TIME(func, resultTarget) { Chinstrap::Profile::Timer timer;\
         func;\
-        resultTarget = timer->getTime();\
-        delete timer; }
+        resultTarget = timer.getTime();\
+        }
 
 namespace Chinstrap::Profile
 {

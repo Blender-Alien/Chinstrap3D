@@ -15,7 +15,7 @@ namespace Chinstrap::Renderer
         struct RenderContext
         {
             ChinVulkan::VulkanContext* vulkanContext = nullptr;
-            std::vector<std::unique_ptr<Scene>>* pSceneStack = nullptr;
+            const std::vector<std::unique_ptr<Scene>>* pSceneStack = nullptr;
 
             std::vector<ChinVulkan::FrameSync> frameSyncs;
             uint32_t imageIndex = 0;
@@ -26,12 +26,12 @@ namespace Chinstrap::Renderer
 
 void Chinstrap::Renderer::Setup()
 {
-    context.vulkanContext = &Application::App::Get().frame->vulkanContext;
-    context.pSceneStack = &Application::App::Get().sceneStack;
+    context.vulkanContext = &Application::App::Get().frame.vulkanContext;
+    context.pSceneStack = &Application::App::Get().GetSceneStack();
 
     context.frameSyncs.resize(context.vulkanContext->MAX_FRAMES_IN_FLIGHT);
 
-    for (auto &scene : Application::App::Get().sceneStack)
+    for (auto &scene : Application::App::Get().GetSceneStack())
     {
         scene->restaurant.Initialize(context.vulkanContext);
     }
@@ -42,7 +42,7 @@ void Chinstrap::Renderer::Setup()
     semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
     for (auto &frameSync : context.frameSyncs)
     {
-        uint32_t size = Application::App::Get().sceneStack.size();
+        uint32_t size = Application::App::Get().GetSceneStack().size();
 
         frameSync.layerSemaphores.resize(size);
         frameSync.submitInfos.resize(size);
@@ -67,15 +67,16 @@ bool Chinstrap::Renderer::BeginFrame(const uint32_t currentFrame)
                       VK_NULL_HANDLE, &context.imageIndex);
     if (acquireImageResult == VK_ERROR_OUT_OF_DATE_KHR) [[unlikely]]
     {
-        ChinVulkan::RecreateSwapChain(*Application::App::Get().frame);
-        return false;
+        ChinVulkan::RecreateSwapChain(Application::App::Get().frame);
+        return true;
     }
-    vkResetFences(context.vulkanContext->virtualGPU, 1, &context.frameSyncs[currentFrame].inFlightFence);
-    return true;
+    return false;
 }
 
 void Chinstrap::Renderer::SubmitDrawData(const uint32_t currentFrame)
 {
+    vkResetFences(context.vulkanContext->virtualGPU, 1, &context.frameSyncs[currentFrame].inFlightFence);
+
     context.frameSyncs[currentFrame].submitData.at(0) = {
         context.frameSyncs[currentFrame].imageAvailableSemaphore,
         context.frameSyncs[currentFrame].layerSemaphores.at(0),
@@ -134,7 +135,7 @@ void Chinstrap::Renderer::RenderFrame(const uint32_t currentFrame)
         || context.vulkanContext->swapChainInadequate)
     {
         context.vulkanContext->swapChainInadequate = false;
-        ChinVulkan::RecreateSwapChain(*Application::App::Get().frame);
+        ChinVulkan::RecreateSwapChain(Application::App::Get().frame);
     }
 
     context.vulkanContext->currentFrame = (currentFrame + 1) % context.vulkanContext->MAX_FRAMES_IN_FLIGHT;
@@ -144,7 +145,7 @@ void Chinstrap::Renderer::Shutdown(const ChinVulkan::VulkanContext &vulkanContex
 {
     vkDeviceWaitIdle(vulkanContext.virtualGPU);
 
-    for (auto& scene : Application::App::Get().sceneStack)
+    for (auto& scene : Application::App::Get().GetSceneStack())
     {
         scene->restaurant.Cleanup();
     }

@@ -11,8 +11,11 @@ namespace Chinstrap::Renderer
 
     void Setup();
 
+    // Return true, if currentFrame needs to be skipped
     bool BeginFrame(const uint32_t currentFrame);
+
     void SubmitDrawData(const uint32_t currentFrame);
+
     void RenderFrame(const uint32_t currentFrame);
 
 }

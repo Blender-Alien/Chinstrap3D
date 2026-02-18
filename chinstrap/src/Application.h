@@ -1,13 +1,7 @@
 #pragma once
 
-#define GLFW_INCLUDE_VULKAN
-#include "GLFW/glfw3.h"
-
-#include <string>
-#include <vector>
-#include <memory>
-
 #include "Window.h"
+#include "ops/Logging.h"
 
 namespace Chinstrap {struct Scene;}
 namespace Chinstrap::Window {struct Frame; struct FrameSpec;}
@@ -17,28 +11,51 @@ namespace Chinstrap::Application
     struct App
     {
         std::string name;
-        std::vector<std::unique_ptr<Scene>> sceneStack;
 
-        std::unique_ptr<Window::Frame> frame;
 
-        int framerate = 0;
+        // Single object to handle a window and vulkanContext
+        Window::Frame frame;
+
+        uint32_t framerate = 0;
         bool running;
 
-        // App should be a singleton
+        // Get reference to app singleton
         static App& Get();
+
         App(App const&)  = delete;
         App(App const&&) = delete;
-        App();
+        // Set the expected stackSize to avoid memory fragmentation
+        explicit App(const uint8_t sceneStackSize);
+
+        int Init(const std::string& appName, const Window::FrameSpec& frameSpec, const Window::ViewPortSpec& viewportSpec);
+        void Run();
+        void Stop();
+
+        // Enforce that the container itself should not be changed in any way after initialization
+        const auto& GetSceneStack()
+        {
+            return sceneStack;
+        }
+
+        template<typename TScene>
+        void PushScene()
+        {
+            for (auto& scene : sceneStack)
+            {
+                if (scene == nullptr)
+                {
+                    scene = std::make_unique<TScene>();
+                    return;
+                }
+            }
+            assert(false);
+            CHIN_LOG_ERROR("No available slot in sceneStack, increase initial size when calling constructor on App!");
+        }
+
+    private:
+        std::vector<std::unique_ptr<Scene>> sceneStack;
+        void Cleanup();
     };
 
-    int Init(const std::string& appName, Window::FrameSpec& spec, Window::ViewPortSpec& viewportSpec);
-    void Run();
-    void Stop();
-
-    template<typename TScene>
-    void PushScene()
-    {
-        App::Get().sceneStack.emplace_back(std::make_unique<TScene>());
-    }
 }
 

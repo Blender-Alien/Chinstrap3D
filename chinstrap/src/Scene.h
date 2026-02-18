@@ -20,8 +20,10 @@ namespace Chinstrap {
         std::function<
             void(const uint32_t currentFrame,
                 const VkImageView &imageView,
-                const Chinstrap::ChinVulkan::VulkanContext &vulkanContext)>
-        submitToRender;
+                const ChinVulkan::VulkanContext &vulkanContext)>
+        submitToRender = [](const uint32_t currentFrame,
+                            const VkImageView &imageView,
+                            const ChinVulkan::VulkanContext &vulkanContext){};
 
         ChinVulkan::Restaurant restaurant;
 

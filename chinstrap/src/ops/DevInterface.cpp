@@ -32,7 +32,7 @@ void Chinstrap::DevInterface::PerformanceInfo(float posScaleX, float posScaleY)
     ImGui::Text("%d FPS", Application::App::Get().framerate);
 
     using namespace UserSettings;
-    VSyncMode& setting = Application::App::Get().frame->graphicsSettings.vSync;
+    VSyncMode& setting = Application::App::Get().frame.graphicsSettings.vSync;
 
     bool vsync;
     switch (setting)
@@ -48,14 +48,14 @@ void Chinstrap::DevInterface::PerformanceInfo(float posScaleX, float posScaleY)
     ImGui::Checkbox("VSync", &vsync);
     if (vsync && setting == VSyncMode::OFF) {
         setting = VSyncMode::ON;
-        Application::App::Get().frame->vulkanContext.swapChainInadequate = true;
+        Application::App::Get().frame.vulkanContext.swapChainInadequate = true;
     } else if (!vsync && setting == VSyncMode::ON)
     {
         setting = VSyncMode::OFF;
-        Application::App::Get().frame->vulkanContext.swapChainInadequate = true;
+        Application::App::Get().frame.vulkanContext.swapChainInadequate = true;
     }
 
-    for (std::unique_ptr<Scene> &scene: Application::App::Get().sceneStack)
+    for (auto &scene: Application::App::Get().GetSceneStack())
     {
         ImGui::Text("(%fms): OnUpdate() <- [%s]", scene->OnUpdateProfile, scene->GetName().c_str());
         ImGui::Text("(%fms): OnRender() <- [%s]", scene->OnRenderProfile, scene->GetName().c_str());
@@ -65,7 +65,7 @@ void Chinstrap::DevInterface::PerformanceInfo(float posScaleX, float posScaleY)
 }
 
 void Chinstrap::DevInterface::Render(){ Render([](){}); }
-void Chinstrap::DevInterface::Render(const std::function<void()>& lambda)
+void Chinstrap::DevInterface::Render(void(*lambda)())
 {
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -78,7 +78,7 @@ void Chinstrap::DevInterface::Render(const std::function<void()>& lambda)
 
 void Chinstrap::DevInterface::Initialize(float fontSize)
 {
-    Window::Frame& frame = *Application::App::Get().frame;
+    Window::Frame& frame = Application::App::Get().frame;
 
     VkDescriptorPoolSize pool_sizes[] =
     {
@@ -137,7 +137,7 @@ void Chinstrap::DevInterface::Initialize(float fontSize)
     ImGui_ImplVulkan_Init(&info);
 
     float xscale, yscale;
-    glfwGetWindowContentScale(Application::App::Get().frame->window, &xscale, &yscale);
+    glfwGetWindowContentScale(Application::App::Get().frame.window, &xscale, &yscale);
 
     ImGui::GetStyle().FontScaleDpi = xscale;
     ImFontConfig font_config;
