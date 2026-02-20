@@ -1,10 +1,10 @@
 #pragma once
 
+#include "rendering/Renderer.h"
 #include "Window.h"
 #include "ops/Logging.h"
 
 namespace Chinstrap {struct Scene;}
-namespace Chinstrap::Window {struct Frame; struct FrameSpec;}
 
 namespace Chinstrap::Application
 {
@@ -14,6 +14,8 @@ namespace Chinstrap::Application
 
         // Single object to handle a window and vulkanContext
         Window::Frame frame;
+
+        Renderer::RenderContext renderContext;
 
         uint32_t framerate = 0;
         bool running;
@@ -34,6 +36,11 @@ namespace Chinstrap::Application
         const auto& GetSceneStack()
         {
             return sceneStack;
+        }
+
+        static auto& GetVulkanContext()
+        {
+            return Get().frame.vulkanContext;
         }
 
         template<typename TScene>

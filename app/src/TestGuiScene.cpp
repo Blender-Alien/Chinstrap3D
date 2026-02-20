@@ -6,29 +6,19 @@
 void Game::TestGUIScene::OnBegin()
 {
     Chinstrap::DevInterface::Initialize();
-
-    submitToRender = [this](const uint32_t currentFrame, const VkImageView &imageView, const Chinstrap::ChinVulkan::VulkanContext &vulkanContext)
-    {
-        Chinstrap::DevInterface::Render([]()
-        {
-            Chinstrap::DevInterface::ContextInfo(0.7f, 0.0f);
-            Chinstrap::DevInterface::PerformanceInfo(0.0f, 0.0f);
-        });
-        vkResetCommandBuffer(restaurant.commandBuffers[currentFrame], 0);
-        Chinstrap::ChinVulkan::RecordImGUICommandBuffer(restaurant.commandBuffers[currentFrame], imageView, restaurant);
-    };
 }
 
 void Game::TestGUIScene::OnShutdown()
 {
     Chinstrap::DevInterface::Shutdown();
+    vkDestroyDescriptorPool(Chinstrap::Application::App::GetVulkanContext().virtualGPU, Chinstrap::Application::App::GetVulkanContext().imguiPool, nullptr);
 }
 
 void Game::TestGUIScene::OnUpdate(float deltaTime)
 {
 }
 
-void Game::TestGUIScene::OnRender()
+void Game::TestGUIScene::OnRender(uint32_t currentFrame)
 {
 }
 

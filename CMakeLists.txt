@@ -11,7 +11,9 @@ include(Dependencies.cmake)
 
 
 add_subdirectory(chinstrap)
+add_subdirectory(tests)
 add_subdirectory(app)
 
 set_property(TARGET app PROPERTY CXX_STANDARD 17)
+set_property(TARGET tests PROPERTY CXX_STANDARD 17)
 set_property(TARGET chinstrap PROPERTY CXX_STANDARD 17)

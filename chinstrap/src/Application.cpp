@@ -8,7 +8,6 @@
 
 #include "GLFW/glfw3.h"
 
-#include "rendering/Renderer.h"
 #include "rendering/VulkanFunctions.h"
 
 namespace
@@ -33,7 +32,7 @@ namespace
 namespace Chinstrap::Application
 {
     App::App(const uint8_t sceneStackSize)
-        : sceneStack(sceneStackSize), frame(), running(false)
+        : frame(), renderContext(), running(false), sceneStack(sceneStackSize)
     {
         // If this pointer has a value, we have already initialized an app instance
         assert(!pAppInstance);
@@ -45,7 +44,7 @@ namespace Chinstrap::Application
     }
 }
 
-int Chinstrap::Application::App::Init(const std::string &appName, const Window::FrameSpec &frameSpec, const Window::ViewPortSpec &viewportSpec)
+int Application::App::Init(const std::string &appName, const Window::FrameSpec &frameSpec, const Window::ViewPortSpec &viewportSpec)
 {
     assert(!pAppInstance); // Have we already initialized?
     pAppInstance = this;
@@ -65,7 +64,7 @@ int Chinstrap::Application::App::Init(const std::string &appName, const Window::
     return 0;
 }
 
-void Chinstrap::Application::App::Run()
+void Application::App::Run()
 {
     assert(pAppInstance);
     assert(!running); // Are we already running? Don't call Run() recursively!
@@ -77,10 +76,12 @@ void Chinstrap::Application::App::Run()
     uint32_t currentFrame = 0;
     bool skipFrame = false;
 
+
+    // Has to be in this order
+    renderContext.Create(sceneStack.size());
     for (std::unique_ptr<Scene> &scene: sceneStack)
         scene->OnBegin();
 
-    Renderer::Setup();
     while (running)
     {
         if (Window::ShouldClose(frame)) { Stop(); continue; }
@@ -90,13 +91,13 @@ void Chinstrap::Application::App::Run()
         currentFrame = frame.vulkanContext.currentFrame;
 
         { /* Update and Render */
-            skipFrame = Renderer::BeginFrame(currentFrame);
+            skipFrame = Renderer::BeginFrame(currentFrame, renderContext);
             for (auto &scene : sceneStack)
             {
                 CHIN_PROFILE_TIME(scene->OnUpdate(static_cast<float>((currentTime - timeAtPreviousFrame)*1000)), scene->OnUpdateProfile);
                 if (!skipFrame) [[likely]]
                 {
-                    CHIN_PROFILE_TIME(scene->OnRender(), scene->OnRenderProfile);
+                    CHIN_PROFILE_TIME(scene->OnRender(currentFrame), scene->OnRenderProfile);
                 }
 
                 if (scene->CreateQueued != nullptr) [[unlikely]] // scene has requested change to new scene
@@ -105,15 +106,14 @@ void Chinstrap::Application::App::Run()
                     scene = std::move(scene->CreateQueued());
                     CHIN_LOG_INFO("... Slotted in Scene: [{}]", scene->GetName());
 
-                    scene->restaurant.Initialize(&frame.vulkanContext);
                     scene->OnBegin();
                 }
                 // DON'T operate on scene in stack after possibly switching it out
             }
             if (!skipFrame) [[likely]]
             {
-                Renderer::SubmitDrawData(currentFrame);
-                Renderer::RenderFrame(currentFrame);
+                Renderer::SubmitDrawData(currentFrame, renderContext);
+                Renderer::RenderFrame(currentFrame, renderContext);
             }
         }
 
@@ -130,17 +130,17 @@ void Chinstrap::Application::App::Run()
     Cleanup();
 }
 
-void Chinstrap::Application::App::Stop()
+void Application::App::Stop()
 {
     running = false;
 }
 
 void Application::App::Cleanup()
 {
+    renderContext.Destroy();
     for (std::unique_ptr<Scene> &scene: sceneStack)
     {
         scene->OnShutdown();
     }
-    Renderer::Shutdown(frame.vulkanContext);
     frame.Destroy();
 }

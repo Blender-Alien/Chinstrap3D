@@ -19,6 +19,7 @@ namespace Chinstrap::ChinVulkan
 
         VkDevice virtualGPU = VK_NULL_HANDLE;
         VkQueue graphicsQueue = VK_NULL_HANDLE;
+        VkQueue presentationQueue = VK_NULL_HANDLE;
 
         VkSwapchainKHR swapChain = VK_NULL_HANDLE;
         std::vector<VkImage> swapChainImages;
@@ -46,46 +47,11 @@ namespace Chinstrap::ChinVulkan
         };
     };
 
-    struct Material
-    {
-        VkPipeline pipeline = VK_NULL_HANDLE;
-        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-
-        const VulkanContext& vulkanContext;
-        Material(const VulkanContext& vulkanContext,
-            const std::vector<char>& vertexShaderCode,
-            const std::vector<char>& fragmentShaderCode);
-
-        void Cleanup();
-    };
-
-    struct Restaurant
-    {
-        std::vector<Material> materials;
-
-        VkCommandPool commandPool;
-        std::vector<VkCommandBuffer> commandBuffers;
-
-        const VulkanContext* pVulkanContext;
-        void Initialize(const VulkanContext* inputVulkanContext);
-        void Cleanup();
-    };
-
     struct SubmitData
     {
         VkSemaphore startSemaphore[1];
         VkSemaphore signalSemaphore[1];
-        VkPipelineStageFlags waitStageMask[1];
-    };
-    // There should be MAX_FRAMES_IN_FLIGHT number of objects of this struct
-    struct FrameSync
-    {
-        std::vector<VkSemaphore> layerSemaphores;
-        std::vector<VkSubmitInfo> submitInfos;
-        std::vector<SubmitData> submitData;
-
-        VkSemaphore imageAvailableSemaphore;
-        VkFence inFlightFence;
+        VkPipelineStageFlags dstStageMask[1];
     };
 
     struct SwapChainSupportDetails

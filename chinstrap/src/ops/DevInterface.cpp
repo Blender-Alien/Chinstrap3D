@@ -122,7 +122,6 @@ void Chinstrap::DevInterface::Initialize(float fontSize)
     info.Instance = context.instance;
     info.PhysicalDevice = context.physicalGPU;
     info.Device = context.virtualGPU;
-    info.QueueFamily = VK_QUEUE_GRAPHICS_BIT;
     info.Queue = context.graphicsQueue;
     info.DescriptorPool = context.imguiPool;
     info.MinImageCount = 3;

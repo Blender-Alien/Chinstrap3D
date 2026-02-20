@@ -15,7 +15,7 @@ void Game::TestMenuScene::OnUpdate(float deltaTime)
 {
 }
 
-void Game::TestMenuScene::OnRender()
+void Game::TestMenuScene::OnRender(uint32_t currentFrame)
 {
 }
 

@@ -2,19 +2,40 @@
 
 using namespace Chinstrap::Memory;
 
-StackAllocator::StackAllocator(const uint32_t stackSizeInBytes_arg)
+void StackAllocator::Setup(const uint32_t stackSizeInBytes_arg)
 {
-    this->basePointer = static_cast<uint32_t *>(malloc(stackSizeInBytes_arg));
-
+    basePointer = static_cast<std::byte*>(malloc(stackSizeInBytes_arg));
+    assert(basePointer != nullptr);
     this->stackPointer = basePointer;
     this->topPointer = basePointer;
 
     this->stackSizeInBytes = stackSizeInBytes_arg;
 }
 
+void StackAllocator::Cleanup()
+{
+    free(basePointer);
+    basePointer = nullptr;
+    topPointer = nullptr;
+}
+
 StackAllocator::~StackAllocator()
 {
-    free(this->basePointer);
+    // Did we call Cleanup???
+    assert(basePointer == nullptr);
+}
+
+std::byte* StackAllocator::DirectAllocate(const uint32_t sizeInBytes_arg)
+{
+    if (topPointer + sizeInBytes_arg > basePointer + stackSizeInBytes) [[unlikely]]
+    {
+        CHIN_LOG_ERROR("Stack allocator out of memory!");
+        return nullptr;
+    }
+    topPointer += sizeInBytes_arg;
+    stackPointer = topPointer - sizeInBytes_arg;
+
+    return stackPointer;
 }
 
 void StackAllocator::ClearStack()

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "spdlog/fmt/bundled/base.h"
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
 
@@ -43,47 +42,32 @@ namespace Chinstrap::ChinVulkan
     bool AutoPickPhysicalGPU(VulkanContext &vulkanContext);
 
     bool CreateVirtualGPU(VulkanContext &vulkanContext);
-
-    bool CreateSyncObjects(const VulkanContext &vulkanContext, std::vector<FrameSync> &frameSyncs);
 }
 
 /* Some example functions that facilitate creating a material */
 namespace Chinstrap::ChinVulkan
 {
-    void ExampleCreateMaterial(const VulkanContext &vulkanContext, Material &material, const std::vector<char>& vertexCode, const std::vector<char>& fragmentCode);
+    void ExampleCreateCommandPool(const VulkanContext &vulkanContext, VkCommandPool* commandPool);
 
-    VkCommandPool ExampleCreateCommandPool(const VulkanContext &vulkanContext);
+    void ExampleCreateCommandBuffer(const VulkanContext &vulkanContext, VkCommandBuffer* buffer, VkCommandPool* commandPool);
 
-    void ExampleCreateCommandBuffers(const VulkanContext &vulkanContext, std::vector<VkCommandBuffer>& buffers, const VkCommandPool &commandPool);
-
-    void ExampleRecordCommandBuffer(VkCommandBuffer &targetCommandBuffer, const VkImageView& targetImageView, const Restaurant& restaurant, const Material& material, const VulkanContext &vulkanContext);
-
+    void BeginRendering(VkCommandBuffer& targetCommandBuffer, const VulkanContext& vulkanContext, const VkPipeline& pipeline);
+    void ExampleRecordCommandBuffer(VkCommandBuffer& targetCommandBuffer, const VulkanContext& vulkanContext, const VkPipeline& pipeline);
+    void EndRendering(VkCommandBuffer& targetCommandBuffer, const VulkanContext& vulkanContext);
 }
 
-/* ImGUI related rendering functions */
+/*
+// ImGUI related rendering functions
 namespace Chinstrap::ChinVulkan
 {
     void RecordImGUICommandBuffer(VkCommandBuffer& targetCommandBuffer, const VkImageView &targetImageView,
-                                  const ChinVulkan::Restaurant &restaurant);
+                                  const ChinVulkan::Restaurant &restaurant, VkPipelineStageFlags dstStageMask, uint32_t imageIndex, const VulkanContext &vulkanContext);
 }
+*/
+
 /* Global Vulkan helper functions */
 namespace Chinstrap::ChinVulkan
 {
-    // TODO: Handle shaders properly
-    inline VkShaderModule CreateShaderModule(const VulkanContext &vulkanContext, const std::vector<char>& code)
-    {
-        VkShaderModuleCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        createInfo.codeSize = code.size();
-        createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-
-        VkShaderModule shaderModule;
-        if (vkCreateShaderModule(vulkanContext.virtualGPU, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
-        {
-            CHIN_LOG_ERROR("Failed to create shader module!");
-        }
-        return shaderModule;
-    }
     //TODO: 'vkCreateInstance' & 'vkDestroyInstance' Debug functionality
 #ifdef CHIN_VK_VAL_LAYERS
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(

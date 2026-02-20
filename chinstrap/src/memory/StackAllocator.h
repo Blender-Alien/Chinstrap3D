@@ -4,9 +4,10 @@
 
 namespace Chinstrap::Memory
 {
+    // Custom stack that lives in heap memory
     struct StackAllocator
     {
-        typedef uint32_t* StackPointer;
+        typedef std::byte* StackPointer;
 
         // Get pointer to the element at the top of the stack
         template <typename type>
@@ -15,32 +16,21 @@ namespace Chinstrap::Memory
             return static_cast<type*>(static_cast<void*>(stackPointer));
         }
 
-        template<typename type>
-        [[nodiscard]] type* Allocate(const uint32_t count)
-        {
-            uint32_t sizeInBytes = sizeof(type) * count;
-            if (topPointer + sizeInBytes > basePointer + stackSizeInBytes) [[unlikely]]
-            {
-                CHIN_LOG_ERROR("Stack allocator out of memory!");
-                return nullptr;
-            }
-            topPointer += sizeInBytes;
-            stackPointer = topPointer - sizeInBytes;
-
-            return static_cast<type*>(static_cast<void*>(stackPointer));
-        }
+        [[nodiscard]] std::byte* DirectAllocate(uint32_t sizeInBytes_arg);
 
         // Roll back the entire stack
         void ClearStack();
 
-        explicit StackAllocator(const uint32_t stackSizeInBytes_arg);
+        void Setup(uint32_t stackSizeInBytes_arg);
+        void Cleanup();
+
+        explicit StackAllocator() = default;
         ~StackAllocator();
     private:
 
-        uint32_t stackSizeInBytes;
-        uint32_t* basePointer;
-        uint32_t* topPointer;
-        StackPointer stackPointer;
+        uint32_t stackSizeInBytes = 0;
+        std::byte* basePointer = nullptr;
+        std::byte* topPointer = nullptr;
+        StackPointer stackPointer = nullptr;
     };
-
 }
