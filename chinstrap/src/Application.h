@@ -1,6 +1,7 @@
 #pragma once
 
 #include "rendering/Renderer.h"
+#include "resourcer/MaterialManager.h"
 #include "Window.h"
 #include "ops/Logging.h"
 
@@ -14,6 +15,8 @@ namespace Chinstrap::Application
 
         // Single object to handle a window and vulkanContext
         Window::Frame frame;
+
+        Resourcer::MaterialManager materialManager;
 
         Renderer::RenderContext renderContext;
 
@@ -60,6 +63,10 @@ namespace Chinstrap::Application
 
     private:
         std::vector<std::unique_ptr<Scene>> sceneStack;
+
+        // Save pointer to new scene functions from the currentScene if change is requested
+        std::vector<std::unique_ptr<Scene>*> sceneTransitionQueue;
+
         void Cleanup();
     };
 

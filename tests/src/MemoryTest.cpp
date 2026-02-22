@@ -17,7 +17,7 @@ void TestStackArray2D()
     StackAllocator allocator2;
     allocator2.Setup(sizeof(TestStruct[sizeFirstOrder][sizeSecondOrder]));
 
-    StackArray2D<sizeof(TestStruct)> structArray(allocator2);
+    StackArray2D<TestStruct> structArray(allocator2);
 
     assert(structArray.Allocate(sizeFirstOrder, sizeSecondOrder));
 
@@ -55,7 +55,7 @@ void TestStackArray()
 
     allocator1.Setup(sizeof(TestStruct[size]));
 
-    StackArray<sizeof(TestStruct)> structArray(allocator1);
+    StackArray<TestStruct> structArray(allocator1);
 
     assert(structArray.Allocate(size));
 

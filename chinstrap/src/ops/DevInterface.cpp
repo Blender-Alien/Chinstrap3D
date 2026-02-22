@@ -3,31 +3,24 @@
 #include "../Application.h"
 #include "../Window.h"
 #include "../rendering/VulkanFunctions.h"
-#include "../rendering/Renderer.h"
 #include "Roboto/Roboto-Regular.h"
 
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_glfw.cpp"
 #include "backends/imgui_impl_vulkan.h"
-#include "backends/imgui_impl_vulkan.cpp"
 #include "imgui_internal.h"
 #include "../Scene.h"
 #include <vulkan/vulkan_core.h>
 
+// Provide info about the current Viewport etc., needs to be reimplemented for Vulkan
 void Chinstrap::DevInterface::ContextInfo(float posScaleX, float posScaleY)
 {
 }
 
-// Profile sceneStack function performance and overall FPS
+// Profile sceneStack function performance and overall FPS and control some parameters
 void Chinstrap::DevInterface::PerformanceInfo(float posScaleX, float posScaleY)
 {
-    /*
-    int x, y;
-    glfwGetWindowSize(Application::App::Get().frame->window, &x, &y);
-    ImGui::SetNextWindowPos(ImVec2(x * posScaleX, y * posScaleY));
-    */
-
     ImGui::Begin("Performance");
     ImGui::Text("%d FPS", Application::App::Get().framerate);
 
@@ -151,4 +144,6 @@ void Chinstrap::DevInterface::Shutdown()
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
+
+    vkDestroyDescriptorPool(Application::App::GetVulkanContext().virtualGPU, Application::App::GetVulkanContext().imguiPool, nullptr);
 }

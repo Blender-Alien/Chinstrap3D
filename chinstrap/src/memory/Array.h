@@ -5,7 +5,7 @@
 namespace Chinstrap::Memory
 {
     // Array that lives in heap memory using a Chinstrap::Memory::StackAllocator
-    template<uint32_t elementSize>
+    template<typename type>
     struct StackArray
     {
         explicit StackArray(StackAllocator& stackAllocator_arg)
@@ -16,7 +16,7 @@ namespace Chinstrap::Memory
         {
             arrayCapacity = arrayCapacity_arg;
 
-            basePointer = stackAllocator.DirectAllocate(elementSize * arrayCapacity);
+            basePointer = stackAllocator.DirectAllocate(sizeof(type) * arrayCapacity);
             if (basePointer == nullptr)
                 return false;
 
@@ -26,7 +26,7 @@ namespace Chinstrap::Memory
         std::byte* at(const uint32_t index)
         {
             assert(index < arrayCapacity);
-            return (basePointer + index * elementSize);
+            return (basePointer + index * sizeof(type));
         }
 
         void* data()
@@ -35,7 +35,7 @@ namespace Chinstrap::Memory
         }
         std::byte* lastElement()
         {
-            return (basePointer + (arrayCapacity-1) * elementSize);
+            return (basePointer + (arrayCapacity-1) * sizeof(type));
         }
 
         [[nodiscard]] uint32_t capacity() const
@@ -52,7 +52,7 @@ namespace Chinstrap::Memory
     };
 
     // 2Dimensional array that lives in heap memory using a Chinstrap::Memory::StackAllocator
-    template<uint32_t elementSize>
+    template<typename type>
     struct StackArray2D
     {
         explicit StackArray2D(StackAllocator& stackAllocator_arg)
@@ -63,7 +63,7 @@ namespace Chinstrap::Memory
             capacityFirstOrder = capacityFirstOrder_arg;
             capacitySecondOrder = capacitySecondOrder_arg;
 
-            basePointer = stackAllocator.DirectAllocate(capacitySecondOrder * capacityFirstOrder * elementSize);
+            basePointer = stackAllocator.DirectAllocate(capacitySecondOrder * capacityFirstOrder * sizeof(type));
             if (basePointer == nullptr)
                 return false;
 
@@ -73,7 +73,7 @@ namespace Chinstrap::Memory
         std::byte* at(const uint32_t firstOrderIndex, const uint32_t secondOrderIndex)
         {
             assert((firstOrderIndex * capacitySecondOrder + secondOrderIndex) < capacityFirstOrder * capacitySecondOrder);
-            return (basePointer + firstOrderIndex * capacitySecondOrder * elementSize + secondOrderIndex * elementSize);
+            return (basePointer + firstOrderIndex * capacitySecondOrder * sizeof(type) + secondOrderIndex * sizeof(type));
         }
 
         [[nodiscard]] uint32_t capacity() const

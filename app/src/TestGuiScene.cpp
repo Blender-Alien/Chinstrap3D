@@ -3,6 +3,8 @@
 #include "../../chinstrap/src/events/InputEvents.h"
 #include "../../chinstrap/src/ops/DevInterface.h"
 
+#include "chinstrap/src/rendering/VulkanFunctions.h"
+
 void Game::TestGUIScene::OnBegin()
 {
     Chinstrap::DevInterface::Initialize();
@@ -11,7 +13,6 @@ void Game::TestGUIScene::OnBegin()
 void Game::TestGUIScene::OnShutdown()
 {
     Chinstrap::DevInterface::Shutdown();
-    vkDestroyDescriptorPool(Chinstrap::Application::App::GetVulkanContext().virtualGPU, Chinstrap::Application::App::GetVulkanContext().imguiPool, nullptr);
 }
 
 void Game::TestGUIScene::OnUpdate(float deltaTime)
@@ -20,6 +21,14 @@ void Game::TestGUIScene::OnUpdate(float deltaTime)
 
 void Game::TestGUIScene::OnRender(uint32_t currentFrame)
 {
+    Chinstrap::DevInterface::Render([]()
+    {
+        Chinstrap::DevInterface::ContextInfo(0.7f, 0.0f);
+        Chinstrap::DevInterface::PerformanceInfo(0.0f, 0.0f);
+    });
+
+    using namespace Chinstrap;
+    ChinVulkan::ExampleRecordDevInterfaceCommandBuffer(standardCmdBufferArray[currentFrame], Application::App::GetVulkanContext());
 }
 
 bool Game::TestGUIScene::OnKeyPress(const Chinstrap::KeyPressedEvent &event)

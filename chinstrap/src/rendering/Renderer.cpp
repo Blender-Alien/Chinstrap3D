@@ -69,7 +69,7 @@ void Chinstrap::Renderer::RenderContext::Create(const uint8_t sceneStackSize)
 
         for (uint32_t index = 0; index < aCommandPools.capacity(); ++index)
         {
-             ChinVulkan::ExampleCreateCommandPool(*pVulkanContext, (VkCommandPool*)aCommandPools.at(index));
+             ChinVulkan::CreateCommandPool(*pVulkanContext, (VkCommandPool*)aCommandPools.at(index));
         }
     }
     { // Allocate Command Buffers
@@ -84,7 +84,7 @@ void Chinstrap::Renderer::RenderContext::Create(const uint8_t sceneStackSize)
         {
             for (uint32_t j = 0; j < aCmdBuffers.secondOrderCapacity(); ++j)
             {
-                ChinVulkan::ExampleCreateCommandBuffer(*pVulkanContext, (VkCommandBuffer*)aCmdBuffers.at(i, j), (VkCommandPool*)aCommandPools.at(i));
+                ChinVulkan::CreateCommandBuffer(*pVulkanContext, (VkCommandBuffer*)aCmdBuffers.at(i, j), (VkCommandPool*)aCommandPools.at(i));
             }
         }
 
@@ -139,18 +139,6 @@ void Chinstrap::Renderer::SubmitDrawData(const uint32_t currentFrame, RenderCont
 
     for (uint32_t index = 0; index < renderContext.pSceneStack->size(); ++index)
     {
-        /*
-        {
-             DevInterface::Render([]()
-             {
-                 DevInterface::ContextInfo(0.7f, 0.0f);
-                 DevInterface::PerformanceInfo(0.0f, 0.0f);
-             });
-             vkResetCommandBuffer(context.restaurant[index].commandBuffers[currentFrame], 0);
-             ChinVulkan::RecordImGUICommandBuffer(context.restaurant[index].commandBuffers[currentFrame], context.pVulkanContext->defaultImageViews[context.imageIndex],
-                                                 context.restaurant[index], context.frameSyncs[currentFrame].submitData.at(index).waitStageMask[0], context.imageIndex, *context.pVulkanContext);
-        }
-        */
         VkSubmitInfo submit = {};
         submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submit.waitSemaphoreCount = 1;
@@ -195,6 +183,13 @@ void Chinstrap::Renderer::RenderFrame(const uint32_t currentFrame, RenderContext
     }
 
     renderContext.pVulkanContext->currentFrame = (currentFrame + 1) % renderContext.pVulkanContext->MAX_FRAMES_IN_FLIGHT;
+}
+
+void Chinstrap::Renderer::SetupSceneCmdBuffers(uint8_t sceneIndex, RenderContext &renderContext)
+{
+    // Hand out pointer to beginning of default array
+    Application::App::Get().GetSceneStack().at(sceneIndex)->standardCmdBufferArray =
+        (VkCommandBuffer*)renderContext.aCmdBuffers.at(sceneIndex, 0);
 }
 
 void Chinstrap::Renderer::RenderContext::Destroy()

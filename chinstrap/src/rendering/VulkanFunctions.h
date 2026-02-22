@@ -44,28 +44,23 @@ namespace Chinstrap::ChinVulkan
     bool CreateVirtualGPU(VulkanContext &vulkanContext);
 }
 
-/* Some example functions that facilitate creating a material */
 namespace Chinstrap::ChinVulkan
 {
-    void ExampleCreateCommandPool(const VulkanContext &vulkanContext, VkCommandPool* commandPool);
-
-    void ExampleCreateCommandBuffer(const VulkanContext &vulkanContext, VkCommandBuffer* buffer, VkCommandPool* commandPool);
+    void CreateCommandPool(const VulkanContext &vulkanContext, VkCommandPool* commandPool);
+    void CreateCommandBuffer(const VulkanContext &vulkanContext, VkCommandBuffer* buffer, VkCommandPool* commandPool);
 
     void BeginRendering(VkCommandBuffer& targetCommandBuffer, const VulkanContext& vulkanContext, const VkPipeline& pipeline);
     void ExampleRecordCommandBuffer(VkCommandBuffer& targetCommandBuffer, const VulkanContext& vulkanContext, const VkPipeline& pipeline);
     void EndRendering(VkCommandBuffer& targetCommandBuffer, const VulkanContext& vulkanContext);
 }
 
-/*
-// ImGUI related rendering functions
+/* DevInterface related rendering functions ( ImGui ) */
 namespace Chinstrap::ChinVulkan
 {
-    void RecordImGUICommandBuffer(VkCommandBuffer& targetCommandBuffer, const VkImageView &targetImageView,
-                                  const ChinVulkan::Restaurant &restaurant, VkPipelineStageFlags dstStageMask, uint32_t imageIndex, const VulkanContext &vulkanContext);
+    void ExampleRecordDevInterfaceCommandBuffer(VkCommandBuffer& targetCommandBuffer, const VulkanContext& vulkanContext);
 }
-*/
 
-/* Global Vulkan helper functions */
+/* Vulkan validation layers debugCallback function */
 namespace Chinstrap::ChinVulkan
 {
     //TODO: 'vkCreateInstance' & 'vkDestroyInstance' Debug functionality

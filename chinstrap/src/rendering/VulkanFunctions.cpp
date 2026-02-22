@@ -554,7 +554,7 @@ bool Chinstrap::ChinVulkan::CreateDefaultImageViews(VulkanContext &vulkanContext
     return true;
 }
 
-void Chinstrap::ChinVulkan::ExampleCreateCommandPool(const VulkanContext &vulkanContext, VkCommandPool* commandPool)
+void Chinstrap::ChinVulkan::CreateCommandPool(const VulkanContext &vulkanContext, VkCommandPool* commandPool)
 {
     QueueFamilyIndices queueFamilyIndices = findQueueFamilies(vulkanContext.physicalGPU, vulkanContext.windowSurface);
 
@@ -569,7 +569,7 @@ void Chinstrap::ChinVulkan::ExampleCreateCommandPool(const VulkanContext &vulkan
     }
 }
 
-void Chinstrap::ChinVulkan::ExampleCreateCommandBuffer(const VulkanContext &vulkanContext, VkCommandBuffer* buffer, VkCommandPool* commandPool)
+void Chinstrap::ChinVulkan::CreateCommandBuffer(const VulkanContext &vulkanContext, VkCommandBuffer* buffer, VkCommandPool* commandPool)
 {
     VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
     commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -710,103 +710,70 @@ void Chinstrap::ChinVulkan::EndRendering(VkCommandBuffer& targetCommandBuffer, c
     }
 }
 
-/*
-void Chinstrap::ChinVulkan::RecordImGUICommandBuffer(VkCommandBuffer& targetCommandBuffer, const VkImageView &targetImageView,
-                                                     const Restaurant &restaurant, const VkPipelineStageFlags dstStageMask, const uint32_t imageIndex, const VulkanContext &vulkanContext)
+void Chinstrap::ChinVulkan::ExampleRecordDevInterfaceCommandBuffer(VkCommandBuffer& targetCommandBuffer, const VulkanContext& vulkanContext)
 {
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
+    vkResetCommandBuffer(targetCommandBuffer, 0);
     if (vkBeginCommandBuffer(targetCommandBuffer, &beginInfo) != VK_SUCCESS)
     {
-        CHIN_LOG_ERROR_VULKAN("Failed to begin recording ImGui command buffer!");
+        CHIN_LOG_ERROR_VULKAN("Failed to begin recording command buffer!");
     }
-
-    VkImageMemoryBarrier waitImageMemoryBarrier = {};
-    waitImageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    waitImageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    waitImageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    waitImageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    waitImageMemoryBarrier.image = vulkanContext.swapChainImages[imageIndex];
-    waitImageMemoryBarrier.subresourceRange = {
-        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-        .baseMipLevel = 0,
-        .levelCount = 1,
-        .baseArrayLayer = 0,
-        .layerCount = 1,
-    };
-
-    vkCmdPipelineBarrier(
-        targetCommandBuffer,
-        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-        dstStageMask,
-        0,
-        0,
-        nullptr,
-        0,
-        nullptr,
-        1,
-        &waitImageMemoryBarrier
+    {
+        VkImageMemoryBarrier waitImageMemoryBarrier = {};
+        waitImageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        waitImageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        waitImageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        waitImageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        waitImageMemoryBarrier.image = vulkanContext.swapChainImages.at(Renderer::RenderContext::GetImageIndex());
+        waitImageMemoryBarrier.subresourceRange = {
+            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1,
+        };
+        vkCmdPipelineBarrier(
+            targetCommandBuffer,
+            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            0,
+            0,
+            nullptr,
+            0,
+            nullptr,
+            1,
+            &waitImageMemoryBarrier
         );
+    }
+    {
+        VkRenderingAttachmentInfo colorAttachmentInfo = {};
+        colorAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        colorAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        colorAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+        VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+        colorAttachmentInfo.clearValue = clearColor;
+        colorAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        colorAttachmentInfo.imageView = vulkanContext.defaultImageViews.at(Renderer::RenderContext::GetImageIndex());
+        VkRenderingInfo renderInfo = {};
+        renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+        renderInfo.layerCount = 1;
+        renderInfo.colorAttachmentCount = 1;
+        renderInfo.pColorAttachments = &colorAttachmentInfo;
+        renderInfo.renderArea.offset = {0, 0};
+        renderInfo.renderArea.extent = vulkanContext.swapChainExtent;
 
-    VkRenderingAttachmentInfo colorAttachmentInfo = {};
-    colorAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-    colorAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    colorAttachmentInfo.imageView = targetImageView;
-    colorAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-    colorAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-
-    VkRenderingInfo renderInfo = {};
-    renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-    renderInfo.layerCount = 1;
-    renderInfo.colorAttachmentCount = 1;
-    renderInfo.pColorAttachments = &colorAttachmentInfo;
-    renderInfo.renderArea.offset = {0, 0};
-    renderInfo.renderArea.extent = restaurant.pVulkanContext->swapChainExtent;
-
-    if (restaurant.pVulkanContext->instanceSupportedVersion < VK_API_VERSION_1_3)
-        restaurant.pVulkanContext->PFN_vkCmdBeginRenderingKHR(targetCommandBuffer, &renderInfo);
-    else
-        vkCmdBeginRendering(targetCommandBuffer, &renderInfo);
+        if (vulkanContext.instanceSupportedVersion < VK_API_VERSION_1_3)
+            vulkanContext.PFN_vkCmdBeginRenderingKHR(targetCommandBuffer, &renderInfo);
+        else
+            vkCmdBeginRendering(targetCommandBuffer, &renderInfo);
+    }
 
     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), targetCommandBuffer);
 
-    if (restaurant.pVulkanContext->instanceSupportedVersion < VK_API_VERSION_1_3)
-        restaurant.pVulkanContext->PFN_vkCmdEndRenderingKHR(targetCommandBuffer);
-    else
-        vkCmdEndRendering(targetCommandBuffer);
-
-    VkImageMemoryBarrier imageMemoryBarrier = {};
-    imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-    imageMemoryBarrier.image = vulkanContext.swapChainImages[imageIndex];
-    imageMemoryBarrier.subresourceRange = {
-        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-        .baseMipLevel = 0,
-        .levelCount = 1,
-        .baseArrayLayer = 0,
-        .layerCount = 1,
-    };
-
-    vkCmdPipelineBarrier(targetCommandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        dstStageMask,
-        0,
-        0,
-        nullptr,
-        0,
-        nullptr,
-        1,
-        &imageMemoryBarrier
-        );
-
-    if (vkEndCommandBuffer(targetCommandBuffer) != VK_SUCCESS)
-    {
-        CHIN_LOG_ERROR_VULKAN("Failed to end recording command buffer!");
-    }
+    EndRendering(targetCommandBuffer, vulkanContext);
 }
-*/
 
 void Chinstrap::ChinVulkan::Shutdown(VulkanContext &vulkanContext)
 {

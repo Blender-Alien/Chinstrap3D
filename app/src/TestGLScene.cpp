@@ -6,20 +6,14 @@
 
 #include "TestMenuScene.h"
 
-Game::TestGLScene::TestGLScene()
-    : material(Chinstrap::Application::App::GetVulkanContext(),
-        readFile("../../../chinstrap/res/shaders/BasicVertex.spv"),
-        readFile("../../../chinstrap/res/shaders/BasicFragment.spv"))
-{
-}
-
 void Game::TestGLScene::OnBegin()
 {
+    Chinstrap::Application::App::Get().materialManager.MakeMaterial();
+    material = Chinstrap::Application::App::Get().materialManager.GetMaterial();
 }
 
 void Game::TestGLScene::OnShutdown()
 {
-    material.Cleanup();
 }
 
 void Game::TestGLScene::OnUpdate(float deltaTime)
@@ -30,7 +24,7 @@ void Game::TestGLScene::OnRender(uint32_t currentFrame)
 {
     using namespace Chinstrap;
 
-    ChinVulkan::ExampleRecordCommandBuffer(standardCmdBufferArray[currentFrame], Application::App::GetVulkanContext(), material.pipeline);
+    ChinVulkan::ExampleRecordCommandBuffer(standardCmdBufferArray[currentFrame], Application::App::GetVulkanContext(), material->pipeline);
 }
 
 bool Game::TestGLScene::OnKeyPress(const Chinstrap::KeyPressedEvent &event)

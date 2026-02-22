@@ -6,7 +6,7 @@
 
 int main()
 {
-    Chinstrap::Application::App app(1); // Create a single app object on the stack
+    Chinstrap::Application::App app(2); // Create a single app object on the stack
 
     Chinstrap::Window::FrameSpec frameSpec;
     Chinstrap::Window::ViewPortSpec viewportSpec;
@@ -26,7 +26,7 @@ int main()
      * ORDER matters here. Scenes will be updated and rendered
      * in the order that they are pushed */
     app.PushScene<Game::TestGLScene>();
-    //app.PushScene<Game::TestGUIScene>();
+    app.PushScene<Game::TestGUIScene>();
 
     // Start running your application
     app.Run();

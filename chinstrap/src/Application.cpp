@@ -32,7 +32,9 @@ namespace
 namespace Chinstrap::Application
 {
     App::App(const uint8_t sceneStackSize)
-        : frame(), renderContext(), running(false), sceneStack(sceneStackSize)
+        : running(false),
+          sceneStack(sceneStackSize),
+          sceneTransitionQueue(sceneStackSize)
     {
         // If this pointer has a value, we have already initialized an app instance
         assert(!pAppInstance);
@@ -51,6 +53,11 @@ int Application::App::Init(const std::string &appName, const Window::FrameSpec &
 
     running = false;
     name = appName;
+
+    for (auto &scene : sceneTransitionQueue)
+    {
+        scene = nullptr;
+    }
 
     if (!glfwInit())
     {
@@ -75,7 +82,7 @@ void Application::App::Run()
     uint32_t frameCount = 0;
     uint32_t currentFrame = 0;
     bool skipFrame = false;
-
+    uint8_t sceneIndex = 0;
 
     // Has to be in this order
     renderContext.Create(sceneStack.size());
@@ -92,29 +99,48 @@ void Application::App::Run()
 
         { /* Update and Render */
             skipFrame = Renderer::BeginFrame(currentFrame, renderContext);
+
+            sceneIndex = 0;
             for (auto &scene : sceneStack)
             {
                 CHIN_PROFILE_TIME(scene->OnUpdate(static_cast<float>((currentTime - timeAtPreviousFrame)*1000)), scene->OnUpdateProfile);
+
+                if (scene->CreateQueued != nullptr) [[unlikely]] // scene has requested change to new scene
+                {
+                    sceneTransitionQueue.at(sceneIndex) = &scene;
+                }
+
                 if (!skipFrame) [[likely]]
                 {
                     CHIN_PROFILE_TIME(scene->OnRender(currentFrame), scene->OnRenderProfile);
                 }
-
-                if (scene->CreateQueued != nullptr) [[unlikely]] // scene has requested change to new scene
-                {
-                    CHIN_LOG_INFO("Unreferencing Scene: [{}] ...", scene->GetName());
-                    scene = std::move(scene->CreateQueued());
-                    CHIN_LOG_INFO("... Slotted in Scene: [{}]", scene->GetName());
-
-                    scene->OnBegin();
-                }
-                // DON'T operate on scene in stack after possibly switching it out
+                ++sceneIndex;
             }
             if (!skipFrame) [[likely]]
             {
                 Renderer::SubmitDrawData(currentFrame, renderContext);
                 Renderer::RenderFrame(currentFrame, renderContext);
             }
+
+            sceneIndex = 0;
+            for (auto &scene : sceneTransitionQueue)
+            {
+                if (scene != nullptr) [[unlikely]]
+                {
+                    scene->get()->OnShutdown();
+
+                    CHIN_LOG_INFO("Unreferencing Scene: [{}] ...", scene->get()->GetName());
+                    sceneStack.at(sceneIndex) = std::move(scene->get()->CreateQueued());
+                    CHIN_LOG_INFO("... Slotted in Scene: [{}]", scene->get()->GetName());
+
+                    Renderer::SetupSceneCmdBuffers(sceneIndex, renderContext);
+                    scene->get()->OnBegin();
+
+                    scene = nullptr;
+                }
+                ++sceneIndex;
+            }
+
         }
 
         timeAtPreviousFrame = currentTime;
@@ -142,5 +168,6 @@ void Application::App::Cleanup()
     {
         scene->OnShutdown();
     }
+    materialManager.Destroy();
     frame.Destroy();
 }

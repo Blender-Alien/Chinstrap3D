@@ -11,6 +11,8 @@ file(GLOB sources
         "src/rendering/*.h"
         "src/memory/*.cpp"
         "src/memory/*.h"
+        "src/resourcer/*.cpp"
+        "src/resourcer/*.h"
 
         "../vendor/fonts/Roboto/Roboto-Regular.h"
 )

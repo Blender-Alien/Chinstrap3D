@@ -24,15 +24,15 @@ namespace Chinstrap::Renderer
 
         Memory::StackAllocator stackAllocator;
 
-        Memory::StackArray<sizeof(ChinVulkan::SubmitData)> aSubmitDatas;
-        Memory::StackArray<sizeof(VkSubmitInfo)> aSubmitInfos;
-        Memory::StackArray<sizeof(VkCommandPool)> aCommandPools;
-        Memory::StackArray<sizeof(VkFence)> aFences;
-        Memory::StackArray<sizeof(VkSemaphore)> aImageAvailableSemaphores;
-        Memory::StackArray2D<sizeof(VkSemaphore)> aaLayerSemaphores;
+        Memory::StackArray<ChinVulkan::SubmitData> aSubmitDatas;
+        Memory::StackArray<VkSubmitInfo> aSubmitInfos;
+        Memory::StackArray<VkCommandPool> aCommandPools;
+        Memory::StackArray<VkFence> aFences;
+        Memory::StackArray<VkSemaphore> aImageAvailableSemaphores;
+        Memory::StackArray2D<VkSemaphore> aaLayerSemaphores;
 
         Memory::StackAllocator cmdBufferAllocator;
-        Memory::StackArray2D<sizeof(VkCommandBuffer)> aCmdBuffers;
+        Memory::StackArray2D<VkCommandBuffer> aCmdBuffers;
 
         ChinVulkan::VulkanContext* pVulkanContext = nullptr;
         const std::vector<std::unique_ptr<Scene>>* pSceneStack = nullptr;
@@ -62,6 +62,9 @@ namespace Chinstrap::Renderer
     void SubmitDrawData(uint32_t currentFrame, RenderContext &renderContext);
 
     void RenderFrame(uint32_t currentFrame, RenderContext &renderContext);
+
+    // When a new scene has been created, give out pointer(s) to the buffers, so that the scene can render
+    void SetupSceneCmdBuffers(uint8_t sceneIndex, RenderContext &renderContext);
 }
 
 // Temporary

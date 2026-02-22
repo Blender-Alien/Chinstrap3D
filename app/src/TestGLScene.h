@@ -8,8 +8,7 @@ namespace Game
 {
     struct TestGLScene : public Chinstrap::Scene
     {
-        Chinstrap::Renderer::Material material;
-        TestGLScene();
+        Chinstrap::Renderer::Material* material = nullptr;
 
         void OnBegin() override;
         void OnShutdown() override;
