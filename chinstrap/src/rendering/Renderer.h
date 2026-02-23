@@ -32,7 +32,7 @@ namespace Chinstrap::Renderer
         Memory::StackArray2D<VkSemaphore> aaLayerSemaphores;
 
         Memory::StackAllocator cmdBufferAllocator;
-        Memory::StackArray2D<VkCommandBuffer> aCmdBuffers;
+        Memory::StackArray2D<VkCommandBuffer> aaCmdBuffers;
 
         ChinVulkan::VulkanContext* pVulkanContext = nullptr;
         const std::vector<std::unique_ptr<Scene>>* pSceneStack = nullptr;
@@ -44,7 +44,7 @@ namespace Chinstrap::Renderer
         explicit RenderContext()
             : aSubmitDatas(stackAllocator), aSubmitInfos(stackAllocator), aCommandPools(stackAllocator),
               aFences(stackAllocator), aImageAvailableSemaphores(stackAllocator), aaLayerSemaphores(stackAllocator),
-              aCmdBuffers(cmdBufferAllocator)
+              aaCmdBuffers(cmdBufferAllocator)
         {
             assert(!created); // We only support one render context
             created = true;

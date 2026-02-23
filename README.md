@@ -3,17 +3,18 @@
 A cross-platform custom Game Engine focused on stylized 3D rendering and 
 realistic audio simulation with good pre-calculation tooling.
 
-## Tooling Dependencies
+## System Dependencies
 - CMake
 - Clang (LLVM)
 - Ninja
 - Vulkan SDK ( https://vulkan.lunarg.com/ )
 
-## Library Dependencies 
+## Vendored Dependencies
 - GLFW 3.4 ( https://glfw.org )
-- spdlog 1.17.0 ( https://github.com/gabime/spdlog )
 - ImGui 1.92.5 ( https://github.com/ocornut/imgui )
+- VMA 3.3.0 ( https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator )
 - GLM 1.0.3 ( https://github.com/g-truc/glm )
+- spdlog 1.17.0 ( https://github.com/gabime/spdlog )
   
 ## How to build
 

@@ -64,20 +64,18 @@ void Chinstrap::Renderer::ExampleCreateMaterial(const ChinVulkan::VulkanContext 
     dynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
     dynamicStateCreateInfo.pDynamicStates = dynamicStates.data();
 
-    //auto bindingDescription = Renderer::Vertex::GetBindingDescription();
-    //auto attributeDescriptions = Renderer::Vertex::GetAttributeDescriptions();
+    auto bindingDescription = GetVertexBindingDescription();
+    auto attributeDescriptions = GetVertexAttributeDescriptions();
 
-    // Hard coding vertex info in vertex shader for now, thus no input
+    // Hard coding vertex info in vertex shader for now
     VkPipelineVertexInputStateCreateInfo vertexInputStateCreateInfo = {};
+
     vertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    /*
     vertexInputStateCreateInfo.vertexBindingDescriptionCount = 1;
-    vertexInputStateCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
     vertexInputStateCreateInfo.pVertexBindingDescriptions = &bindingDescription;
+    vertexInputStateCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
     vertexInputStateCreateInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
-    */
-    vertexInputStateCreateInfo.vertexBindingDescriptionCount = 0;
-    vertexInputStateCreateInfo.vertexAttributeDescriptionCount = 0;
+
     vertexInputStateCreateInfo.pVertexBindingDescriptions = nullptr;
     vertexInputStateCreateInfo.pVertexAttributeDescriptions = nullptr;
 
@@ -182,4 +180,30 @@ void Chinstrap::Renderer::ExampleCreateMaterial(const ChinVulkan::VulkanContext 
 
     vkDestroyShaderModule(vulkanContext.virtualGPU, vertShaderModule, nullptr);
     vkDestroyShaderModule(vulkanContext.virtualGPU, fragShaderModule, nullptr);
+}
+
+VkVertexInputBindingDescription Chinstrap::Renderer::GetVertexBindingDescription()
+{
+    VkVertexInputBindingDescription bindingDescription = {};
+    bindingDescription.binding = 0;
+    bindingDescription.stride = sizeof(Vertex);
+    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+    return bindingDescription;
+}
+
+std::array<VkVertexInputAttributeDescription, 2> Chinstrap::Renderer::GetVertexAttributeDescriptions()
+{
+    std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = {};
+    attributeDescriptions[0].binding = 0;
+    attributeDescriptions[0].location = 0;
+    attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[0].offset = offsetof(Vertex, position);
+
+    attributeDescriptions[1].binding = 0;
+    attributeDescriptions[1].location = 1;
+    attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+    attributeDescriptions[1].offset = offsetof(Vertex, color);
+
+    return attributeDescriptions;
 }

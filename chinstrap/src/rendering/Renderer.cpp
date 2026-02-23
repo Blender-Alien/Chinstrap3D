@@ -36,11 +36,9 @@ void Chinstrap::Renderer::RenderContext::Create(const uint8_t sceneStackSize)
         VkSemaphoreCreateInfo semaphoreCreateInfo = {};
         semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-        VkSemaphore* ptr = nullptr;
         for (uint32_t index = 0; index < aImageAvailableSemaphores.capacity(); ++index)
         {
-            ptr = (VkSemaphore*)aImageAvailableSemaphores.at(index);
-            if (vkCreateSemaphore(pVulkanContext->virtualGPU, &semaphoreCreateInfo, nullptr, (VkSemaphore*)aImageAvailableSemaphores.at(index))
+            if (vkCreateSemaphore(pVulkanContext->virtualGPU, &semaphoreCreateInfo, nullptr, aImageAvailableSemaphores.ptrAt(index))
                 != VK_SUCCESS)
                 CHIN_LOG_CRITICAL("Failed to create semaphore!");
         }
@@ -51,7 +49,7 @@ void Chinstrap::Renderer::RenderContext::Create(const uint8_t sceneStackSize)
 
         for (uint32_t index = 0; index < aFences.capacity(); ++index)
         {
-            if (vkCreateFence(pVulkanContext->virtualGPU, &fenceCreateInfo, nullptr, (VkFence*)aFences.at(index))
+            if (vkCreateFence(pVulkanContext->virtualGPU, &fenceCreateInfo, nullptr, aFences.ptrAt(index))
                 != VK_SUCCESS)
                 CHIN_LOG_CRITICAL("Failed to create fence!");
         }
@@ -61,7 +59,7 @@ void Chinstrap::Renderer::RenderContext::Create(const uint8_t sceneStackSize)
             for (uint32_t j = 0; j < aaLayerSemaphores.secondOrderCapacity(); ++j)
             {
                 if (vkCreateSemaphore(pVulkanContext->virtualGPU, &semaphoreCreateInfo, nullptr,
-                    (VkSemaphore*)aaLayerSemaphores.at(i, j))
+                    aaLayerSemaphores.ptrAt(i, j))
                     != VK_SUCCESS)
                     CHIN_LOG_CRITICAL("Failed to allocate Semaphore!");
             }
@@ -69,7 +67,7 @@ void Chinstrap::Renderer::RenderContext::Create(const uint8_t sceneStackSize)
 
         for (uint32_t index = 0; index < aCommandPools.capacity(); ++index)
         {
-             ChinVulkan::CreateCommandPool(*pVulkanContext, (VkCommandPool*)aCommandPools.at(index));
+             ChinVulkan::CreateCommandPool(*pVulkanContext, aCommandPools.ptrAt(index));
         }
     }
     { // Allocate Command Buffers
@@ -77,14 +75,14 @@ void Chinstrap::Renderer::RenderContext::Create(const uint8_t sceneStackSize)
         const uint32_t bufferAllocatorSize = sizeof(VkCommandBuffer[sceneStackSize][pVulkanContext->MAX_FRAMES_IN_FLIGHT]);
         cmdBufferAllocator.Setup(bufferAllocatorSize);
 
-        assert(aCmdBuffers.Allocate(sceneStackSize, pVulkanContext->MAX_FRAMES_IN_FLIGHT));
+        assert(aaCmdBuffers.Allocate(sceneStackSize, pVulkanContext->MAX_FRAMES_IN_FLIGHT));
     }
     {
-        for (uint32_t i = 0; i < aCmdBuffers.firstOrderCapacity(); ++i)
+        for (uint32_t i = 0; i < aaCmdBuffers.firstOrderCapacity(); ++i)
         {
-            for (uint32_t j = 0; j < aCmdBuffers.secondOrderCapacity(); ++j)
+            for (uint32_t j = 0; j < aaCmdBuffers.secondOrderCapacity(); ++j)
             {
-                ChinVulkan::CreateCommandBuffer(*pVulkanContext, (VkCommandBuffer*)aCmdBuffers.at(i, j), (VkCommandPool*)aCommandPools.at(i));
+                ChinVulkan::CreateCommandBuffer(*pVulkanContext, aaCmdBuffers.ptrAt(i, j), aCommandPools.ptrAt(i));
             }
         }
 
@@ -92,7 +90,7 @@ void Chinstrap::Renderer::RenderContext::Create(const uint8_t sceneStackSize)
         uint32_t index = 0;
         for (auto& scene : Application::App::Get().GetSceneStack())
         {
-            scene->standardCmdBufferArray = (VkCommandBuffer*)aCmdBuffers.at(index, 0);
+            scene->standardCmdBufferArray = aaCmdBuffers.ptrAt(index, 0);
             ++index;
         }
     }
@@ -100,16 +98,16 @@ void Chinstrap::Renderer::RenderContext::Create(const uint8_t sceneStackSize)
 
 bool Chinstrap::Renderer::BeginFrame(const uint32_t currentFrame, RenderContext &renderContext)
 {
-    vkWaitForFences(renderContext.pVulkanContext->virtualGPU, 1, (VkFence*)renderContext.aFences.at(currentFrame), VK_TRUE, UINT64_MAX);
+    vkWaitForFences(renderContext.pVulkanContext->virtualGPU, 1, renderContext.aFences.ptrAt(currentFrame), VK_TRUE, UINT64_MAX);
 
     VkResult acquireImageResult = vkAcquireNextImageKHR(renderContext.pVulkanContext->virtualGPU, renderContext.pVulkanContext->swapChain, UINT64_MAX,
                       // Provide the extra semaphore slot at the end of the array, which is guaranteed to be unused
-                      *(VkSemaphore*)renderContext.aImageAvailableSemaphores.at(renderContext.aImageAvailableSemaphores.capacity()-1),
+                      *renderContext.aImageAvailableSemaphores.ptrAt(renderContext.aImageAvailableSemaphores.capacity()-1),
                       VK_NULL_HANDLE, &RenderContext::imageIndex);
 
     // Swap the extra slot with the semaphore that was last used for this Index, so that the extra slot is guaranteed to be available
-    std::swap(*(VkSemaphore*)renderContext.aImageAvailableSemaphores.at(RenderContext::imageIndex),
-        *(VkSemaphore*)renderContext.aImageAvailableSemaphores.at(renderContext.aImageAvailableSemaphores.capacity()-1));
+    std::swap(*renderContext.aImageAvailableSemaphores.ptrAt(RenderContext::imageIndex),
+        *renderContext.aImageAvailableSemaphores.ptrAt(renderContext.aImageAvailableSemaphores.capacity()-1));
 
     if (acquireImageResult == VK_ERROR_OUT_OF_DATE_KHR) [[unlikely]]
     {
@@ -121,18 +119,18 @@ bool Chinstrap::Renderer::BeginFrame(const uint32_t currentFrame, RenderContext 
 
 void Chinstrap::Renderer::SubmitDrawData(const uint32_t currentFrame, RenderContext &renderContext)
 {
-    vkResetFences(renderContext.pVulkanContext->virtualGPU, 1, (VkFence*)renderContext.aFences.at(currentFrame));
+    vkResetFences(renderContext.pVulkanContext->virtualGPU, 1, renderContext.aFences.ptrAt(currentFrame));
 
-    *(ChinVulkan::SubmitData*)renderContext.aSubmitDatas.at(0) = {
-        *(VkSemaphore*)renderContext.aImageAvailableSemaphores.at(RenderContext::imageIndex),
-        *(VkSemaphore*)renderContext.aaLayerSemaphores.at(RenderContext::imageIndex, 0),
+    *renderContext.aSubmitDatas.ptrAt(0) = {
+        *renderContext.aImageAvailableSemaphores.ptrAt(RenderContext::imageIndex),
+        *renderContext.aaLayerSemaphores.ptrAt(RenderContext::imageIndex, 0),
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
     };
     for (uint32_t index = 1; index < renderContext.pSceneStack->size(); ++index)
     {
-        *(ChinVulkan::SubmitData*)renderContext.aSubmitDatas.at(index) = {
-            *(VkSemaphore*)renderContext.aaLayerSemaphores.at(RenderContext::imageIndex, index-1),
-            *(VkSemaphore*)renderContext.aaLayerSemaphores.at(RenderContext::imageIndex, index),
+        *renderContext.aSubmitDatas.ptrAt(index) = {
+            *renderContext.aaLayerSemaphores.ptrAt(RenderContext::imageIndex, index-1),
+            *renderContext.aaLayerSemaphores.ptrAt(RenderContext::imageIndex, index),
             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
         };
     }
@@ -142,28 +140,28 @@ void Chinstrap::Renderer::SubmitDrawData(const uint32_t currentFrame, RenderCont
         VkSubmitInfo submit = {};
         submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submit.waitSemaphoreCount = 1;
-        submit.pWaitSemaphores = &reinterpret_cast<ChinVulkan::SubmitData*>(renderContext.aSubmitDatas.at(index))->startSemaphore[0];
-        submit.pWaitDstStageMask = reinterpret_cast<ChinVulkan::SubmitData*>(renderContext.aSubmitDatas.at(index))->dstStageMask;
+        submit.pWaitSemaphores = &(renderContext.aSubmitDatas.ptrAt(index))->startSemaphore[0];
+        submit.pWaitDstStageMask = renderContext.aSubmitDatas.ptrAt(index)->dstStageMask;
         submit.commandBufferCount = 1;
-        submit.pCommandBuffers = (VkCommandBuffer*)renderContext.aCmdBuffers.at(index, currentFrame);
+        submit.pCommandBuffers = renderContext.aaCmdBuffers.ptrAt(index, currentFrame);
         submit.signalSemaphoreCount = 1;
-        submit.pSignalSemaphores = &reinterpret_cast<ChinVulkan::SubmitData*>(renderContext.aSubmitDatas.at(index))->signalSemaphore[0];
+        submit.pSignalSemaphores = &renderContext.aSubmitDatas.ptrAt(index)->signalSemaphore[0];
 
-        *(VkSubmitInfo*)renderContext.aSubmitInfos.at(index) = submit;
+        *renderContext.aSubmitInfos.ptrAt(index) = submit;
     }
 }
 
 void Chinstrap::Renderer::RenderFrame(const uint32_t currentFrame, RenderContext &renderContext)
 {
     if (vkQueueSubmit(renderContext.pVulkanContext->graphicsQueue, renderContext.aSubmitInfos.capacity(),
-        (VkSubmitInfo*)renderContext.aSubmitInfos.data(), *(VkFence*)renderContext.aFences.at(currentFrame))
+        renderContext.aSubmitInfos.data(), *renderContext.aFences.ptrAt(currentFrame))
         != VK_SUCCESS) [[unlikely]]
     {
         CHIN_LOG_ERROR_VULKAN("Failed to submit draw command buffer!");
     }
 
     VkSwapchainKHR swapChains[] = {renderContext.pVulkanContext->swapChain};
-    VkSemaphore signalSemaphores[] = {*(VkSemaphore*)renderContext.aaLayerSemaphores.at(RenderContext::imageIndex, renderContext.pSceneStack->size()-1)};
+    VkSemaphore signalSemaphores[] = {*renderContext.aaLayerSemaphores.ptrAt(RenderContext::imageIndex, renderContext.pSceneStack->size()-1)};
 
     VkPresentInfoKHR presentInfo = {};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -189,7 +187,7 @@ void Chinstrap::Renderer::SetupSceneCmdBuffers(uint8_t sceneIndex, RenderContext
 {
     // Hand out pointer to beginning of default array
     Application::App::Get().GetSceneStack().at(sceneIndex)->standardCmdBufferArray =
-        (VkCommandBuffer*)renderContext.aCmdBuffers.at(sceneIndex, 0);
+        renderContext.aaCmdBuffers.ptrAt(sceneIndex, 0);
 }
 
 void Chinstrap::Renderer::RenderContext::Destroy()
@@ -199,7 +197,7 @@ void Chinstrap::Renderer::RenderContext::Destroy()
     {
         for (uint32_t index = 0; index < aCommandPools.capacity(); ++index)
         {
-            vkDestroyCommandPool(pVulkanContext->virtualGPU, *(VkCommandPool*)aCommandPools.at(index), nullptr);
+            vkDestroyCommandPool(pVulkanContext->virtualGPU, *aCommandPools.ptrAt(index), nullptr);
         }
         cmdBufferAllocator.Cleanup();
     }
@@ -207,17 +205,17 @@ void Chinstrap::Renderer::RenderContext::Destroy()
     { // Cleanup all stackAllocator allocations
         for (uint32_t index = 0; index < aImageAvailableSemaphores.capacity(); ++index)
         {
-            vkDestroySemaphore(pVulkanContext->virtualGPU, *(VkSemaphore*)aImageAvailableSemaphores.at(index), nullptr);
+            vkDestroySemaphore(pVulkanContext->virtualGPU, *aImageAvailableSemaphores.ptrAt(index), nullptr);
         }
         for (uint32_t index = 0; index < aFences.capacity(); ++index)
         {
-            vkDestroyFence(pVulkanContext->virtualGPU, *(VkFence*)aFences.at(index), nullptr);
+            vkDestroyFence(pVulkanContext->virtualGPU, *aFences.ptrAt(index), nullptr);
         }
         for (uint32_t i = 0; i < aaLayerSemaphores.firstOrderCapacity(); ++i)
         {
             for (uint32_t j = 0; j < aaLayerSemaphores.secondOrderCapacity(); ++j)
             {
-                vkDestroySemaphore(pVulkanContext->virtualGPU, *(VkSemaphore*)aaLayerSemaphores.at(i, j), nullptr);
+                vkDestroySemaphore(pVulkanContext->virtualGPU, *aaLayerSemaphores.ptrAt(i, j), nullptr);
             }
         }
 

@@ -37,3 +37,15 @@ target_link_libraries(imgui PRIVATE glfw Vulkan::Vulkan)
 
 # glm
 add_subdirectory(vendor/glm-1.0.3)
+
+# VMA
+
+set(VMA_PATH vendor/VMA-3.3.0)
+file(GLOB VMA_GLOB
+        ${VMA_PATH}/include/vk_mem_alloc.h
+        ${VMA_PATH}/src/VmaUsage.h
+        ${VMA_PATH}/src/VmaUsage.cpp
+)
+add_library(VMA STATIC ${VMA_GLOB})
+target_include_directories(VMA PUBLIC ${VMA_PATH}/include)
+target_link_libraries(VMA PRIVATE Vulkan::Vulkan)

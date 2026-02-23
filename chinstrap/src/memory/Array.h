@@ -23,15 +23,15 @@ namespace Chinstrap::Memory
             return true;
         }
 
-        std::byte* at(const uint32_t index)
+        type* ptrAt(const uint32_t index)
         {
             assert(index < arrayCapacity);
-            return (basePointer + index * sizeof(type));
+            return reinterpret_cast<type*>(basePointer + index * sizeof(type));
         }
 
-        void* data()
+        type* data()
         {
-            return basePointer;
+            return reinterpret_cast<type*>(basePointer);
         }
         std::byte* lastElement()
         {
@@ -70,10 +70,10 @@ namespace Chinstrap::Memory
             return true;
         }
 
-        std::byte* at(const uint32_t firstOrderIndex, const uint32_t secondOrderIndex)
+        type* ptrAt(const uint32_t firstOrderIndex, const uint32_t secondOrderIndex)
         {
             assert((firstOrderIndex * capacitySecondOrder + secondOrderIndex) < capacityFirstOrder * capacitySecondOrder);
-            return (basePointer + firstOrderIndex * capacitySecondOrder * sizeof(type) + secondOrderIndex * sizeof(type));
+            return reinterpret_cast<type*>((basePointer + firstOrderIndex * capacitySecondOrder * sizeof(type) + secondOrderIndex * sizeof(type)));
         }
 
         [[nodiscard]] uint32_t capacity() const

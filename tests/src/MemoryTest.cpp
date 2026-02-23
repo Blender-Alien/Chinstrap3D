@@ -29,8 +29,8 @@ void TestStackArray2D()
         {
             assert(secondOrder < structArray.secondOrderCapacity() && firstOrder < structArray.firstOrderCapacity());
 
-            *(TestStruct*)structArray.at(firstOrder, secondOrder) = TestStruct();
-            reinterpret_cast<TestStruct*>(structArray.at(firstOrder, secondOrder))->number2 = firstOrder + secondOrder;
+            *structArray.ptrAt(firstOrder, secondOrder) = TestStruct();
+            structArray.ptrAt(firstOrder, secondOrder)->number2 = firstOrder + secondOrder;
         }
     }
 
@@ -38,7 +38,7 @@ void TestStackArray2D()
     {
         for (int secondOrder = 0; secondOrder < structArray.secondOrderCapacity(); ++secondOrder)
         {
-            assert(reinterpret_cast<TestStruct*>(structArray.at(firstOrder, secondOrder))->number2 == firstOrder + secondOrder);
+            assert((structArray.ptrAt(firstOrder, secondOrder))->number2 == firstOrder + secondOrder);
         }
     }
 
@@ -65,17 +65,17 @@ void TestStackArray()
     {
         assert(index < size);
 
-        *reinterpret_cast<TestStruct*>(structArray.at(index)) = TestStruct();
-        reinterpret_cast<TestStruct*>(structArray.at(index))->hello = true;
-        reinterpret_cast<TestStruct*>(structArray.at(index))->number = 32.0f;
-        reinterpret_cast<TestStruct*>(structArray.at(index))->number2 = index;
+        *structArray.ptrAt(index) = TestStruct();
+        structArray.ptrAt(index)->hello = true;
+        structArray.ptrAt(index)->number = 32.0f;
+        structArray.ptrAt(index)->number2 = index;
     }
 
     for (int index = 0; index < structArray.capacity(); ++index)
     {
-        assert(reinterpret_cast<TestStruct*>(structArray.at(index))->hello);
-        assert(reinterpret_cast<TestStruct*>(structArray.at(index))->number == 32.0f);
-        assert(reinterpret_cast<TestStruct*>(structArray.at(index))->number2 == index);
+        assert(structArray.ptrAt(index)->hello);
+        assert(structArray.ptrAt(index)->number == 32.0f);
+        assert(structArray.ptrAt(index)->number2 == index);
     }
 
     allocator1.Cleanup();
