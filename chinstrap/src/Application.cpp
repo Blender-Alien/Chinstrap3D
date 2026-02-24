@@ -31,7 +31,7 @@ namespace
 
 namespace Chinstrap::Application
 {
-    App::App(const uint8_t sceneStackSize)
+    App::App(uint8_t sceneStackSize)
         : running(false),
           sceneStack(sceneStackSize),
           sceneTransitionQueue(sceneStackSize)
@@ -127,6 +127,7 @@ void Application::App::Run()
             {
                 if (scene != nullptr) [[unlikely]]
                 {
+                    vkDeviceWaitIdle(frame.vulkanContext.virtualGPU);
                     scene->get()->OnShutdown();
 
                     CHIN_LOG_INFO("Unreferencing Scene: [{}] ...", scene->get()->GetName());
@@ -147,7 +148,7 @@ void Application::App::Run()
         ++frameCount;
         if (currentTime - timeAtPreviousSecond >= 1.0f)
         {
-            pAppInstance->framerate = frameCount;
+            framerate = frameCount;
             frameCount = 0;
             timeAtPreviousSecond = currentTime;
         }

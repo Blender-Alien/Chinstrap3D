@@ -6,10 +6,10 @@
 
 #include "../memory/StackAllocator.h"
 #include "../memory/Array.h"
+#include "VulkanData.h"
+#include "RendererData.h"
 
 #include <fstream>
-
-#include "VulkanData.h"
 
 namespace Chinstrap {struct Scene;}
 

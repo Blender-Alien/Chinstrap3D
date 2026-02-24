@@ -3,7 +3,6 @@
 #include <vulkan/vulkan_core.h>
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
-
 #include "backends/imgui_impl_vulkan.h"
 
 #include "Renderer.h"
@@ -14,6 +13,8 @@
 #include <set>
 #include <limits>
 #include <algorithm>
+
+#include "glm/vector_relational.hpp"
 
 //* Externally Unavailable Functions *//
 namespace Chinstrap::ChinVulkan
@@ -171,7 +172,8 @@ bool Chinstrap::ChinVulkan::Initialize(Window::Frame &frame)
     if (   !ChinVulkan::CreateContext(frame.vulkanContext, frame.frameSpec.title) 
         || !ChinVulkan::CreateSurface(frame)
         || !ChinVulkan::AutoPickPhysicalGPU(frame.vulkanContext)
-        || !ChinVulkan::CreateVirtualGPU(frame.vulkanContext) 
+        || !ChinVulkan::CreateVirtualGPU(frame.vulkanContext)
+        || !ChinVulkan::CreateVMA(frame.vulkanContext)
         || !ChinVulkan::CreateSwapChain(frame)
         || !ChinVulkan::CreateDefaultImageViews(frame.vulkanContext))
     {
@@ -520,6 +522,22 @@ bool Chinstrap::ChinVulkan::CreateVirtualGPU(VulkanContext &vulkanContext)
     return true;
 }
 
+bool Chinstrap::ChinVulkan::CreateVMA(VulkanContext &vulkanContext)
+{
+    VmaAllocatorCreateInfo allocatorCreateInfo{};
+    allocatorCreateInfo.vulkanApiVersion = vulkanContext.instanceSupportedVersion;
+    allocatorCreateInfo.instance = vulkanContext.instance;
+    allocatorCreateInfo.physicalDevice = vulkanContext.physicalGPU;
+    allocatorCreateInfo.device = vulkanContext.virtualGPU;
+
+    if (vmaCreateAllocator(&allocatorCreateInfo, &vulkanContext.allocator) != VK_SUCCESS)
+    {
+        CHIN_LOG_CRITICAL("Failed to create vulkan memory allocator!");
+        return false;
+    }
+    return true;
+}
+
 
 bool Chinstrap::ChinVulkan::CreateDefaultImageViews(VulkanContext &vulkanContext)
 {
@@ -779,6 +797,7 @@ void Chinstrap::ChinVulkan::Shutdown(VulkanContext &vulkanContext)
 {
 
     CleanupSwapChain(vulkanContext);
+    vmaDestroyAllocator(vulkanContext.allocator);
     vkDestroyDevice(vulkanContext.virtualGPU, nullptr);
 #ifdef CHIN_VK_VAL_LAYERS
     const auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(

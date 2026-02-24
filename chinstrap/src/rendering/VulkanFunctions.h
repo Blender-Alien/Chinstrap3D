@@ -42,6 +42,8 @@ namespace Chinstrap::ChinVulkan
     bool AutoPickPhysicalGPU(VulkanContext &vulkanContext);
 
     bool CreateVirtualGPU(VulkanContext &vulkanContext);
+
+    bool CreateVMA(VulkanContext &vulkanContext);
 }
 
 namespace Chinstrap::ChinVulkan

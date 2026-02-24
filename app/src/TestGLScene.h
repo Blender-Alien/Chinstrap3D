@@ -10,6 +10,21 @@ namespace Game
     {
         Chinstrap::Renderer::Material* material = nullptr;
 
+        // Temporary
+        VkBuffer vertexBuffer;
+        VmaAllocation vertexAllocation;
+        VkBuffer indexBuffer;
+        VmaAllocation indexAllocation;
+        const std::vector<Chinstrap::Renderer::Vertex> vertices = {
+            {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+            {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+            {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+            {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+        };
+        const std::vector<uint16_t> indices = {
+            0, 1, 2, 2, 3, 0
+        };
+
         void OnBegin() override;
         void OnShutdown() override;
         void OnUpdate(float deltaTime) override;

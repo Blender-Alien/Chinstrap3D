@@ -5,6 +5,7 @@
 #include <vulkan/vulkan_core.h>
 
 #define GLFW_INCLUDE_VULKAN
+#include "vk_mem_alloc.h"
 #include "GLFW/glfw3.h"
 
 namespace Chinstrap::ChinVulkan
@@ -13,6 +14,8 @@ namespace Chinstrap::ChinVulkan
     {
         VkInstance instance;
         uint32_t instanceSupportedVersion;
+
+        VmaAllocator allocator;
 
         VkPhysicalDevice physicalGPU = VK_NULL_HANDLE;
         VkSurfaceKHR windowSurface = VK_NULL_HANDLE;

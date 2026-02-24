@@ -4,6 +4,8 @@
 #include "../Application.h"
 #include "../Scene.h"
 
+#include <vk_mem_alloc.h>
+
 uint32_t Chinstrap::Renderer::RenderContext::imageIndex = 0;
 
 void Chinstrap::Renderer::RenderContext::Create(const uint8_t sceneStackSize)
