@@ -49,3 +49,12 @@ file(GLOB VMA_GLOB
 add_library(VMA STATIC ${VMA_GLOB})
 target_include_directories(VMA PUBLIC ${VMA_PATH}/include)
 target_link_libraries(VMA PRIVATE Vulkan::Vulkan)
+
+# json
+set(JSON_PATH vendor/nlo-json-3.12.0)
+file(GLOB JSON_GLOB
+        ${JSON_PATH}/single_include/nlohmann/json.hpp
+)
+add_library(nlo-json STATIC ${JSON_GLOB})
+set_target_properties(nlo-json PROPERTIES LINKER_LANGUAGE CXX)
+target_include_directories(nlo-json PUBLIC ${JSON_PATH})
