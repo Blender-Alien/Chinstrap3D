@@ -5,7 +5,7 @@
 #include "GLFW/glfw3.h"
 
 #include "../memory/StackAllocator.h"
-#include "../memory/Array.h"
+#include "../memory/StackArray.h"
 #include "VulkanData.h"
 #include "RendererData.h"
 

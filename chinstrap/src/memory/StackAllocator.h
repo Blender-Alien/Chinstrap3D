@@ -1,7 +1,5 @@
 #pragma once
 
-#include "../ops/Logging.h"
-
 namespace Chinstrap::Memory
 {
     // Custom stack that lives in heap memory

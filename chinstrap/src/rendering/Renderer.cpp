@@ -4,8 +4,6 @@
 #include "../Application.h"
 #include "../Scene.h"
 
-#include <vk_mem_alloc.h>
-
 uint32_t Chinstrap::Renderer::RenderContext::imageIndex = 0;
 
 void Chinstrap::Renderer::RenderContext::Create(const uint8_t sceneStackSize)
@@ -22,17 +20,17 @@ void Chinstrap::Renderer::RenderContext::Create(const uint8_t sceneStackSize)
             allocatorSize += sizeof( VkSemaphore[pVulkanContext->swapChainImages.size()][sceneStackSize] );
         }
         allocatorSize += sizeof( VkFence[pVulkanContext->MAX_FRAMES_IN_FLIGHT] );
-        allocatorSize += sizeof( VkSemaphore[pVulkanContext->swapChainImages.size() + 1] );
+        allocatorSize += sizeof( VkSemaphore[pVulkanContext->swapChainImages.size() + 1] ); // We need one extra slot later
 
         stackAllocator.Setup(allocatorSize);
     }
     { // Allocate on stackAllocator
-        assert(aFences.Allocate(pVulkanContext->MAX_FRAMES_IN_FLIGHT));
-        assert(aImageAvailableSemaphores.Allocate(pVulkanContext->swapChainImages.size() + 1)); // We need one extra slot later
-        assert(aSubmitDatas.Allocate(sceneStackSize));
-        assert(aSubmitInfos.Allocate(sceneStackSize));
-        assert(aCommandPools.Allocate(sceneStackSize));
-        assert(aaLayerSemaphores.Allocate(pVulkanContext->swapChainImages.size(), sceneStackSize));
+        if (aFences.Allocate(pVulkanContext->MAX_FRAMES_IN_FLIGHT) != true) {assert(false);}
+        if (aImageAvailableSemaphores.Allocate(pVulkanContext->swapChainImages.size() + 1) != true) {assert(false);} // We need one extra slot later
+        if (aSubmitDatas.Allocate(sceneStackSize) != true) {assert(false);}
+        if (aSubmitInfos.Allocate(sceneStackSize) != true) {assert(false);}
+        if (aCommandPools.Allocate(sceneStackSize) != true) {assert(false);}
+        if (aaLayerSemaphores.Allocate(pVulkanContext->swapChainImages.size(), sceneStackSize) != true) {assert(false);}
     }
     { // Allocate all semaphore and fences
         VkSemaphoreCreateInfo semaphoreCreateInfo = {};
@@ -77,7 +75,7 @@ void Chinstrap::Renderer::RenderContext::Create(const uint8_t sceneStackSize)
         const uint32_t bufferAllocatorSize = sizeof(VkCommandBuffer[sceneStackSize][pVulkanContext->MAX_FRAMES_IN_FLIGHT]);
         cmdBufferAllocator.Setup(bufferAllocatorSize);
 
-        assert(aaCmdBuffers.Allocate(sceneStackSize, pVulkanContext->MAX_FRAMES_IN_FLIGHT));
+        if (aaCmdBuffers.Allocate(sceneStackSize, pVulkanContext->MAX_FRAMES_IN_FLIGHT) != true) {assert(false);}
     }
     {
         for (uint32_t i = 0; i < aaCmdBuffers.firstOrderCapacity(); ++i)
@@ -160,6 +158,7 @@ void Chinstrap::Renderer::RenderFrame(const uint32_t currentFrame, RenderContext
         != VK_SUCCESS) [[unlikely]]
     {
         CHIN_LOG_ERROR_VULKAN("Failed to submit draw command buffer!");
+        assert(false); // Debug why this happened please!
     }
 
     VkSwapchainKHR swapChains[] = {renderContext.pVulkanContext->swapChain};
@@ -187,6 +186,7 @@ void Chinstrap::Renderer::RenderFrame(const uint32_t currentFrame, RenderContext
 
 void Chinstrap::Renderer::SetupSceneCmdBuffers(uint8_t sceneIndex, RenderContext &renderContext)
 {
+    vkResetCommandBuffer(*renderContext.aaCmdBuffers.ptrAt(sceneIndex, 0), 0);
     // Hand out pointer to beginning of default array
     Application::App::Get().GetSceneStack().at(sceneIndex)->standardCmdBufferArray =
         renderContext.aaCmdBuffers.ptrAt(sceneIndex, 0);

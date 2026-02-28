@@ -14,7 +14,8 @@ void Game::TestGLScene::OnBegin()
     material = Application::App::Get().materialManager.GetMaterial();
 
     /* This is going to be abstracted once resource loading (of vertices etc.)
-     * is implemented, otherwise I'm just going of assumptions which lead to more work in the end
+     * is implemented, otherwise I'm just going of assumptions which lead to more work in the end.
+     * The index buffer should also be implemented part of the Vertex Buffer to improve memory locality
     */
     ChinVulkan::VulkanContext &vulkanContext = Application::App::GetVulkanContext();
     {

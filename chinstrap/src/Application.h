@@ -15,10 +15,8 @@ namespace Chinstrap::Application
 
         // Single object to handle a window and vulkanContext
         Window::Frame frame;
-
-        Resourcer::MaterialManager materialManager;
-
         Renderer::RenderContext renderContext;
+        Resourcer::MaterialManager materialManager;
 
         uint32_t framerate = 0;
         bool running;

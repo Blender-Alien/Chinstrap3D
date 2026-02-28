@@ -9,5 +9,7 @@ int main()
     TestStackArray();
     TestStackArray2D();
 
+    TestMemoryPool();
+
     CHIN_LOG_INFO("All tests passed!");
 }

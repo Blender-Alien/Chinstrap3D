@@ -12,3 +12,5 @@ struct TestStruct
 void TestStackArray2D();
 
 void TestStackArray();
+
+void TestMemoryPool();

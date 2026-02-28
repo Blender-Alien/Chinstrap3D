@@ -9,10 +9,10 @@
 namespace Chinstrap::Window {struct Frame;}
 namespace Chinstrap::ChinVulkan {struct VulkanContext;}
 
-/* Functions to call from some an App or Frame context to startup and shutdown Vulkan*/
 namespace Chinstrap::ChinVulkan
-{
-    // Completely initialize a frames vulkanContext 
+{ /* Functions to call from some an App or Frame context to startup and shutdown Vulkan */
+
+    // Completely initialize a frames vulkanContext
     bool Initialize(Window::Frame &frame);
 
     // Deallocate everything inside the vulkanContext object, as well as globally enabled validation layers
@@ -20,9 +20,9 @@ namespace Chinstrap::ChinVulkan
     void Shutdown(VulkanContext &vulkanContext);
 }
 
-/* Vulkan helper functions */
 namespace Chinstrap::ChinVulkan
-{
+{ /* Vulkan Helper functions */
+
     // Create VulkanContext make sure the API minimum requirements are met, enable validation layers
     bool CreateContext(VulkanContext &vulkanContext, const std::string& name);
 
@@ -56,15 +56,13 @@ namespace Chinstrap::ChinVulkan
     void EndRendering(VkCommandBuffer& targetCommandBuffer, const VulkanContext& vulkanContext);
 }
 
-/* DevInterface related rendering functions ( ImGui ) */
 namespace Chinstrap::ChinVulkan
-{
+{ /* DevInterface related rendering functions ( ImGui ) */
     void ExampleRecordDevInterfaceCommandBuffer(VkCommandBuffer& targetCommandBuffer, const VulkanContext& vulkanContext);
 }
 
-/* Vulkan validation layers debugCallback function */
 namespace Chinstrap::ChinVulkan
-{
+{ /* Vulkan validation layers debugCallback function */
     //TODO: 'vkCreateInstance' & 'vkDestroyInstance' Debug functionality
 #ifdef CHIN_VK_VAL_LAYERS
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(

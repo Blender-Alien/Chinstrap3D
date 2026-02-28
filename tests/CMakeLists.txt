@@ -16,3 +16,4 @@ add_compile_definitions(
 target_link_libraries(tests chinstrap)
 
 target_include_directories(tests PRIVATE src)
+target_precompile_headers(tests PRIVATE ../chinstrap/pch.h)

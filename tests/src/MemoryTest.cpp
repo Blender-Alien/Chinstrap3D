@@ -1,11 +1,8 @@
 #include "MemoryTest.h"
 
-#include "chinstrap/src/memory/Array.h"
+#include "chinstrap/src/memory/StackArray.h"
 #include "chinstrap/src/memory/StackAllocator.h"
-
-#define GLFW_INCLUDE_VULKAN
-#include "GLFW/glfw3.h"
-#include <vulkan/vulkan_core.h>
+#include "chinstrap/src/memory/MemoryPool.h"
 
 void TestStackArray2D()
 {
@@ -79,4 +76,46 @@ void TestStackArray()
     }
 
     allocator1.Cleanup();
+}
+
+void TestMemoryPool()
+{
+    using namespace Chinstrap::Memory;
+
+    MemoryPool<TestStruct> memoryPool;
+
+    assert(memoryPool.Setup(3));
+
+    TestStruct* struct1 = nullptr;
+    TestStruct* struct2 = nullptr;
+    TestStruct* struct3 = nullptr;
+
+    // Allocate
+    struct1 = memoryPool.Allocate();
+    assert(struct1 != nullptr);
+    struct2 = memoryPool.Allocate();
+    assert(struct2 != nullptr);
+    struct3 = memoryPool.Allocate();
+    assert(struct3 != nullptr);
+    assert(memoryPool.Allocate() == nullptr);
+
+    // Deallocate and Allocate Again
+    memoryPool.Deallocate(&struct1);
+    assert(struct1 == nullptr);
+    struct1 = memoryPool.Allocate();
+    assert(struct1 != nullptr);
+
+    // Deallocate randomly
+    memoryPool.Deallocate(&struct1);
+    assert(struct1 == nullptr);
+    memoryPool.Deallocate(&struct3);
+    assert(struct3 == nullptr);
+    // Allocate again
+    struct1 = memoryPool.Allocate();
+    assert(struct1 != nullptr);
+    struct3 = memoryPool.Allocate();
+    assert(struct3 != nullptr);
+    assert(memoryPool.Allocate() == nullptr);
+
+    memoryPool.Cleanup();
 }

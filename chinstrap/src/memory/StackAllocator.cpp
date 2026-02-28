@@ -1,5 +1,7 @@
 #include "StackAllocator.h"
 
+#include "../ops/Logging.h"
+
 using namespace Chinstrap::Memory;
 
 void StackAllocator::Setup(const uint32_t stackSizeInBytes_arg)

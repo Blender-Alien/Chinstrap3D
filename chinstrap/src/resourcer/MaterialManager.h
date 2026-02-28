@@ -1,9 +1,6 @@
 #pragma once
 
-/* I'm not sure how to properly handle this yet,
- * but for now I need a stopgap so that scenes can use materials
- * and don't have to clean up the associated vulkan resources themselves
- */
+// TODO: Get rid of MaterialManager, use ResourceManager instead
 
 #include "../rendering/RendererData.h"
 
