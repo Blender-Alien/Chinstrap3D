@@ -3,6 +3,7 @@
 #include "chinstrap/src/memory/StackArray.h"
 #include "chinstrap/src/memory/StackAllocator.h"
 #include "chinstrap/src/memory/MemoryPool.h"
+#include "chinstrap/src/memory/FilePathMap.h"
 
 void TestStackArray2D()
 {
@@ -118,4 +119,60 @@ void TestMemoryPool()
     assert(memoryPool.Allocate() == nullptr);
 
     memoryPool.Cleanup();
+}
+
+void TestFilePathMap()
+{
+    using namespace Chinstrap::Memory;
+
+    FilePathMap map;
+    map.Setup(3, 24);
+
+    FilePath path1;
+    const char path1string[] = "/vendor/texture.png";
+
+    FilePath path2;
+    const char path2string[] = "/vendor/picture.png";
+
+    FilePath path3;
+    const char path3string[] = "/vendor/object.obj";
+
+    {
+        auto ret = map.Insert(path1, path1string);
+        assert(ret == FilePathMap::InsertRet::SUCCESS);
+    }
+    {
+        auto ret = map.Insert(path2, path2string);
+        assert(ret == FilePathMap::InsertRet::SUCCESS);
+    }
+    {
+        auto ret = map.Insert(path3, path3string);
+        assert(ret == FilePathMap::InsertRet::SUCCESS);
+    }
+
+    map.EndSetup();
+
+    {
+        auto lookup1 = map.Lookup(path1);
+        assert(lookup1.has_value());
+        assert(lookup1 == path1string);
+    }
+    {
+        auto lookup2 = map.Lookup(path2);
+        assert(lookup2.has_value());
+        assert(lookup2 == path2string);
+    }
+    {
+        auto lookup3 = map.Lookup(path3);
+        assert(lookup3.has_value());
+        assert(lookup3 == path3string);
+    }
+    {
+        FilePath path4;
+        path4.hashID = std::hash<std::string_view>()("Hello there!");
+        auto lookup4 = map.Lookup(path4);
+        assert(!lookup4.has_value());
+    }
+
+    map.Cleanup();
 }

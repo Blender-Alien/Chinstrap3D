@@ -29,7 +29,7 @@ StackAllocator::~StackAllocator()
 
 std::byte* StackAllocator::DirectAllocate(const uint32_t sizeInBytes_arg)
 {
-    if (topPointer + sizeInBytes_arg > basePointer + stackSizeInBytes) [[unlikely]]
+    if (topPointer + sizeInBytes_arg > basePointer + stackSizeInBytes)
     {
         CHIN_LOG_ERROR("Stack allocator out of memory!");
         return nullptr;

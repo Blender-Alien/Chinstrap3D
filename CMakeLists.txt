@@ -8,6 +8,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(Dependencies.cmake)
 
+set(CHIN_SHIPPING_BUILD OFF CACHE BOOL "Disable human readable serialization, resizable data structures etc...")
 
 add_subdirectory(chinstrap)
 add_subdirectory(tests)

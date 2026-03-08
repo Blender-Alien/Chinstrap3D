@@ -9,13 +9,17 @@ Chinstrap::Resourcer::ResourceManager::ResourceManager()
 {
 }
 
+#ifndef CHIN_SHIPPING_BUILD
 Chinstrap::Resourcer::resourceIDType Chinstrap::Resourcer::ResourceManager::CreateResource(const std::string_view &name)
 {
 }
+#endif
 
+#ifndef CHIN_SHIPPING_BUILD
 void Chinstrap::Resourcer::ResourceManager::DeleteResource(resourceIDType resourceID)
 {
 }
+#endif
 
 void Chinstrap::Resourcer::ResourceManager::Serialize()
 {
@@ -25,28 +29,26 @@ void Chinstrap::Resourcer::ResourceManager::Deserialize()
 {
 }
 
-uint64_t Chinstrap::Resourcer::ResourceManager::GetNumberOfSerializedResources()
-{
-    return 0; // Not implemented yet, so no resource was serialized
-}
-
 bool Chinstrap::Resourcer::ResourceManager::Create()
 {
-    const uint64_t numberOfSerializedResources = GetNumberOfSerializedResources();
-    currentResourceCapacity += numberOfSerializedResources;
+    { // Load virtual file paths
 
-    if (!materialPool.Setup(currentResourceCapacity))
-    {
-        return false;
+    }
+
+    { // Load Materials
+        uint64_t numberOfSerializedResources = GetNumberOfSerializedResources<Renderer::Material>();
+#ifdef CHIN_SHIPPING_BUILD
+        numberOfSerializedResources;
+#else // Start with headroom so we don't have to resize all the time
+        numberOfSerializedResources *= 2;
+#endif
+        if (!materialPool.Setup(numberOfSerializedResources))
+        {
+            return false;
+        }
     }
 
     return true;
-}
-
-bool Chinstrap::Resourcer::ResourceManager::CreateWithHeadroom(uint32_t additionalElementSpace)
-{
-    currentResourceCapacity = additionalElementSpace;
-    return Create();
 }
 
 void Chinstrap::Resourcer::ResourceManager::Cleanup()

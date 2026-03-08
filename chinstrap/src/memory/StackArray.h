@@ -44,6 +44,18 @@ namespace Chinstrap::Memory
             return arrayCapacity;
         }
 
+        StackArray& operator=(const StackArray& stackArray_arg)
+        {
+            if (this == &stackArray_arg)
+            {
+                return *this;
+            }
+            basePointer = stackArray_arg.basePointer;
+            arrayCapacity = stackArray_arg.arrayCapacity;
+            stackAllocator = stackArray_arg.stackAllocator;
+            return *this;
+        }
+
     private:
         std::byte* basePointer = nullptr;
         uint32_t arrayCapacity = 0;

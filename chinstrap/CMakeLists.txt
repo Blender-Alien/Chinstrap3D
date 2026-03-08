@@ -25,6 +25,11 @@ add_compile_definitions(
         $<$<CONFIG:Debug>:CHIN_VK_VAL_LAYERS>
         $<$<CONFIG:Release>:CHIN_RELEASE>
 )
+if (CHIN_SHIPPING_BUILD)
+    add_compile_definitions(
+            CHIN_SHIPPING_BUILD
+    )
+endif ()
 
 target_link_libraries(chinstrap Vulkan::Vulkan)
 target_link_libraries(chinstrap glfw)
