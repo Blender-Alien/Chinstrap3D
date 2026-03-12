@@ -460,9 +460,11 @@ bool Chinstrap::ChinVulkan::AutoPickPhysicalGPU(VulkanContext &vulkanContext)
                 suitableIntegratedGPU = device;
                 continue; // Don't immediately settle, there could be a discrete GPU left
             }
+            /* Force integrated GPU for testing purposes
             vulkanContext.physicalGPU = device;
             CHIN_LOG_INFO_VULKAN("Successfully chose a dedicated GPU");
             return true;
+            */
         }
     }
     if (suitableIntegratedGPU != VK_NULL_HANDLE)
