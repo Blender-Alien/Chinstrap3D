@@ -18,6 +18,7 @@ namespace Chinstrap::ChinVulkan
         VmaAllocator allocator;
 
         VkPhysicalDevice physicalGPU = VK_NULL_HANDLE;
+        std::string physicalGPUName;
         VkSurfaceKHR windowSurface = VK_NULL_HANDLE;
 
         VkDevice virtualGPU = VK_NULL_HANDLE;

@@ -53,7 +53,7 @@ namespace Chinstrap::ChinVulkan
 
     void BeginRendering(VkCommandBuffer& targetCommandBuffer, const VulkanContext& vulkanContext, const VkPipeline& pipeline);
     void ExampleRecordCommandBuffer(VkCommandBuffer& targetCommandBuffer, const VulkanContext& vulkanContext, const VkPipeline& pipeline);
-    void EndRendering(VkCommandBuffer& targetCommandBuffer, const VulkanContext& vulkanContext);
+    void EndRendering(VkCommandBuffer& targetCommandBuffer, const VulkanContext& vulkanContext, VkImageLayout newLayout);
 }
 
 namespace Chinstrap::ChinVulkan

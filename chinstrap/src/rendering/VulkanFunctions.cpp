@@ -419,6 +419,7 @@ bool Chinstrap::ChinVulkan::AutoPickPhysicalGPU(VulkanContext &vulkanContext)
     vkEnumeratePhysicalDevices(vulkanContext.instance, &deviceCount, devices.data());
 
     VkPhysicalDevice suitableIntegratedGPU = VK_NULL_HANDLE;
+    VkPhysicalDeviceProperties suitableIntegratedProperties;
 
     uint32_t extensionCount;
     bool extensionsSupported, swapChainAdequate;
@@ -458,19 +459,20 @@ bool Chinstrap::ChinVulkan::AutoPickPhysicalGPU(VulkanContext &vulkanContext)
             if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
             {
                 suitableIntegratedGPU = device;
+                vkGetPhysicalDeviceProperties(device, &suitableIntegratedProperties);
                 continue; // Don't immediately settle, there could be a discrete GPU left
             }
-            /* Force integrated GPU for testing purposes
             vulkanContext.physicalGPU = device;
-            CHIN_LOG_INFO_VULKAN("Successfully chose a dedicated GPU");
+            vulkanContext.physicalGPUName.assign(deviceProperties.deviceName);
+            CHIN_LOG_INFO_VULKAN("Successfully chose discrete GPU: " + vulkanContext.physicalGPUName);
             return true;
-            */
         }
     }
     if (suitableIntegratedGPU != VK_NULL_HANDLE)
     {
         vulkanContext.physicalGPU = suitableIntegratedGPU;
-        CHIN_LOG_INFO("Successfully chose an integrated GPU");
+        vulkanContext.physicalGPUName.assign(suitableIntegratedProperties.deviceName);
+        CHIN_LOG_INFO_VULKAN("Successfully chose an integrated GPU: " + vulkanContext.physicalGPUName);
         return true;
     }
 
@@ -609,7 +611,7 @@ void Chinstrap::ChinVulkan::ExampleRecordCommandBuffer(VkCommandBuffer& targetCo
 
     vkCmdDraw(targetCommandBuffer, 3, 1, 0, 0);
 
-    EndRendering(targetCommandBuffer, vulkanContext);
+    EndRendering(targetCommandBuffer, vulkanContext, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 }
 
 void Chinstrap::ChinVulkan::BeginRendering(VkCommandBuffer& targetCommandBuffer, const VulkanContext& vulkanContext,
@@ -691,7 +693,7 @@ void Chinstrap::ChinVulkan::BeginRendering(VkCommandBuffer& targetCommandBuffer,
         vkCmdSetScissor(targetCommandBuffer, 0, 1, &scissor);
     }
 }
-void Chinstrap::ChinVulkan::EndRendering(VkCommandBuffer& targetCommandBuffer, const VulkanContext& vulkanContext)
+void Chinstrap::ChinVulkan::EndRendering(VkCommandBuffer& targetCommandBuffer, const VulkanContext& vulkanContext, const VkImageLayout newLayout)
 {
     if (vulkanContext.instanceSupportedVersion < VK_API_VERSION_1_3)
         vulkanContext.PFN_vkCmdEndRenderingKHR(targetCommandBuffer);
@@ -702,7 +704,7 @@ void Chinstrap::ChinVulkan::EndRendering(VkCommandBuffer& targetCommandBuffer, c
         imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
         imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        imageMemoryBarrier.newLayout = newLayout;
         imageMemoryBarrier.image = vulkanContext.swapChainImages.at(Renderer::RenderContext::GetImageIndex());
         imageMemoryBarrier.subresourceRange = {
             .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -744,7 +746,7 @@ void Chinstrap::ChinVulkan::ExampleRecordDevInterfaceCommandBuffer(VkCommandBuff
         VkImageMemoryBarrier waitImageMemoryBarrier = {};
         waitImageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         waitImageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        waitImageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        waitImageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         waitImageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         waitImageMemoryBarrier.image = vulkanContext.swapChainImages.at(Renderer::RenderContext::GetImageIndex());
         waitImageMemoryBarrier.subresourceRange = {
@@ -792,7 +794,7 @@ void Chinstrap::ChinVulkan::ExampleRecordDevInterfaceCommandBuffer(VkCommandBuff
 
     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), targetCommandBuffer);
 
-    EndRendering(targetCommandBuffer, vulkanContext);
+    EndRendering(targetCommandBuffer, vulkanContext, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 }
 
 void Chinstrap::ChinVulkan::Shutdown(VulkanContext &vulkanContext)
