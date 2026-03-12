@@ -169,16 +169,14 @@ namespace Chinstrap::ChinVulkan
 
 bool Chinstrap::ChinVulkan::Initialize(Window::Frame &frame)
 {
-    if (   !ChinVulkan::CreateContext(frame.vulkanContext, frame.frameSpec.title) 
-        || !ChinVulkan::CreateSurface(frame)
-        || !ChinVulkan::AutoPickPhysicalGPU(frame.vulkanContext)
-        || !ChinVulkan::CreateVirtualGPU(frame.vulkanContext)
-        || !ChinVulkan::CreateVMA(frame.vulkanContext)
-        || !ChinVulkan::CreateSwapChain(frame)
-        || !ChinVulkan::CreateDefaultImageViews(frame.vulkanContext))
-    {
-        return false;
-    }
+    if (!CreateContext(frame.vulkanContext, frame.frameSpec.title)) { return false;}
+    if (!CreateSurface(frame)) { return false; }
+    if (!AutoPickPhysicalGPU(frame.vulkanContext)) { return false; }
+    if (!CreateVirtualGPU(frame.vulkanContext)) { return false; }
+    if (!CreateVMA(frame.vulkanContext)) { return false; }
+    if (!CreateSwapChain(frame)) { return false; }
+    if (!CreateDefaultImageViews(frame.vulkanContext)) { return false; }
+
     return true;
 }
 
@@ -459,20 +457,18 @@ bool Chinstrap::ChinVulkan::AutoPickPhysicalGPU(VulkanContext &vulkanContext)
             if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
             {
                 suitableIntegratedGPU = device;
-                vkGetPhysicalDeviceProperties(device, &suitableIntegratedProperties);
+                suitableIntegratedProperties = deviceProperties;
                 continue; // Don't immediately settle, there could be a discrete GPU left
             }
             vulkanContext.physicalGPU = device;
-            vulkanContext.physicalGPUName.assign(deviceProperties.deviceName);
-            CHIN_LOG_INFO_VULKAN("Successfully chose discrete GPU: " + vulkanContext.physicalGPUName);
+            CHIN_LOG_INFO_VULKAN_F("Successfully chose discrete GPU: {}", deviceProperties.deviceName);
             return true;
         }
     }
     if (suitableIntegratedGPU != VK_NULL_HANDLE)
     {
         vulkanContext.physicalGPU = suitableIntegratedGPU;
-        vulkanContext.physicalGPUName.assign(suitableIntegratedProperties.deviceName);
-        CHIN_LOG_INFO_VULKAN("Successfully chose an integrated GPU: " + vulkanContext.physicalGPUName);
+        CHIN_LOG_INFO_VULKAN_F("Successfully chose an integrated GPU: {}", suitableIntegratedProperties.deviceName);
         return true;
     }
 
@@ -704,6 +700,8 @@ void Chinstrap::ChinVulkan::EndRendering(VkCommandBuffer& targetCommandBuffer, c
         imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
         imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        // The last scene to write a command buffer must set this to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+        // all others to VK_IMAGE_COLOR_ATTACHMENT_OPTIMAL (maybe find a good way to do/enforce this when we refactor the scene system)
         imageMemoryBarrier.newLayout = newLayout;
         imageMemoryBarrier.image = vulkanContext.swapChainImages.at(Renderer::RenderContext::GetImageIndex());
         imageMemoryBarrier.subresourceRange = {
