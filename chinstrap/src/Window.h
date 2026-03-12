@@ -52,8 +52,6 @@ namespace Chinstrap::Window
         void Destroy();
     };
 
-    void Update(const Frame &frame);
-
     bool ShouldClose(const Frame &frame);
 }
 

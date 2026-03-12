@@ -52,10 +52,6 @@ bool Chinstrap::Window::ShouldClose(const Frame &frame)
     return glfwWindowShouldClose(frame.window) != 0;
 }
 
-void Chinstrap::Window::Update(const Frame &frame)
-{
-}
-
 void Chinstrap::Window::Frame::Create(const FrameSpec &FrameSpec, const ViewPortSpec &ViewportSpec,
                  const UserSettings::GraphicsSettings &GraphicsSettings)
 {

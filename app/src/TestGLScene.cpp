@@ -196,7 +196,7 @@ void Game::TestGLScene::OnRender(uint32_t currentFrame)
     //vkCmdDraw(standardCmdBufferArray[currentFrame], 3, 1, 0, 0);
     vkCmdDrawIndexed(standardCmdBufferArray[currentFrame], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
-    ChinVulkan::EndRendering(standardCmdBufferArray[currentFrame], Application::App::GetVulkanContext());
+    ChinVulkan::EndRendering(standardCmdBufferArray[currentFrame], Application::App::GetVulkanContext(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 }
 
 bool Game::TestGLScene::OnKeyPress(const Chinstrap::KeyPressedEvent &event)

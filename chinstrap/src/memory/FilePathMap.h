@@ -3,9 +3,6 @@
 #include "StackAllocator.h"
 #include "StackArray.h"
 
-#include <cstring>
-#include <bits/std_thread.h>
-
 namespace Chinstrap::Memory
 {
     // We handle filepath relative to the project working directory like this

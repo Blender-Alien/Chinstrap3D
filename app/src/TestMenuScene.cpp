@@ -108,7 +108,7 @@ void Game::TestMenuScene::OnRender(uint32_t currentFrame)
         }
     }
 
-    ChinVulkan::EndRendering(standardCmdBufferArray[currentFrame], Application::App::GetVulkanContext());
+    ChinVulkan::EndRendering(standardCmdBufferArray[currentFrame], Application::App::GetVulkanContext(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 }
 
 bool Game::TestMenuScene::OnKeyPress(const Chinstrap::KeyPressedEvent &event)
