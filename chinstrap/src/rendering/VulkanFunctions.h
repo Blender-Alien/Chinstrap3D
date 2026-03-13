@@ -6,36 +6,36 @@
 #include "VulkanData.h"
 #include "../ops/Logging.h"
 
-namespace Chinstrap::Window {struct Frame;}
 namespace Chinstrap::ChinVulkan {struct VulkanContext;}
+namespace Chinstrap::UserSettings {struct GraphicsSettings;}
 
 namespace Chinstrap::ChinVulkan
 { /* Functions to call from some an App or Frame context to startup and shutdown Vulkan */
 
     // Completely initialize a frames vulkanContext
-    bool Initialize(Window::Frame &frame);
+    bool Initialize(VulkanContext& vulkanContext, GLFWwindow* glfwWindow, UserSettings::GraphicsSettings &graphicsSettings, std::string_view title);
 
     // Deallocate everything inside the vulkanContext object, as well as globally enabled validation layers
     // Other allocated Vulkan objects must be properly deallocated in by their respective containers
-    void Shutdown(VulkanContext &vulkanContext);
+    void Shutdown(const VulkanContext &vulkanContext);
 }
 
 namespace Chinstrap::ChinVulkan
 { /* Vulkan Helper functions */
 
     // Create VulkanContext make sure the API minimum requirements are met, enable validation layers
-    bool CreateContext(VulkanContext &vulkanContext, const std::string& name);
+    bool CreateContext(VulkanContext &vulkanContext, std::string_view name);
 
-    bool CreateSurface(Window::Frame &frame);
+    bool CreateSurface(VulkanContext& vulkanContext, GLFWwindow* glfwWindow);
 
-    bool CreateSwapChain(Window::Frame &frame);
+    bool CreateSwapChain(VulkanContext& vulkanContext, GLFWwindow* glfwWindow, UserSettings::GraphicsSettings& graphicsSettings);
 
     bool CreateDefaultImageViews(VulkanContext &vulkanContext);
 
     // For when the window surface changes due to user input
-    bool RecreateSwapChain(Window::Frame &frame);
+    bool RecreateSwapChain(VulkanContext& vulkanContext, GLFWwindow* glfwWindow, UserSettings::GraphicsSettings& graphicsSettings);
 
-    void CleanupSwapChain(VulkanContext &vulkanContext);
+    void CleanupSwapChain(const VulkanContext &vulkanContext);
 
     // Function for automatically picking a GPU at startup, with a few (arbitrary) requirements,
     // the user may choose one later through a different system
@@ -49,16 +49,16 @@ namespace Chinstrap::ChinVulkan
 namespace Chinstrap::ChinVulkan
 {
     void CreateCommandPool(const VulkanContext &vulkanContext, VkCommandPool* commandPool);
-    void CreateCommandBuffer(const VulkanContext &vulkanContext, VkCommandBuffer* buffer, VkCommandPool* commandPool);
+    void CreateCommandBuffer(const VulkanContext &vulkanContext, VkCommandBuffer* buffer, const VkCommandPool* commandPool);
 
     void BeginRendering(VkCommandBuffer& targetCommandBuffer, const VulkanContext& vulkanContext, const VkPipeline& pipeline);
     void ExampleRecordCommandBuffer(VkCommandBuffer& targetCommandBuffer, const VulkanContext& vulkanContext, const VkPipeline& pipeline);
-    void EndRendering(VkCommandBuffer& targetCommandBuffer, const VulkanContext& vulkanContext, VkImageLayout newLayout);
+    void EndRendering(const VkCommandBuffer& targetCommandBuffer, const VulkanContext& vulkanContext, VkImageLayout newLayout);
 }
 
 namespace Chinstrap::ChinVulkan
 { /* DevInterface related rendering functions ( ImGui ) */
-    void ExampleRecordDevInterfaceCommandBuffer(VkCommandBuffer& targetCommandBuffer, const VulkanContext& vulkanContext);
+    void ExampleRecordDevInterfaceCommandBuffer(const VkCommandBuffer& targetCommandBuffer, const VulkanContext& vulkanContext);
 }
 
 namespace Chinstrap::ChinVulkan

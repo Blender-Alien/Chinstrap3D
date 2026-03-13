@@ -16,16 +16,26 @@ namespace Chinstrap::UserSettings
         SRGB, HDR
     };
 
+    enum class FullScreenMode
+    {
+        OFF, ON
+    };
+
+    template<typename type>
+    struct Setting
+    {
+        type desiredValue;
+        type actualValue;
+
+        explicit Setting(type initialValue)
+            : desiredValue(initialValue), actualValue(initialValue) {}
+    };
+
     struct GraphicsSettings
     {
-        VSyncMode vSync;
-
-        ColorSpaceMode colorSpace;
-
-        GraphicsSettings()
-            : vSync(VSyncMode::ON), colorSpace(ColorSpaceMode::SRGB) {}
-        GraphicsSettings(const VSyncMode vSync, const ColorSpaceMode colorSpace)
-            : vSync(vSync), colorSpace(colorSpace) {}
+        Setting<VSyncMode> vSync = Setting(VSyncMode::ON);
+        Setting<ColorSpaceMode> colorSpace = Setting(ColorSpaceMode::SRGB);
+        Setting<FullScreenMode> fullScreen = Setting(FullScreenMode::OFF);
     };
 
 }

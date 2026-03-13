@@ -10,8 +10,8 @@
 void Game::TestGLScene::OnBegin()
 {
     using namespace Chinstrap;
-    Application::App::Get().materialManager.MakeMaterial();
-    material = Application::App::Get().materialManager.GetMaterial();
+    Application::App::GetMaterialManager().MakeMaterial();
+    material = Application::App::GetMaterialManager().GetMaterial();
 
     /* This is going to be abstracted once resource loading (of vertices etc.)
      * is implemented, otherwise I'm just going of assumptions which lead to more work in the end.
@@ -59,7 +59,7 @@ void Game::TestGLScene::OnBegin()
             VkCommandBufferAllocateInfo allocInfo{};
             allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
             allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-            allocInfo.commandPool = *Application::App::Get().renderContext.aCommandPools.ptrAt(0); // Just to make it work for now
+            allocInfo.commandPool = *standardCmdPool;
             allocInfo.commandBufferCount = 1;
 
             VkCommandBuffer commandBuffer;
@@ -87,7 +87,7 @@ void Game::TestGLScene::OnBegin()
             vkQueueSubmit(vulkanContext.graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
             vkQueueWaitIdle(vulkanContext.graphicsQueue);
 
-            vkFreeCommandBuffers(vulkanContext.virtualGPU, *Application::App::Get().renderContext.aCommandPools.ptrAt(0), 1, &commandBuffer);
+            vkFreeCommandBuffers(vulkanContext.virtualGPU, *standardCmdPool, 1, &commandBuffer);
         }
         // Get rid of staging Buffer
         vmaDestroyBuffer(vulkanContext.allocator, stagingBuffer, nullptr);
@@ -135,7 +135,7 @@ void Game::TestGLScene::OnBegin()
             VkCommandBufferAllocateInfo allocInfo{};
             allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
             allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-            allocInfo.commandPool = *Application::App::Get().renderContext.aCommandPools.ptrAt(0); // Just to make it work for now
+            allocInfo.commandPool = *standardCmdPool;
             allocInfo.commandBufferCount = 1;
 
             VkCommandBuffer commandBuffer;
@@ -163,7 +163,7 @@ void Game::TestGLScene::OnBegin()
             vkQueueSubmit(vulkanContext.graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
             vkQueueWaitIdle(vulkanContext.graphicsQueue);
 
-            vkFreeCommandBuffers(vulkanContext.virtualGPU, *Application::App::Get().renderContext.aCommandPools.ptrAt(0), 1, &commandBuffer);
+            vkFreeCommandBuffers(vulkanContext.virtualGPU, *standardCmdPool, 1, &commandBuffer);
         }
         // Get rid of staging Buffer
         vmaDestroyBuffer(vulkanContext.allocator, stagingBuffer, nullptr);

@@ -11,37 +11,48 @@ namespace Chinstrap::Application
 {
     struct App
     {
-        std::string name;
-
         // Single object to handle a window and vulkanContext
-        Window::Frame frame;
-        Renderer::RenderContext renderContext;
+        Display::Window window;
+        UserSettings::GraphicsSettings graphicsSettings;
+
         Resourcer::MaterialManager materialManager;
 
         uint32_t framerate = 0;
         bool running;
-
-        // Get reference to app singleton
-        static App& Get();
 
         App(App const&)  = delete;
         App(App const&&) = delete;
         // Set the expected stackSize to avoid memory fragmentation
         explicit App(uint8_t sceneStackSize);
 
-        int Init(const std::string& appName, const Window::FrameSpec& frameSpec, const Window::ViewPortSpec& viewportSpec);
-        void Run();
+        int Init();
+        void Run(const Display::WindowSpec& windowSpec);
         void Stop();
 
         // Enforce that the container itself should not be changed in any way after initialization
-        const auto& GetSceneStack()
+        static const auto& GetSceneStack()
         {
-            return sceneStack;
+            return Get().sceneStack;
         }
-
         static auto& GetVulkanContext()
         {
-            return Get().frame.vulkanContext;
+            return Get().window.vulkanContext;
+        }
+        static auto& GetWindow()
+        {
+            return Get().window;
+        }
+        static auto& GetGraphicsSettings()
+        {
+            return Get().graphicsSettings;
+        }
+        static const auto& GetFrameRate()
+        {
+            return Get().framerate;
+        }
+        static auto& GetMaterialManager()
+        {
+            return Get().materialManager;
         }
 
         template<typename TScene>
@@ -65,6 +76,9 @@ namespace Chinstrap::Application
         std::vector<std::unique_ptr<Scene>*> sceneTransitionQueue;
 
         void Cleanup();
+
+        // Get reference to app singleton
+        static App& Get();
     };
 
 }

@@ -19,12 +19,11 @@ namespace Chinstrap {
 
         // Points to the first element in memory
         VkCommandBuffer* standardCmdBufferArray = nullptr;
+        VkCommandPool* standardCmdPool = nullptr;
 
         float OnUpdateProfile = 0.0f;
         float OnRenderProfile = 0.0f;
         float OnEventProfile  = 0.0f;
-
-        bool submitCmdBuffer = false;
 
         virtual ~Scene() = default;
 

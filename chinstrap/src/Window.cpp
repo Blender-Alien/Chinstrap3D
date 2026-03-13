@@ -1,110 +1,84 @@
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
 
-#include <iostream>
-#include <cassert>
-
 #include "events/InputEvents.h"
 #include "Window.h"
 
 #include "events/WindowEvents.h"
 #include "rendering/VulkanFunctions.h"
 
-
-namespace Chinstrap::Window
+Chinstrap::Display::Window::Window()
 {
-    ViewPortSpec::ViewPortSpec() {}
-
-    void ViewPortSpec::Create(float posScaleX, float posScaleY, float sizeScaleX, float sizeScaleY)
-    {
-        this->posScaleX = posScaleX;
-        this->posScaleY = posScaleY;
-        this->sizeScaleX = sizeScaleX;
-        this->sizeScaleY = sizeScaleY;
-    }
-
-    FrameSpec::FrameSpec() {}
-
-    void FrameSpec::Create(const std::string &title, int width, int height)
-    {
-        this->title = title;
-        this->width = width;
-        this->height = height;
-    }
-
-    Frame::Frame() {}
-
-    void Frame::Destroy()
-    {
-        ChinVulkan::Shutdown(vulkanContext);
-        if (window)
-        {
-            glfwDestroyWindow(window);
-        }
-        window = nullptr;
-        glfwTerminate();
-    }
-
 }
 
-bool Chinstrap::Window::ShouldClose(const Frame &frame)
+void Chinstrap::Display::Window::Destroy()
 {
-    return glfwWindowShouldClose(frame.window) != 0;
+    renderContext.Destroy();
+    ChinVulkan::Shutdown(vulkanContext);
+    if (glfwWindow)
+    {
+        glfwDestroyWindow(glfwWindow);
+    }
+    glfwWindow = nullptr;
+    glfwTerminate();
 }
 
-void Chinstrap::Window::Frame::Create(const FrameSpec &FrameSpec, const ViewPortSpec &ViewportSpec,
-                 const UserSettings::GraphicsSettings &GraphicsSettings)
+bool Chinstrap::Display::Window::ShouldClose() const
 {
-    this->frameSpec = FrameSpec;
-    this->viewPortSpec = ViewportSpec;
-    this->graphicsSettings = GraphicsSettings;
+    return glfwWindowShouldClose(glfwWindow) != 0;
+}
+
+void Chinstrap::Display::Window::Create(const WindowSpec &windowSpec_arg, UserSettings::GraphicsSettings &graphicsSettings_arg, const std::vector<std::unique_ptr<Scene>>& sceneStack_arg)
+{
+    windowSpec = windowSpec_arg;
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     glfwWindowHint(GLFW_SCALE_TO_MONITOR, 1);
 
-    window = glfwCreateWindow(
-        frameSpec.width,
-        frameSpec.height,
-        frameSpec.title.c_str(),
+    glfwWindow = glfwCreateWindow(
+        windowSpec.width,
+        windowSpec.height,
+        windowSpec.title,
         nullptr,
         nullptr
     );
-    if (!window)
+    if (!glfwWindow)
     {
-        std::cerr << "GLFW window creation failed!\n";
+        CHIN_LOG_CRITICAL("GLFW window creation failed!");
         assert(false);
     }
 
-    if (!ChinVulkan::Initialize(*this))
+    if (!ChinVulkan::Initialize(vulkanContext, glfwWindow, graphicsSettings_arg, windowSpec.title))
     {
+        CHIN_LOG_CRITICAL("Vulkan initialization failed!");
         assert(false);
     }
 
-    glfwMakeContextCurrent(window);
+    glfwMakeContextCurrent(glfwWindow);
 
-    glfwSetWindowUserPointer(window, this);
+    glfwSetWindowUserPointer(glfwWindow, this);
 
     /* Set all the event callbacks */
 
-    glfwSetFramebufferSizeCallback(window,[](GLFWwindow* handle, int width, int height)
+    glfwSetFramebufferSizeCallback(glfwWindow,[](GLFWwindow* handle, int width, int height)
     {
-        Frame &userFrame = *static_cast<Frame *>(glfwGetWindowUserPointer(handle));
-        userFrame.vulkanContext.swapChainInadequate = true;
+        Window &window = *static_cast<Window *>(glfwGetWindowUserPointer(handle));
+        window.vulkanContext.swapChainInadequate = true;
 
         WindowResizedEvent event(width, height);
-        userFrame.EventPassthrough(event);
+        window.EventPassthrough(event);
     });
-    glfwSetWindowCloseCallback(window, [](GLFWwindow *handle)
+    glfwSetWindowCloseCallback(glfwWindow, [](GLFWwindow *handle)
     {
-        const Frame &userFrame = *static_cast<Frame *>(glfwGetWindowUserPointer(handle));
+        const Window &window = *static_cast<Window *>(glfwGetWindowUserPointer(handle));
 
         WindowClosedEvent event;
-        userFrame.EventPassthrough(event);
+        window.EventPassthrough(event);
     });
-    glfwSetKeyCallback(window, [](GLFWwindow *handle, int key, int scancode, int action, int mods)
+    glfwSetKeyCallback(glfwWindow, [](GLFWwindow *handle, int key, int scancode, int action, int mods)
     {
-        const Frame &userFrame = *static_cast<Frame *>(glfwGetWindowUserPointer(handle));
+        const Window &window = *static_cast<Window *>(glfwGetWindowUserPointer(handle));
 
         switch (action)
         {
@@ -112,17 +86,24 @@ void Chinstrap::Window::Frame::Create(const FrameSpec &FrameSpec, const ViewPort
             case GLFW_REPEAT:
             {
                 KeyPressedEvent event(key, action == GLFW_REPEAT);
-                userFrame.EventPassthrough(event);
+                window.EventPassthrough(event);
                 break;
             }
             case GLFW_RELEASE:
             {
                 KeyReleasedEvent event(key);
-                userFrame.EventPassthrough(event);
+                window.EventPassthrough(event);
                 break;
             }
             default:
                 assert(false);
         }
     });
+
+    renderContext.Create(&vulkanContext, this, &graphicsSettings_arg, &sceneStack_arg);
+}
+
+void Chinstrap::Display::Window::FinishRendering() const
+{
+ vkDeviceWaitIdle(vulkanContext.virtualGPU);
 }

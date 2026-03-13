@@ -22,13 +22,13 @@ void Chinstrap::DevInterface::ContextInfo(float posScaleX, float posScaleY)
 void Chinstrap::DevInterface::PerformanceInfo(float posScaleX, float posScaleY)
 {
     ImGui::Begin("Performance");
-    ImGui::Text("%d FPS", Application::App::Get().framerate);
+    ImGui::Text("%d FPS", Application::App::GetFrameRate());
 
     using namespace UserSettings;
-    VSyncMode& setting = Application::App::Get().frame.graphicsSettings.vSync;
+    auto& setting = Application::App::GetGraphicsSettings().vSync;
 
     bool vsync;
-    switch (setting)
+    switch (setting.actualValue)
     {
         case VSyncMode::OFF:
             vsync = false;
@@ -39,16 +39,16 @@ void Chinstrap::DevInterface::PerformanceInfo(float posScaleX, float posScaleY)
             break;
     }
     ImGui::Checkbox("VSync", &vsync);
-    if (vsync && setting == VSyncMode::OFF) {
-        setting = VSyncMode::ON;
-        Application::App::Get().frame.vulkanContext.swapChainInadequate = true;
-    } else if (!vsync && setting == VSyncMode::ON)
+    if (vsync && setting.actualValue == VSyncMode::OFF) {
+        setting.desiredValue = VSyncMode::ON;
+        Application::App::GetWindow().vulkanContext.swapChainInadequate = true;
+    } else if (!vsync && setting.actualValue == VSyncMode::ON)
     {
-        setting = VSyncMode::OFF;
-        Application::App::Get().frame.vulkanContext.swapChainInadequate = true;
+        setting.desiredValue = VSyncMode::OFF;
+        Application::App::GetWindow().vulkanContext.swapChainInadequate = true;
     }
 
-    for (auto &scene: Application::App::Get().GetSceneStack())
+    for (auto &scene: Application::App::GetSceneStack())
     {
         ImGui::Text("(%fms): OnUpdate() <- [%s]", scene->OnUpdateProfile, scene->GetName().c_str());
         ImGui::Text("(%fms): OnRender() <- [%s]", scene->OnRenderProfile, scene->GetName().c_str());
@@ -71,7 +71,7 @@ void Chinstrap::DevInterface::Render(void(*lambda)())
 
 void Chinstrap::DevInterface::Initialize(float fontSize)
 {
-    Window::Frame& frame = Application::App::Get().frame;
+    Display::Window& frame = Application::App::GetWindow();
 
     VkDescriptorPoolSize pool_sizes[] =
     {
@@ -108,7 +108,7 @@ void Chinstrap::DevInterface::Initialize(float fontSize)
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
 
-    ImGui_ImplGlfw_InitForVulkan(frame.window, true);
+    ImGui_ImplGlfw_InitForVulkan(frame.glfwWindow, true);
 
     ImGui_ImplVulkan_InitInfo info = {};
     info.ApiVersion = context.instanceSupportedVersion;
@@ -129,7 +129,7 @@ void Chinstrap::DevInterface::Initialize(float fontSize)
     ImGui_ImplVulkan_Init(&info);
 
     float xscale, yscale;
-    glfwGetWindowContentScale(Application::App::Get().frame.window, &xscale, &yscale);
+    glfwGetWindowContentScale(Application::App::GetWindow().glfwWindow, &xscale, &yscale);
 
     ImGui::GetStyle().FontScaleDpi = xscale;
     ImFontConfig font_config;

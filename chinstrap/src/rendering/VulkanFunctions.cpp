@@ -14,8 +14,6 @@
 #include <limits>
 #include <algorithm>
 
-#include "glm/vector_relational.hpp"
-
 //* Externally Unavailable Functions *//
 namespace Chinstrap::ChinVulkan
 {
@@ -90,13 +88,13 @@ namespace Chinstrap::ChinVulkan
             using namespace UserSettings;
             for (const auto &availableFormat: availableFormats)
             {
-                if (settings.colorSpace == ColorSpaceMode::SRGB
+                if (settings.colorSpace.desiredValue == ColorSpaceMode::SRGB
                     && availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB 
                     && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
                 {
                     return availableFormat;
                 }
-                if (settings.colorSpace == ColorSpaceMode::HDR
+                if (settings.colorSpace.desiredValue == ColorSpaceMode::HDR
                     && (std::find(std::begin(supportedHDRSpaces), std::end(supportedHDRSpaces), availableFormat.colorSpace)
                     != std::end(supportedHDRSpaces)))
                 {
@@ -104,13 +102,13 @@ namespace Chinstrap::ChinVulkan
                 }
             }
 
-            if (settings.colorSpace != ColorSpaceMode::SRGB)
+            if (settings.colorSpace.desiredValue != ColorSpaceMode::SRGB)
             {
                 CHIN_LOG_ERROR_VULKAN("No HDR format found, switching to SRGB!");
             #ifdef __linux
                 CHIN_LOG_WARN_VULKAN("On Wayland, gamescope is required to use HDR");
             #endif
-                settings.colorSpace = ColorSpaceMode::SRGB;
+                settings.colorSpace.actualValue = ColorSpaceMode::SRGB;
             }
 
             CHIN_LOG_ERROR_VULKAN("Choosing first available format as fallback!");
@@ -124,25 +122,27 @@ namespace Chinstrap::ChinVulkan
             for (const auto &availablePresentMode: availablePresentModes)
             {
                 if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR
-                    && settings.vSync == VSyncMode::FAST)
+                    && settings.vSync.desiredValue == VSyncMode::FAST)
                 {
+                    settings.vSync.actualValue = VSyncMode::FAST;
                     return availablePresentMode;
                 }
                 if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR
-                    && settings.vSync == VSyncMode::OFF)
+                    && settings.vSync.desiredValue == VSyncMode::OFF)
                 {
+                    settings.vSync.actualValue = VSyncMode::OFF;
                     return availablePresentMode;
                 }
             }
-            if (settings.vSync != VSyncMode::ON)
+            if (settings.vSync.desiredValue != VSyncMode::ON)
             {
                 CHIN_LOG_ERROR_VULKAN("Selected VSync Mode is not supported!");
-                settings.vSync = VSyncMode::ON; // Only this mode is guaranteed to be available
             }
-            return VK_PRESENT_MODE_FIFO_KHR;
+            settings.vSync.actualValue = VSyncMode::ON;
+            return VK_PRESENT_MODE_FIFO_KHR; // Only this mode is guaranteed to be available
         }
 
-        VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities, const Window::Frame &frame,
+        VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities, GLFWwindow* glfwWindow,
                                     UserSettings::GraphicsSettings &settings)
         {
             if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
@@ -151,7 +151,7 @@ namespace Chinstrap::ChinVulkan
             }
 
             int width, height;
-            glfwGetFramebufferSize(frame.window, &width, &height);
+            glfwGetFramebufferSize(glfwWindow, &width, &height);
 
             VkExtent2D actualExtent = {
                 static_cast<uint32_t>(width),
@@ -167,20 +167,20 @@ namespace Chinstrap::ChinVulkan
     }
 }
 
-bool Chinstrap::ChinVulkan::Initialize(Window::Frame &frame)
+bool Chinstrap::ChinVulkan::Initialize(VulkanContext& vulkanContext, GLFWwindow* glfwWindow, UserSettings::GraphicsSettings &graphicsSettings, std::string_view title)
 {
-    if (!CreateContext(frame.vulkanContext, frame.frameSpec.title)) { return false;}
-    if (!CreateSurface(frame)) { return false; }
-    if (!AutoPickPhysicalGPU(frame.vulkanContext)) { return false; }
-    if (!CreateVirtualGPU(frame.vulkanContext)) { return false; }
-    if (!CreateVMA(frame.vulkanContext)) { return false; }
-    if (!CreateSwapChain(frame)) { return false; }
-    if (!CreateDefaultImageViews(frame.vulkanContext)) { return false; }
+    if (!CreateContext(vulkanContext, title)) { return false;}
+    if (!CreateSurface(vulkanContext, glfwWindow)) { return false; }
+    if (!AutoPickPhysicalGPU(vulkanContext)) { return false; }
+    if (!CreateVirtualGPU(vulkanContext)) { return false; }
+    if (!CreateVMA(vulkanContext)) { return false; }
+    if (!CreateSwapChain(vulkanContext, glfwWindow, graphicsSettings)) { return false; }
+    if (!CreateDefaultImageViews(vulkanContext)) { return false; }
 
     return true;
 }
 
-bool Chinstrap::ChinVulkan::CreateContext(VulkanContext &vulkanContext, const std::string &name)
+bool Chinstrap::ChinVulkan::CreateContext(VulkanContext &vulkanContext, const std::string_view name)
 {
     uint32_t instanceVersion;
     vkEnumerateInstanceVersion(&instanceVersion);
@@ -190,7 +190,7 @@ bool Chinstrap::ChinVulkan::CreateContext(VulkanContext &vulkanContext, const st
 
     VkApplicationInfo appInfo = {};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName = name.c_str();
+    appInfo.pApplicationName = name.data();
     appInfo.pEngineName = "Chinstrap3D";
     if (vulkanContext.instanceSupportedVersion >= VK_API_VERSION_1_3)
     {
@@ -302,26 +302,26 @@ bool Chinstrap::ChinVulkan::CreateContext(VulkanContext &vulkanContext, const st
     return true;
 }
 
-bool Chinstrap::ChinVulkan::CreateSurface(Window::Frame &frame)
+bool Chinstrap::ChinVulkan::CreateSurface(VulkanContext& vulkanContext, GLFWwindow* glfwWindow)
 {
-    if (glfwCreateWindowSurface(frame.vulkanContext.instance, frame.window, nullptr, &frame.vulkanContext.windowSurface)
+    if (glfwCreateWindowSurface(vulkanContext.instance, glfwWindow, nullptr, &vulkanContext.windowSurface)
         != VK_SUCCESS)
     {
-        CHIN_LOG_CRITICAL_VULKAN_F("Failed to create rendering-surface on window: {}", frame.frameSpec.title);
+        CHIN_LOG_CRITICAL_VULKAN("Failed to create rendering-surface!");
         return false;
     }
     CHIN_LOG_INFO_VULKAN("Successfully created rendering surface");
     return true;
 }
 
-bool Chinstrap::ChinVulkan::CreateSwapChain(Window::Frame &frame)
+bool Chinstrap::ChinVulkan::CreateSwapChain(VulkanContext& vulkanContext, GLFWwindow* glfwWindow, UserSettings::GraphicsSettings& graphicsSettings)
 {
     SwapChainSupportDetails swapChainSupportDetails = querySwapChainSupport(
-        frame.vulkanContext.physicalGPU, frame.vulkanContext.windowSurface);
+        vulkanContext.physicalGPU, vulkanContext.windowSurface);
 
-    VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupportDetails.formats, frame.graphicsSettings);
-    VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupportDetails.presentModes, frame.graphicsSettings);
-    VkExtent2D extent = chooseSwapExtent(swapChainSupportDetails.capabilities, frame, frame.graphicsSettings);
+    VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupportDetails.formats, graphicsSettings);
+    VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupportDetails.presentModes, graphicsSettings);
+    VkExtent2D extent = chooseSwapExtent(swapChainSupportDetails.capabilities, glfwWindow, graphicsSettings);
 
     CHIN_LOG_INFO_VULKAN_F("SwapChain Info: Res: {0}x{1}", extent.width, extent.height);
 
@@ -334,7 +334,7 @@ bool Chinstrap::ChinVulkan::CreateSwapChain(Window::Frame &frame)
 
     VkSwapchainCreateInfoKHR createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.surface = frame.vulkanContext.windowSurface;
+    createInfo.surface = vulkanContext.windowSurface;
     createInfo.minImageCount = imageCount;
     createInfo.imageFormat = surfaceFormat.format;
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -342,7 +342,7 @@ bool Chinstrap::ChinVulkan::CreateSwapChain(Window::Frame &frame)
     createInfo.imageArrayLayers = 1; // We're not doing VR/3D
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    QueueFamilyIndices indices = findQueueFamilies(frame.vulkanContext.physicalGPU, frame.vulkanContext.windowSurface);
+    QueueFamilyIndices indices = findQueueFamilies(vulkanContext.physicalGPU, vulkanContext.windowSurface);
     uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentationFamily.value()};
     if (indices.graphicsFamily != indices.presentationFamily)
     {
@@ -362,38 +362,38 @@ bool Chinstrap::ChinVulkan::CreateSwapChain(Window::Frame &frame)
     createInfo.clipped = VK_TRUE;
     createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-    if (vkCreateSwapchainKHR(frame.vulkanContext.virtualGPU, &createInfo, nullptr, &frame.vulkanContext.swapChain) !=
+    if (vkCreateSwapchainKHR(vulkanContext.virtualGPU, &createInfo, nullptr, &vulkanContext.swapChain) !=
         VK_SUCCESS)
     {
         CHIN_LOG_CRITICAL_VULKAN("Failed to create SwapChain!");
         return false;
     }
 
-    vkGetSwapchainImagesKHR(frame.vulkanContext.virtualGPU, frame.vulkanContext.swapChain, &imageCount, nullptr);
-    frame.vulkanContext.swapChainImages.resize(imageCount);
-    vkGetSwapchainImagesKHR(frame.vulkanContext.virtualGPU, frame.vulkanContext.swapChain, &imageCount,
-                            frame.vulkanContext.swapChainImages.data());
+    vkGetSwapchainImagesKHR(vulkanContext.virtualGPU, vulkanContext.swapChain, &imageCount, nullptr);
+    vulkanContext.swapChainImages.resize(imageCount);
+    vkGetSwapchainImagesKHR(vulkanContext.virtualGPU, vulkanContext.swapChain, &imageCount,
+                            vulkanContext.swapChainImages.data());
 
-    frame.vulkanContext.swapChainImageFormat = surfaceFormat.format;
-    frame.vulkanContext.swapChainExtent = extent;
+    vulkanContext.swapChainImageFormat = surfaceFormat.format;
+    vulkanContext.swapChainExtent = extent;
     CHIN_LOG_INFO_VULKAN("Successfully created SwapChain");
     return true;
 }
 
 
-bool Chinstrap::ChinVulkan::RecreateSwapChain(Window::Frame &frame)
+bool Chinstrap::ChinVulkan::RecreateSwapChain(VulkanContext& vulkanContext, GLFWwindow* glfwWindow, UserSettings::GraphicsSettings& graphicsSettings)
 {
-    vkDeviceWaitIdle(frame.vulkanContext.virtualGPU);
+    vkDeviceWaitIdle(vulkanContext.virtualGPU);
 
-    CleanupSwapChain(frame.vulkanContext);
-    if (!CreateSwapChain(frame) || !CreateDefaultImageViews(frame.vulkanContext))
+    CleanupSwapChain(vulkanContext);
+    if (!CreateSwapChain(vulkanContext, glfwWindow, graphicsSettings) || !CreateDefaultImageViews(vulkanContext))
     {
         return false;
     }
     return true;
 }
 
-void Chinstrap::ChinVulkan::CleanupSwapChain(VulkanContext &vulkanContext)
+void Chinstrap::ChinVulkan::CleanupSwapChain(const VulkanContext &vulkanContext)
 {
     for (auto &imageView: vulkanContext.defaultImageViews)
     {
@@ -587,7 +587,7 @@ void Chinstrap::ChinVulkan::CreateCommandPool(const VulkanContext &vulkanContext
     }
 }
 
-void Chinstrap::ChinVulkan::CreateCommandBuffer(const VulkanContext &vulkanContext, VkCommandBuffer* buffer, VkCommandPool* commandPool)
+void Chinstrap::ChinVulkan::CreateCommandBuffer(const VulkanContext &vulkanContext, VkCommandBuffer* buffer, const VkCommandPool* commandPool)
 {
     VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
     commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -689,7 +689,7 @@ void Chinstrap::ChinVulkan::BeginRendering(VkCommandBuffer& targetCommandBuffer,
         vkCmdSetScissor(targetCommandBuffer, 0, 1, &scissor);
     }
 }
-void Chinstrap::ChinVulkan::EndRendering(VkCommandBuffer& targetCommandBuffer, const VulkanContext& vulkanContext, const VkImageLayout newLayout)
+void Chinstrap::ChinVulkan::EndRendering(const VkCommandBuffer& targetCommandBuffer, const VulkanContext& vulkanContext, const VkImageLayout newLayout)
 {
     if (vulkanContext.instanceSupportedVersion < VK_API_VERSION_1_3)
         vulkanContext.PFN_vkCmdEndRenderingKHR(targetCommandBuffer);
@@ -730,7 +730,7 @@ void Chinstrap::ChinVulkan::EndRendering(VkCommandBuffer& targetCommandBuffer, c
     }
 }
 
-void Chinstrap::ChinVulkan::ExampleRecordDevInterfaceCommandBuffer(VkCommandBuffer& targetCommandBuffer, const VulkanContext& vulkanContext)
+void Chinstrap::ChinVulkan::ExampleRecordDevInterfaceCommandBuffer(const VkCommandBuffer& targetCommandBuffer, const VulkanContext& vulkanContext)
 {
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -795,9 +795,8 @@ void Chinstrap::ChinVulkan::ExampleRecordDevInterfaceCommandBuffer(VkCommandBuff
     EndRendering(targetCommandBuffer, vulkanContext, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 }
 
-void Chinstrap::ChinVulkan::Shutdown(VulkanContext &vulkanContext)
+void Chinstrap::ChinVulkan::Shutdown(const VulkanContext &vulkanContext)
 {
-
     CleanupSwapChain(vulkanContext);
     vmaDestroyAllocator(vulkanContext.allocator);
     vkDestroyDevice(vulkanContext.virtualGPU, nullptr);

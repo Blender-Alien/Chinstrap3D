@@ -6,10 +6,15 @@
 
 uint32_t Chinstrap::Renderer::RenderContext::imageIndex = 0;
 
-void Chinstrap::Renderer::RenderContext::Create(const uint8_t sceneStackSize)
+void Chinstrap::Renderer::RenderContext::Create(ChinVulkan::VulkanContext* vulkanContext_arg, Display::Window* window_arg,
+            UserSettings::GraphicsSettings* graphicsSettings_arg, const std::vector<std::unique_ptr<Scene>>* sceneStack_arg)
 {
-    pVulkanContext = &Application::App::Get().frame.vulkanContext;
-    pSceneStack = &Application::App::Get().GetSceneStack();
+    pVulkanContext = vulkanContext_arg;
+    pWindow = window_arg;
+    pGraphicsSettings = graphicsSettings_arg;
+    pSceneStack = sceneStack_arg;
+
+    const uint8_t sceneStackSize = pSceneStack->size();
 
     {
         uint32_t allocatorSize = 0;
@@ -88,9 +93,10 @@ void Chinstrap::Renderer::RenderContext::Create(const uint8_t sceneStackSize)
 
         // Give out pointers to every scene
         uint32_t index = 0;
-        for (auto& scene : Application::App::Get().GetSceneStack())
+        for (auto& scene : *pSceneStack)
         {
             scene->standardCmdBufferArray = aaCmdBuffers.ptrAt(index, 0);
+            scene->standardCmdPool = aCommandPools.ptrAt(index);
             ++index;
         }
     }
@@ -111,7 +117,8 @@ bool Chinstrap::Renderer::BeginFrame(const uint32_t currentFrame, RenderContext 
 
     if (acquireImageResult == VK_ERROR_OUT_OF_DATE_KHR) [[unlikely]]
     {
-        ChinVulkan::RecreateSwapChain(Application::App::Get().frame);
+        using namespace Application;
+        ChinVulkan::RecreateSwapChain(*renderContext.pVulkanContext, renderContext.pWindow->glfwWindow, *renderContext.pGraphicsSettings);
         return true;
     }
     return false;
@@ -178,7 +185,7 @@ void Chinstrap::Renderer::RenderFrame(const uint32_t currentFrame, RenderContext
         || renderContext.pVulkanContext->swapChainInadequate) [[unlikely]]
     {
         renderContext.pVulkanContext->swapChainInadequate = false;
-        ChinVulkan::RecreateSwapChain(Application::App::Get().frame);
+        ChinVulkan::RecreateSwapChain(*renderContext.pVulkanContext, renderContext.pWindow->glfwWindow, *renderContext.pGraphicsSettings);
     }
 
     renderContext.pVulkanContext->currentFrame = (currentFrame + 1) % renderContext.pVulkanContext->MAX_FRAMES_IN_FLIGHT;
@@ -188,8 +195,11 @@ void Chinstrap::Renderer::SetupSceneCmdBuffers(uint8_t sceneIndex, RenderContext
 {
     vkResetCommandBuffer(*renderContext.aaCmdBuffers.ptrAt(sceneIndex, 0), 0);
     // Hand out pointer to beginning of default array
-    Application::App::Get().GetSceneStack().at(sceneIndex)->standardCmdBufferArray =
+    renderContext.pSceneStack->at(sceneIndex)->standardCmdBufferArray =
         renderContext.aaCmdBuffers.ptrAt(sceneIndex, 0);
+
+    renderContext.pSceneStack->at(sceneIndex)->standardCmdPool =
+        renderContext.aCommandPools.ptrAt(sceneIndex);
 }
 
 void Chinstrap::Renderer::RenderContext::Destroy()
@@ -223,5 +233,4 @@ void Chinstrap::Renderer::RenderContext::Destroy()
 
         stackAllocator.Cleanup();
     }
-
 }

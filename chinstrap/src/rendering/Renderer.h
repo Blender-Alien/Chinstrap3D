@@ -11,14 +11,15 @@
 
 #include <fstream>
 
+
 namespace Chinstrap {struct Scene;}
+namespace Chinstrap::Display { struct Window;}
+namespace Chinstrap::UserSettings { struct GraphicsSettings;}
 
 namespace Chinstrap::Renderer
 {
     struct RenderContext
     {
-        std::vector<VkSubmitInfo> tempSubmits;
-
         static uint32_t imageIndex;
         static uint32_t GetImageIndex() {return imageIndex;}
 
@@ -35,9 +36,12 @@ namespace Chinstrap::Renderer
         Memory::StackArray2D<VkCommandBuffer> aaCmdBuffers;
 
         ChinVulkan::VulkanContext* pVulkanContext = nullptr;
+        Display::Window* pWindow = nullptr;
+        UserSettings::GraphicsSettings* pGraphicsSettings = nullptr;
         const std::vector<std::unique_ptr<Scene>>* pSceneStack = nullptr;
 
-        void Create(uint8_t sceneStackSize);
+        void Create(ChinVulkan::VulkanContext* vulkanContext_arg, Display::Window* window_arg,
+            UserSettings::GraphicsSettings* graphicsSettings_arg, const std::vector<std::unique_ptr<Scene>>* sceneStack_arg);
         void Destroy();
 
         inline static bool created = false;

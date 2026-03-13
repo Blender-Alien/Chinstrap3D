@@ -10,7 +10,7 @@
 void Game::TestMenuScene::OnBegin()
 {
     using namespace Chinstrap;
-    material = Application::App::Get().materialManager.GetMaterial();
+    material = Application::App::GetMaterialManager().GetMaterial();
 }
 
 void Game::TestMenuScene::OnUpdate(float deltaTime)

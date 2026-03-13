@@ -1,5 +1,4 @@
 #include "Application.h"
-#include "UserSettings.h"
 #include "Window.h"
 #include "Scene.h"
 #include "events/Event.h"
@@ -14,15 +13,14 @@ namespace
 {
     using namespace Chinstrap;
 
-    // we give out this pointer to the actual stack allocated singleton
     Application::App *pAppInstance = nullptr;
 
     void ForwardEvents(Event &event)
     {
         CHIN_LOG_INFO(event.ToString());
-        for (unsigned int i = pAppInstance->GetSceneStack().size(); i > 0; i--)
+        for (unsigned int i = Application::App::GetSceneStack().size(); i > 0; i--)
         {
-            pAppInstance->GetSceneStack()[i-1]->OnEvent(event);
+            Application::App::GetSceneStack()[i-1]->OnEvent(event);
             if (event.IsHandled())
                 return;
         }
@@ -46,13 +44,12 @@ namespace Chinstrap::Application
     }
 }
 
-int Application::App::Init(const std::string &appName, const Window::FrameSpec &frameSpec, const Window::ViewPortSpec &viewportSpec)
+int Application::App::Init()
 {
     assert(!pAppInstance); // Have we already initialized?
     pAppInstance = this;
 
     running = false;
-    name = appName;
 
     for (auto &scene : sceneTransitionQueue)
     {
@@ -64,18 +61,17 @@ int Application::App::Init(const std::string &appName, const Window::FrameSpec &
         return -1;
     }
 
-    const auto settings = UserSettings::GraphicsSettings(UserSettings::VSyncMode::ON, UserSettings::ColorSpaceMode::SRGB);
-    frame.Create(frameSpec, viewportSpec, settings);
-    frame.EventPassthrough = [](Event& event){ ForwardEvents(event); };
-
     return 0;
 }
 
-void Application::App::Run()
+void Application::App::Run(const Display::WindowSpec &windowSpec)
 {
     assert(pAppInstance);
     assert(!running); // Are we already running? Don't call Run() recursively!
     running = true;
+
+    window.Create(windowSpec, graphicsSettings, sceneStack);
+    window.EventPassthrough = [](Event& event){ ForwardEvents(event); };
 
     double timeAtPreviousFrame = glfwGetTime(), timeAtPreviousSecond = glfwGetTime();
     double currentTime = 0.0f;
@@ -84,21 +80,19 @@ void Application::App::Run()
     bool skipFrame = false;
     uint8_t sceneIndex = 0;
 
-    // Has to be in this order
-    renderContext.Create(sceneStack.size());
     for (std::unique_ptr<Scene> &scene: sceneStack)
         scene->OnBegin();
 
     while (running)
     {
-        if (Window::ShouldClose(frame)) { Stop(); continue; }
+        if (window.ShouldClose()) { Stop(); continue; }
 
         glfwPollEvents();
         currentTime = glfwGetTime();
-        currentFrame = frame.vulkanContext.currentFrame;
+        currentFrame = window.vulkanContext.currentFrame;
 
         { /* Update and Render */
-            skipFrame = Renderer::BeginFrame(currentFrame, renderContext);
+            skipFrame = Renderer::BeginFrame(currentFrame, window.renderContext);
 
             sceneIndex = 0;
             for (auto &scene : sceneStack)
@@ -118,8 +112,8 @@ void Application::App::Run()
             }
             if (!skipFrame) [[likely]]
             {
-                Renderer::SubmitDrawData(currentFrame, renderContext);
-                Renderer::RenderFrame(currentFrame, renderContext);
+                Renderer::SubmitDrawData(currentFrame, window.renderContext);
+                Renderer::RenderFrame(currentFrame, window.renderContext);
             }
 
             sceneIndex = 0;
@@ -127,14 +121,14 @@ void Application::App::Run()
             {
                 if (scene != nullptr) [[unlikely]]
                 {
-                    vkDeviceWaitIdle(frame.vulkanContext.virtualGPU);
+                    vkDeviceWaitIdle(window.vulkanContext.virtualGPU);
                     scene->get()->OnShutdown();
 
                     CHIN_LOG_INFO("Unreferencing Scene: [{}] ...", scene->get()->GetName());
                     sceneStack.at(sceneIndex) = std::move(scene->get()->CreateQueued());
                     CHIN_LOG_INFO("... Slotted in Scene: [{}]", scene->get()->GetName());
 
-                    Renderer::SetupSceneCmdBuffers(sceneIndex, renderContext);
+                    Renderer::SetupSceneCmdBuffers(sceneIndex, window.renderContext);
                     scene->get()->OnBegin();
 
                     scene = nullptr;
@@ -164,11 +158,11 @@ void Application::App::Stop()
 
 void Application::App::Cleanup()
 {
-    renderContext.Destroy();
-    for (std::unique_ptr<Scene> &scene: sceneStack)
+    window.FinishRendering();
+    for (auto &scene: sceneStack)
     {
         scene->OnShutdown();
     }
     materialManager.Destroy();
-    frame.Destroy();
+    window.Destroy();
 }
