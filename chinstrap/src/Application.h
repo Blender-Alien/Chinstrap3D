@@ -72,7 +72,7 @@ namespace Chinstrap::Application
     private:
         std::vector<std::unique_ptr<Scene>> sceneStack;
 
-        // Save pointer to new scene functions from the currentScene if change is requested
+        // Store pointers to scenes which have requested a scene transition
         std::vector<std::unique_ptr<Scene>*> sceneTransitionQueue;
 
         void Cleanup();

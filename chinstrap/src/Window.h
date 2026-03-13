@@ -20,7 +20,7 @@ namespace Chinstrap::Display
         int height = 1080;
 
         explicit WindowSpec() = default;
-        explicit WindowSpec(const char* title_arg, const int width_arg, const int height_arg)
+        WindowSpec(const char* title_arg, const int width_arg, const int height_arg)
             : width(width_arg), height(height_arg) { strcpy(title, title_arg); }
     };
 

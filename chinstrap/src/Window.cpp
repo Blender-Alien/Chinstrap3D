@@ -3,7 +3,6 @@
 
 #include "events/InputEvents.h"
 #include "Window.h"
-
 #include "events/WindowEvents.h"
 #include "rendering/VulkanFunctions.h"
 

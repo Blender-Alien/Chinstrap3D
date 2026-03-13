@@ -3,10 +3,6 @@
 #include "events/Event.h"
 #include "events/InputEvents.h"
 
-#include <memory>
-#include <cassert>
-#include <string>
-
 #include "Application.h"
 
 namespace Chinstrap::Application {struct App;}
