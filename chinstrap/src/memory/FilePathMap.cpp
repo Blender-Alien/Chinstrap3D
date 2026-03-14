@@ -9,7 +9,6 @@ FilePathMap::InsertRet FilePathMap::Insert(FilePath& filepath_arg, const std::st
     if (setupStatus == SetupStatus::NOT_BEGUN)
     {
         CHIN_LOG_WARN("Insert was used on a FilePathMap, but Setup was not begun!");
-        assert(false);
         return InsertRet::BAD_REQUEST;
     }
 
@@ -17,8 +16,6 @@ FilePathMap::InsertRet FilePathMap::Insert(FilePath& filepath_arg, const std::st
 
     for (auto& keyIndex : keyArray)
     {
-        // TODO: There must be a better way of finding the next free element of keyArray than to try them all with worst case O(n)
-        //       Perhaps simply reserve() the current size and emplace_back(), then sort if applicable
         if (!keyIndex.has_value())
         {
             keyIndex.emplace(argHashID, valueStack);
@@ -35,12 +32,12 @@ FilePathMap::InsertRet FilePathMap::Insert(FilePath& filepath_arg, const std::st
             // Give back hashID
             filepath_arg.hashID.emplace(argHashID);
 
-            // TODO: Test speed difference between Setup then MergeSort approach and InsertionSort EveryTime even in Setup
             if (setupStatus == SetupStatus::SETUP_DONE)
             {
                 InsertionSortKeyArray();
             } // else, we will sort later in EndSetup()
 
+            ++keyArrayHasValueSize;
             return InsertRet::SUCCESS;
         }
         if (keyIndex.value().hashID == argHashID) { return InsertRet::COLLISION_OR_DUPLICATE; }
@@ -53,7 +50,6 @@ FilePathMap::InsertRet FilePathMap::Insert(FilePath& filepath_arg, const std::st
     if (setupStatus != SetupStatus::SETUP_DONE)
     {
         CHIN_LOG_WARN("A lookup in a FilePathMap was requested, before Setup was done!");
-        assert(false);
         return std::nullopt;
     }
     { // Binary Search
@@ -81,44 +77,131 @@ FilePathMap::InsertRet FilePathMap::Insert(FilePath& filepath_arg, const std::st
 }
 
 #ifndef CHIN_SHIPPING_BUILD
-void FilePathMap::Grow(uint32_t size_arg, std::optional<uint32_t> sizeInBytesHint_arg)
+bool FilePathMap::GrowTo(uint32_t numberOfElements_arg, std::optional<uint32_t> stringLengthHint_arg)
 {
-    if (keyArray.capacity() <= size_arg)
+    if (keyArray.capacity() >= numberOfElements_arg)
     {
         CHIN_LOG_WARN("A FilePathMap was instructed to grow, but the requested size was not larger.");
-        assert(false);
-        return;
+        return false;
     }
-    keyArray.resize(size_arg);
-    // TODO: Resize stackAllocator functionality
+    keyArray.resize(numberOfElements_arg);
+
+    StackAllocator newValueStack;
+    if (stringLengthHint_arg.has_value())
+    {
+        newValueStack.Setup(numberOfElements_arg * sizeof(char[stringLengthHint_arg.value()]));
+    }
+    else
+    {
+        // Guess the average string size as 64 Characters to allocate ample space
+        newValueStack.Setup(numberOfElements_arg * sizeof(char[64]));
+    }
+
+    for (auto& keyIndex : keyArray)
+    {
+        if (!keyIndex.has_value())
+            continue;
+
+        Memory::StackArray<char> newArray(newValueStack);
+        if (!newArray.Allocate(keyIndex.value().charArray.capacity()))
+            return false;
+
+        strcpy(newArray.data(), keyIndex.value().charArray.data());
+
+        keyIndex.value().charArray = newArray;
+    }
+
+    valueStack = newValueStack;
+    newValueStack.AfterCopyCleanup();
+
+    return true;
 }
 #endif
 
-// Let's use std::sort for now, we'll properly implement this later
+void FilePathMap::MergeSort(std::vector<std::optional<Key>>& array, std::size_t leftIndex, std::size_t rightIndex)
+{
+    assert(array.at(rightIndex).has_value()); // Make sure you give a valid range!
+    if (leftIndex >= rightIndex)
+    {
+        return;
+    }
+    std::size_t middleIndex = (leftIndex + rightIndex) / 2;
+    MergeSort(array, leftIndex, middleIndex);
+    MergeSort(array, middleIndex + 1, rightIndex);
+    Merge(array, leftIndex, middleIndex, rightIndex);
+}
+
+void FilePathMap::Merge(std::vector<std::optional<Key>>& array, std::size_t leftIndex, std::size_t middleIndex, std::size_t rightIndex)
+{
+    std::size_t nLeft = middleIndex - leftIndex + 1;
+    std::size_t nRight = rightIndex - middleIndex;
+
+    std::optional<Key> left[nLeft];
+    std::optional<Key> right[nRight];
+
+    for (std::size_t i = 0; i < nLeft; ++i)
+    {
+        left[i].emplace(array[leftIndex + i].value());
+    }
+    for (std::size_t i = 0; i < nRight; ++i)
+    {
+        right[i].emplace(array[rightIndex + i].value());
+    }
+
+    std::size_t i = 0;
+    std::size_t j = 0;
+    std::size_t k = leftIndex;
+
+    while (i < nLeft && j < nRight)
+    {
+        if (left[i].value().hashID <= right[j].value().hashID)
+        {
+            array[k].value() = left[i].value();
+            ++i;
+        }
+        else
+        {
+            array[k].value() = right[j].value();
+            ++j;
+        }
+        ++k;
+    }
+
+    while (i < nLeft)
+    {
+        array[k].value() = left[i].value();
+        ++i;
+        ++k;
+    }
+    while (j < nRight)
+    {
+        array[k].value() = right[j].value();
+        ++j;
+        ++k;
+    }
+}
+
 void FilePathMap::MergeSortKeyArray()
 {
-    std::vector<Key> tempKeys;
-    tempKeys.reserve(keyArray.size());
-
-    std::size_t numberOfActualElements = 0;
-    for (auto & key : keyArray)
-    {
-        if (key.has_value())
-        {
-            tempKeys.push_back(key.value());
-            ++numberOfActualElements;
-        }
-    }
-    std::sort(tempKeys.begin(), tempKeys.end());
-
-    for (std::size_t i = 0; i < numberOfActualElements; ++i)
-    {
-        keyArray[i].value() = tempKeys[i];
-    }
+    MergeSort(keyArray, 0, keyArrayHasValueSize - 1);
 }
 
 void FilePathMap::InsertionSortKeyArray()
 {
+    const std::size_t range = keyArrayHasValueSize - 1;
+
+    for (std::size_t index = 1; index <= range; ++index)
+    {
+        auto key = keyArray[index];
+        std::size_t j = index - 1;
+
+        while (j > 0 && keyArray.at(j).value().hashID > key.value().hashID)
+        {
+            keyArray.at(j + 1).value() = keyArray.at(j).value();
+            --j;
+        }
+        keyArray.at(j + 1) = key;
+    }
 }
 
 void FilePathMap::Setup(const uint32_t numberOfElements_arg, const std::optional<uint32_t> stringLengthHint_arg)
@@ -132,6 +215,7 @@ void FilePathMap::Setup(const uint32_t numberOfElements_arg, const std::optional
     setupStatus = SetupStatus::IN_SETUP;
 
     keyArray.resize(numberOfElements_arg);
+    keyArrayHasValueSize = 0;
 
     if (stringLengthHint_arg.has_value())
     {
@@ -139,20 +223,20 @@ void FilePathMap::Setup(const uint32_t numberOfElements_arg, const std::optional
     }
     else
     {
-        // Guess the average string size as 63 Characters to allocate ample space,
-        // we choose 63 because it will end up being 64 with '\0' added at the end
-        valueStack.Setup(numberOfElements_arg * sizeof(char[63]));
+        // Guess the average string size as 64 Characters to allocate ample space
+        valueStack.Setup(numberOfElements_arg * sizeof(char[64]));
     }
 }
 
 void FilePathMap::Cleanup()
 {
     valueStack.Cleanup();
+    keyArray.clear();
 
     setupStatus = SetupStatus::NOT_BEGUN;
 }
 
 FilePathMap::FilePathMap()
-    : keyArray(0)
+    : keyArrayHasValueSize(0), keyArray(0)
 {
 }

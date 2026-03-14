@@ -47,7 +47,7 @@ struct Chinstrap::Memory::FilePathMap
     [[nodiscard]] std::optional<std::string_view> Lookup(const FilePath& key_arg);
 
 #ifndef CHIN_SHIPPING_BUILD
-    void Grow(uint32_t size_arg, std::optional<uint32_t> sizeInBytesHint_arg);
+    bool GrowTo(uint32_t numberOfElements_arg, std::optional<uint32_t> stringLengthHint_arg);
 #endif
 
     void Setup(uint32_t numberOfElements_arg, std::optional<uint32_t> stringLengthHint_arg);
@@ -63,9 +63,6 @@ struct Chinstrap::Memory::FilePathMap
     explicit FilePathMap();
 
 private:
-    void MergeSortKeyArray();
-    void InsertionSortKeyArray();
-
     enum class SetupStatus { NOT_BEGUN, IN_SETUP, SETUP_DONE };
     SetupStatus setupStatus = SetupStatus::NOT_BEGUN;
 
@@ -84,9 +81,15 @@ private:
             : hashID(hashID_arg), charArray(allocator_arg) {}
     };
 
+    void InsertionSortKeyArray();
+
+    void MergeSortKeyArray();
+    static void MergeSort(std::vector<std::optional<Key>>& array, std::size_t p, std::size_t r);
+    static void Merge(std::vector<std::optional<Key>>& array, std::size_t leftIndex, std::size_t middleIndex, std::size_t rightIndex);
+
     // Store our char arrays in this stack
     Memory::StackAllocator valueStack;
 
-    // This can also be a stack array really, but for now in a non shipping build, it's more convenient to resize
+    std::size_t keyArrayHasValueSize;
     std::vector<std::optional<Key>> keyArray;
 };

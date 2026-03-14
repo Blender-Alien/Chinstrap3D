@@ -21,6 +21,12 @@ void StackAllocator::Cleanup()
     topPointer = nullptr;
 }
 
+void StackAllocator::AfterCopyCleanup()
+{
+    basePointer = nullptr;
+    topPointer = nullptr;
+}
+
 StackAllocator::~StackAllocator()
 {
     // Did we call Cleanup???

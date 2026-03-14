@@ -8,10 +8,9 @@ namespace Chinstrap::Memory
         typedef std::byte* StackPointer;
 
         // Get pointer to the element at the top of the stack
-        template <typename type>
-        [[nodiscard]] type* GetStackPointer() const
+        [[nodiscard]] std::byte* GetStackPointer() const
         {
-            return static_cast<type*>(static_cast<void*>(stackPointer));
+            return stackPointer;
         }
 
         [[nodiscard]] std::byte* DirectAllocate(uint32_t sizeInBytes_arg);
@@ -21,6 +20,8 @@ namespace Chinstrap::Memory
 
         void Setup(uint32_t stackSizeInBytes_arg);
         void Cleanup();
+        // Do this if you have copied this stackAllocator to another one
+        void AfterCopyCleanup();
 
         explicit StackAllocator() = default;
         ~StackAllocator();

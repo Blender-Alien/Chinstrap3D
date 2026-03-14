@@ -18,7 +18,9 @@ namespace Chinstrap::Memory
 
             basePointer = stackAllocator.DirectAllocate(sizeof(type) * arrayCapacity);
             if (basePointer == nullptr)
+            {
                 return false;
+            }
 
             return true;
         }

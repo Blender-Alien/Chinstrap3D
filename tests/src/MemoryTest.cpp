@@ -174,5 +174,18 @@ void TestFilePathMap()
         assert(!lookup4.has_value());
     }
 
+    assert(!map.GrowTo(2, 24));
+    assert(map.GrowTo(4, 24));
+
+    {
+        FilePath path5;
+        path5.hashID = std::hash<std::string_view>()("Hello whats up?");
+        auto ret = map.Insert(path5, "Hello whats up?");
+        assert(ret == FilePathMap::InsertRet::SUCCESS);
+        auto lookup5 = map.Lookup(path5);
+        assert(lookup5.has_value());
+        assert(lookup5 == "Hello whats up?");
+    }
+
     map.Cleanup();
 }
