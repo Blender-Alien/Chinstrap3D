@@ -35,6 +35,10 @@ namespace Chinstrap::Memory
         {
             return reinterpret_cast<type*>(basePointer);
         }
+        const type* dataConst() const
+        {
+            return reinterpret_cast<const type*>(basePointer);
+        }
         std::byte* lastElement()
         {
             return (basePointer + (arrayCapacity-1) * sizeof(type));

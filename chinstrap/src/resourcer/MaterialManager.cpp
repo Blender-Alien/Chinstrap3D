@@ -14,11 +14,6 @@ void Chinstrap::Resourcer::MaterialManager::MakeMaterial()
     {
         return;
     }
-    material = new Renderer::Material(
-            Application::App::GetVulkanContext(),
-            readFile("../../../chinstrap/res/shaders/BasicVertex.spv"),
-            readFile("../../../chinstrap/res/shaders/BasicFragment.spv")
-    );
 }
 
 void Chinstrap::Resourcer::MaterialManager::Destroy()

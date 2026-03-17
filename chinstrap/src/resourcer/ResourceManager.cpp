@@ -1,42 +1,113 @@
 #include "ResourceManager.h"
 
-#include "../ops/Logging.h"
 #include "../rendering/RendererData.h"
 
 
-Chinstrap::Resourcer::ResourceManager::ResourceManager()
+using namespace Chinstrap::Resourcer;
+
+ResourceManager::ResourceManager()
     : aFilePaths(filepathAllocator)
 {
 }
 
 #ifndef CHIN_SHIPPING_BUILD
-Chinstrap::Resourcer::resourceIDType Chinstrap::Resourcer::ResourceManager::CreateResource(const std::string_view &name)
+resourceIDType ResourceManager::CreateResource(const Memory::FilePath& filePath)
 {
 }
 #endif
 
 #ifndef CHIN_SHIPPING_BUILD
-void Chinstrap::Resourcer::ResourceManager::DeleteResource(resourceIDType resourceID)
+void ResourceManager::DeleteResource(resourceIDType resourceID)
+{
+}
+
+ResourceManager::GetResourceRefRet ResourceManager::GetResourceRef(const Memory::FilePath& filePath, ResourceRef& resourceRef)
+{
+    if (!filePath.GetHashID().has_value())
+    {
+        return GetResourceRefRet::FILE_PATH_INVALID;
+    }
+
+    const ResourceMetaData* resource = nullptr;
+    try
+    {
+        resource = &resourceMetaData.at(filePath.GetHashID().value());
+    } catch (std::out_of_range& e)
+    {
+        return GetResourceRefRet::UNKNOWN_RESOURCE;
+    }
+
+    if (resource->pResource == nullptr)
+    { // Load resource
+        auto virtualFilePath = filePathMap.Lookup(filePath);
+        if (!virtualFilePath.has_value())
+        {
+            return GetResourceRefRet::FILE_PATH_INVALID;
+        }
+        char OSPath[virtualFilePath.value().size()];
+        Memory::FilePath::ConvertToOSPath(virtualFilePath.value(), OSPath);
+
+        // TODO: LOAD SHIT
+        return GetResourceRefRet::SUCCESS;
+    }
+
+    resourceRef.resourceID = resource->resourceID;
+    // Const cast here because std::unordered_map is annoying
+    resourceRef.referenceCount = const_cast<uint32_t*>(&resource->referenceCount);
+    ++(*resourceRef.referenceCount);
+    return GetResourceRefRet::SUCCESS;
+}
+
+ResourceManager::GetResourceCurrentPtrRet ResourceManager::GetResourceCurrentPtr(const resourceIDType resourceID, void*& pointer) const
+{
+    const ResourceMetaData* resource;
+    try
+    {
+        resource = &resourceMetaData.at(resourceID);
+    } catch (std::out_of_range& e)
+    {
+        return GetResourceCurrentPtrRet::UNKNOWN_RESOURCE;
+    }
+    if (resource->pResource == nullptr)
+    {
+        return GetResourceCurrentPtrRet::RESOURCE_UNLOADED;
+    }
+    pointer = resource->pResource;
+    return GetResourceCurrentPtrRet::SUCCESS;
+}
+#endif
+
+void ResourceManager::Serialize()
+{
+}
+#ifdef CHINSHIPPING_BUILD
+void Chinstrap::Resourcer::ResourceManager::SerializeBinary()
 {
 }
 #endif
 
-void Chinstrap::Resourcer::ResourceManager::Serialize()
+void ResourceManager::Deserialize()
 {
 }
-
-void Chinstrap::Resourcer::ResourceManager::Deserialize()
+#ifdef CHINSHIPPING_BUILD
+void Chinstrap::Resourcer::ResourceManager::DeserializeBinary()
 {
 }
+#endif
 
-bool Chinstrap::Resourcer::ResourceManager::Create()
+bool ResourceManager::Setup()
 {
     { // Load virtual file paths
 
+        // TODO: Set size depending on number of deserialized filepaths
+        //       and maybe double that initially for a non shipping build
+        filePathMap.Setup(10, std::nullopt);
+        // Fill in deserialized filepaths
+        filePathMap.EndSetup();
     }
 
     { // Load Materials
-        uint64_t numberOfSerializedResources = GetNumberOfSerializedResources<Renderer::Material>();
+        uint64_t numberOfSerializedResources = 0; // TODO
 #ifdef CHIN_SHIPPING_BUILD
         numberOfSerializedResources;
 #else // Start with headroom so we don't have to resize all the time
@@ -51,9 +122,11 @@ bool Chinstrap::Resourcer::ResourceManager::Create()
     return true;
 }
 
-void Chinstrap::Resourcer::ResourceManager::Cleanup()
+void ResourceManager::Cleanup()
 {
     Serialize();
 
+    filepathAllocator.Cleanup();
+    filePathMap.Cleanup();
     materialPool.Cleanup();
 }

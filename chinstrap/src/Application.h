@@ -1,6 +1,7 @@
 #pragma once
 
 #include "rendering/Renderer.h"
+#include "resourcer/ResourceManager.h"
 #include "resourcer/MaterialManager.h"
 #include "Window.h"
 #include "ops/Logging.h"
@@ -16,6 +17,7 @@ namespace Chinstrap::Application
         UserSettings::GraphicsSettings graphicsSettings;
 
         Resourcer::MaterialManager materialManager;
+        Resourcer::ResourceManager resourceManager;
 
         uint32_t framerate = 0;
         bool running;
@@ -53,6 +55,10 @@ namespace Chinstrap::Application
         static auto& GetMaterialManager()
         {
             return Get().materialManager;
+        }
+        static auto& GetResourceManager()
+        {
+            return Get().resourceManager;
         }
 
         template<typename TScene>

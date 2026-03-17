@@ -7,6 +7,8 @@
 #include "VulkanData.h"
 #include "GLFW/glfw3.h"
 
+#include "../resourcer/ResourceManager.h"
+
 #include <array>
 
 namespace Chinstrap::Renderer
@@ -19,15 +21,33 @@ namespace Chinstrap::Renderer
     VkVertexInputBindingDescription GetVertexBindingDescription();
     std::array<VkVertexInputAttributeDescription, 2> GetVertexAttributeDescriptions();
 
+    struct Shader
+    {
+        enum class ShaderType
+        {
+            VERTEX, FRAGMENT
+        };
+
+        VkShaderModule shaderModule = VK_NULL_HANDLE;
+        ShaderType shaderType;
+
+        bool Create(const ChinVulkan::VulkanContext &vulkanContext, const char* codeBegin, const char* codeEnd);
+
+        explicit Shader(const ShaderType shaderType)
+            : shaderType(shaderType) {}
+    };
+
     struct Material
     {
         VkPipeline pipeline = VK_NULL_HANDLE;
         VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
 
+        Resourcer::ResourceRef vertexShaderRef;
+        Resourcer::ResourceRef fragmentShaderRef;
+
         const ChinVulkan::VulkanContext &vulkanContext;
         Material(const ChinVulkan::VulkanContext &vulkanContext,
-            const std::vector<char>& vertexShaderCode,
-            const std::vector<char>& fragmentShaderCode);
+            const Resourcer::ResourceRef& vertexShaderRef_arg, const Resourcer::ResourceRef& fragmentShaderRef_arg);
 
         void Cleanup();
     };

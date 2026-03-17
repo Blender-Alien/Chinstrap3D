@@ -7,10 +7,7 @@
 int main()
 {
     Chinstrap::Application::App app(2); // Create a single app object on the stack
-    char stuff[10];
 
-    stuff[10] = 'A';
-    
     // Initialize the stack object once
     if (app.Init() != 0)
     {

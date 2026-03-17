@@ -45,7 +45,7 @@ FilePathMap::InsertRet FilePathMap::Insert(FilePath& filepath_arg, const std::st
     return InsertRet::NO_KEY_CAPACITY;
 }
 
-[[nodiscard]] std::optional<std::string_view> FilePathMap::Lookup(const FilePath& key_arg)
+[[nodiscard]] std::optional<std::string_view> FilePathMap::Lookup(const FilePath& key_arg) const
 {
     if (setupStatus != SetupStatus::SETUP_DONE)
     {
@@ -62,7 +62,7 @@ FilePathMap::InsertRet FilePathMap::Insert(FilePath& filepath_arg, const std::st
             if (keyArray.at(middle).has_value()
                 && keyArray.at(middle).value().hashID == key_arg.hashID)
             {
-                return std::string_view(keyArray.at(middle).value().charArray.data());
+                return std::string_view(keyArray.at(middle).value().charArray.dataConst());
             }
             else if (keyArray.at(middle).has_value()
                 && keyArray.at(middle).value().hashID < key_arg.hashID)

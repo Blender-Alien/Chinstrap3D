@@ -5,6 +5,8 @@
 
 namespace Chinstrap::Memory
 {
+    struct FilePathMap;
+
     // We handle filepath relative to the project working directory like this
     // '/resources/sounds/beepboop.wav' called a 'VirtualPath'
     // This can be requested as an OS specific path 'OSPath',
@@ -13,13 +15,18 @@ namespace Chinstrap::Memory
     {
         typedef std::size_t hashIDType; // std::hash returns a value of type std::size_t
 
-        std::optional<hashIDType> hashID;
+        [[nodiscard]] std::optional<hashIDType> GetHashID() const
+        {
+            return hashID;
+        }
 
         // Convert to current OS specific path
-        [[nodiscard]] const std::string_view ConvertToOSPath() const;
-    };
+        static void ConvertToOSPath(const std::string_view& virtualFilePath, const char* OSPath);
 
-    struct FilePathMap;
+    private:
+        friend FilePathMap;
+        std::optional<hashIDType> hashID;
+    };
 }
 
 // Store multiple Key's with hashID and Memory::StackArray<char> each in a
@@ -39,12 +46,13 @@ struct Chinstrap::Memory::FilePathMap
         SUCCESS, COLLISION_OR_DUPLICATE,
         NO_KEY_CAPACITY, NO_VALUE_CAPACITY, BAD_REQUEST
     };
+
     // Insert a new FilePath into Map given a string as it's actual value
     [[nodiscard]] InsertRet Insert(FilePath& filepath_arg, const std::string_view& inputString_arg);
 
     // Get CURRENT address of associated string, immediately use after acquiring and then discard
     // NEVER save this pointer for later use, it can be invalidated!!!
-    [[nodiscard]] std::optional<std::string_view> Lookup(const FilePath& key_arg);
+    [[nodiscard]] std::optional<std::string_view> Lookup(const FilePath& key_arg) const;
 
 #ifndef CHIN_SHIPPING_BUILD
     bool GrowTo(uint32_t numberOfElements_arg, std::optional<uint32_t> stringLengthHint_arg);
@@ -64,6 +72,7 @@ struct Chinstrap::Memory::FilePathMap
 
 private:
     enum class SetupStatus { NOT_BEGUN, IN_SETUP, SETUP_DONE };
+
     SetupStatus setupStatus = SetupStatus::NOT_BEGUN;
 
     // Hold one hashID and associated string data
@@ -85,7 +94,8 @@ private:
 
     void MergeSortKeyArray();
     static void MergeSort(std::vector<std::optional<Key>>& array, std::size_t p, std::size_t r);
-    static void Merge(std::vector<std::optional<Key>>& array, std::size_t leftIndex, std::size_t middleIndex, std::size_t rightIndex);
+    static void Merge(std::vector<std::optional<Key>>& array, std::size_t leftIndex, std::size_t middleIndex,
+                      std::size_t rightIndex);
 
     // Store our char arrays in this stack
     Memory::StackAllocator valueStack;

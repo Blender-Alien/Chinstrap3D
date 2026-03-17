@@ -1,11 +1,12 @@
 #pragma once
 
+#include "../memory/FilePathMap.h"
 #include "../memory/MemoryPool.h"
 #include "../memory/StackAllocator.h"
 #include "../memory/StackArray.h"
-#include "../memory/FilePathMap.h"
 
 namespace Chinstrap::Renderer { struct Material; }
+namespace Chinstrap::Renderer { struct Shader; }
 
 // Here, we want to handle loading and unloading all resourced needed by the game.
 // We want to track how many references are being held to any object, via counting
@@ -26,31 +27,72 @@ namespace Chinstrap::Renderer { struct Material; }
 // In the shipping build, we want to serialize in binary using already hashed ID's to save on parsing and hashing time
 namespace Chinstrap::Resourcer
 {
+    struct ResourceManager;
+
     // Identify resources by given name and associated hashID
     typedef std::size_t resourceIDType;
+
+    struct ResourceRef
+    {
+        resourceIDType resourceID;
+
+        ResourceRef& operator=(const ResourceRef& other)
+        {
+            if (this != &other)
+            {
+                this->resourceID = other.resourceID;
+                this->referenceCount = other.referenceCount;
+                // Very important, we created a new Ref!
+                ++(*this->referenceCount);
+                return *this;
+            }
+            return *this;
+        }
+
+        explicit ResourceRef();
+        ~ResourceRef()
+        {
+            --(*referenceCount);
+        }
+    private:
+        friend ResourceManager;
+        uint32_t* referenceCount = nullptr;
+    };
 
     // Data only needed at runtime, will be thrown away when the program ends
     struct ResourceMetaData
     {
         void* pResource = nullptr; // Pointer to actual resource in memory
-        uint32_t referenceCount = 0;
         // How many (for example scenes) are referencing this resource in order make good decisions on when to unload it
-        bool loaded = false; // Is this resource loaded?
-    };
+        uint32_t referenceCount = 0;
+        // ID generated at runtime independent of FilePath::HashID
+        resourceIDType resourceID;
 
-    struct ResourceManager;
+        explicit ResourceMetaData(resourceIDType resourceID)
+            : resourceID(resourceID) {}
+    };
 }
 
 struct Chinstrap::Resourcer::ResourceManager
 {
 #ifndef CHIN_SHIPPING_BUILD
-    resourceIDType CreateResource(const std::string_view& name);
+    resourceIDType CreateResource(const Memory::FilePath& filePath);
     void DeleteResource(resourceIDType resourceID);
 #endif
 
-    void Serialize();
+    enum class GetResourceRefRet { SUCCESS, FILE_PATH_INVALID, UNKNOWN_RESOURCE };
+    // This will load the resource if it's not already
+    [[nodiscard]] GetResourceRefRet GetResourceRef(const Memory::FilePath& filePath, ResourceRef& resourceRef);
 
-    bool Create();
+    enum class GetResourceCurrentPtrRet { SUCCESS, RESOURCE_UNLOADED, UNKNOWN_RESOURCE };
+    [[nodiscard]] GetResourceCurrentPtrRet GetResourceCurrentPtr(resourceIDType resourceID, void*& pointer) const;
+
+    void Serialize();
+#ifdef CHINSHIPPING_BUILD
+    void SerializeBinary();
+#endif
+
+    bool Setup();
     void Cleanup();
 
     explicit ResourceManager();
@@ -60,12 +102,9 @@ struct Chinstrap::Resourcer::ResourceManager
 
 private:
     void Deserialize();
-
-    template <typename resourceType>
-    uint64_t GetNumberOfSerializedResources()
-    {
-        return 0; // To be implemented
-    }
+#ifdef CHINSHIPPING_BUILD
+    void DeserializeBinary();
+#endif
 
 #ifndef CHIN_SHIPPING_BUILD
     template <typename resourceType>
@@ -81,9 +120,9 @@ private: /* Manage virtual file paths */
     Memory::FilePathMap filePathMap;
 
     // TODO: This should also be a custom HashMap
-    // LUT for resourceID's to find actual MetaData
     std::unordered_map<Memory::FilePath::hashIDType, ResourceMetaData> resourceMetaData;
 
 private: /* Actually store resource data at runtime */
     Memory::MemoryPool<Renderer::Material> materialPool;
+    Memory::MemoryPool<Renderer::Shader> shaderPool;
 };

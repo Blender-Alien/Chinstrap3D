@@ -1,13 +1,29 @@
 #include "RendererData.h"
+
+#include "../Application.h"
 #include "../ops/Logging.h"
 
+bool Chinstrap::Renderer::Shader::Create(const ChinVulkan::VulkanContext &vulkanContext, const char* codeBegin, const char* codeEnd)
+{
+    VkShaderModuleCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    createInfo.codeSize = codeEnd - codeBegin;
+    createInfo.pCode = reinterpret_cast<const uint32_t*>(codeBegin);
+
+    if (vkCreateShaderModule(vulkanContext.virtualGPU, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+    {
+        CHIN_LOG_ERROR("Failed to create shader module!");
+        return false;
+    }
+    return true;
+}
+
 Chinstrap::Renderer::Material::Material(const ChinVulkan::VulkanContext &vulkanContext,
-                   const std::vector<char> &vertexShaderCode,
-                   const std::vector<char> &fragmentShaderCode)
+    const Resourcer::ResourceRef& vertexShaderRef_arg, const Resourcer::ResourceRef& fragmentShaderRef_arg)
     : vulkanContext(vulkanContext)
 {
-    /* Test configuration */
-    ExampleCreateMaterial(vulkanContext, *this, vertexShaderCode, fragmentShaderCode);
+    vertexShaderRef = vertexShaderRef_arg;
+    fragmentShaderRef = fragmentShaderRef_arg;
 }
 
 void Chinstrap::Renderer::Material::Cleanup()
@@ -17,7 +33,6 @@ void Chinstrap::Renderer::Material::Cleanup()
     CHIN_LOG_INFO_VULKAN("Destroyed Material and resources");
 }
 
-// TODO: Handle shaders properly
 inline VkShaderModule CreateShaderModule(const Chinstrap::ChinVulkan::VulkanContext &vulkanContext, const std::vector<char>& code)
 {
     VkShaderModuleCreateInfo createInfo{};
