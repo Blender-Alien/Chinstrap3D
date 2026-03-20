@@ -10,14 +10,30 @@
 void Game::TestGLScene::OnBegin()
 {
     using namespace Chinstrap;
-    Application::App::GetMaterialManager().MakeMaterial();
-    material = Application::App::GetMaterialManager().GetMaterial();
+    ChinVulkan::VulkanContext& vulkanContext = Application::App::GetVulkanContext();
+
+    {
+        // We're explicitly creating the resources every program run here, because we don't have serialization support yet
+
+        // Previous absolute path: "../../../chinstrap/res/shaders/BasicVertex.spv";
+        // Previous absolute path: "../../../chinstrap/res/shaders/BasicFragment.spv";
+
+        Memory::FilePath vertexShaderPath;
+        pResourceManager->CreateResource("res/shaders/BasicVertex.spv", vertexShaderPath);
+        pResourceManager->GetResourceRef(vertexShaderPath, vertexShaderRef);
+
+        Memory::FilePath fragmentShaderPath;
+        pResourceManager->CreateResource("res/shaders/BasicFragment.spv", fragmentShaderPath);
+        pResourceManager->GetResourceRef(fragmentShaderPath, fragmentShaderRef);
+
+        // We don't have material support in ResourceManager yet, so we'll use a raw material here for now
+        material = new Renderer::Material(vulkanContext, vertexShaderRef, fragmentShaderRef);
+    }
 
     /* This is going to be abstracted once resource loading (of vertices etc.)
      * is implemented, otherwise I'm just going of assumptions which lead to more work in the end.
      * The index buffer should also be implemented part of the Vertex Buffer to improve memory locality
     */
-    ChinVulkan::VulkanContext &vulkanContext = Application::App::GetVulkanContext();
     {
         VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
@@ -25,7 +41,7 @@ void Game::TestGLScene::OnBegin()
         VkBuffer stagingBuffer;
         VmaAllocation stagingAllocation;
 
-        VkBufferCreateInfo stagingBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+        VkBufferCreateInfo stagingBufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
         stagingBufferInfo.size = bufferSize;
         stagingBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
@@ -33,13 +49,15 @@ void Game::TestGLScene::OnBegin()
         VmaAllocationCreateInfo stagingBufferAllocationInfo = {};
         stagingBufferAllocationInfo.usage = VMA_MEMORY_USAGE_AUTO;
         stagingBufferAllocationInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-        stagingBufferAllocationInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+        stagingBufferAllocationInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
+            VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-        vmaCreateBuffer(vulkanContext.allocator, &stagingBufferInfo, &stagingBufferAllocationInfo, &stagingBuffer, &stagingAllocation, nullptr);
+        vmaCreateBuffer(vulkanContext.allocator, &stagingBufferInfo, &stagingBufferAllocationInfo, &stagingBuffer,
+                        &stagingAllocation, nullptr);
 
         void* data;
         vmaMapMemory(vulkanContext.allocator, stagingAllocation, &data);
-            memcpy(data, vertices.data(), bufferSize);
+        memcpy(data, vertices.data(), bufferSize);
         vmaUnmapMemory(vulkanContext.allocator, stagingAllocation);
 
         // VertexBuffer
@@ -53,9 +71,11 @@ void Game::TestGLScene::OnBegin()
         vertexBufferAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
         vertexBufferAllocationCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
-        vmaCreateBuffer(vulkanContext.allocator, &vertexBufferCreateInfo, &vertexBufferAllocationCreateInfo, &vertexBuffer, &vertexAllocation, nullptr);
+        vmaCreateBuffer(vulkanContext.allocator, &vertexBufferCreateInfo, &vertexBufferAllocationCreateInfo,
+                        &vertexBuffer, &vertexAllocation, nullptr);
 
-        { // Copy stagingBuffer vertexBuffer to via command Buffer
+        {
+            // Copy stagingBuffer vertexBuffer to via command Buffer
             VkCommandBufferAllocateInfo allocInfo{};
             allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
             allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -93,7 +113,8 @@ void Game::TestGLScene::OnBegin()
         vmaDestroyBuffer(vulkanContext.allocator, stagingBuffer, nullptr);
         vmaFreeMemory(vulkanContext.allocator, stagingAllocation);
     }
-    { // Create Index Buffer
+    {
+        // Create Index Buffer
 
         VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 
@@ -101,7 +122,7 @@ void Game::TestGLScene::OnBegin()
         VkBuffer stagingBuffer;
         VmaAllocation stagingAllocation;
 
-        VkBufferCreateInfo stagingBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+        VkBufferCreateInfo stagingBufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
         stagingBufferInfo.size = bufferSize;
         stagingBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
@@ -109,13 +130,15 @@ void Game::TestGLScene::OnBegin()
         VmaAllocationCreateInfo stagingBufferAllocationInfo = {};
         stagingBufferAllocationInfo.usage = VMA_MEMORY_USAGE_AUTO;
         stagingBufferAllocationInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-        stagingBufferAllocationInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+        stagingBufferAllocationInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
+            VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-        vmaCreateBuffer(vulkanContext.allocator, &stagingBufferInfo, &stagingBufferAllocationInfo, &stagingBuffer, &stagingAllocation, nullptr);
+        vmaCreateBuffer(vulkanContext.allocator, &stagingBufferInfo, &stagingBufferAllocationInfo, &stagingBuffer,
+                        &stagingAllocation, nullptr);
 
         void* data;
         vmaMapMemory(vulkanContext.allocator, stagingAllocation, &data);
-            memcpy(data, indices.data(), bufferSize);
+        memcpy(data, indices.data(), bufferSize);
         vmaUnmapMemory(vulkanContext.allocator, stagingAllocation);
 
         // Index Buffer
@@ -129,9 +152,11 @@ void Game::TestGLScene::OnBegin()
         indexBufferAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
         indexBufferAllocationCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
-        vmaCreateBuffer(vulkanContext.allocator, &indexBufferCreateInfo, &indexBufferAllocationCreateInfo, &indexBuffer, &indexAllocation, nullptr);
+        vmaCreateBuffer(vulkanContext.allocator, &indexBufferCreateInfo, &indexBufferAllocationCreateInfo, &indexBuffer,
+                        &indexAllocation, nullptr);
 
-        { // Copy stagingBuffer vertexBuffer to via command Buffer
+        {
+            // Copy stagingBuffer vertexBuffer to via command Buffer
             VkCommandBufferAllocateInfo allocInfo{};
             allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
             allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -176,6 +201,7 @@ void Game::TestGLScene::OnShutdown()
     using namespace Chinstrap;
     vmaDestroyBuffer(Application::App::GetVulkanContext().allocator, indexBuffer, indexAllocation);
     vmaDestroyBuffer(Application::App::GetVulkanContext().allocator, vertexBuffer, vertexAllocation);
+    delete material;
 }
 
 void Game::TestGLScene::OnUpdate(float deltaTime)
@@ -186,9 +212,16 @@ void Game::TestGLScene::OnRender(uint32_t currentFrame)
 {
     using namespace Chinstrap;
 
+    /* For later when we support materials in ResourceManager
+    {
+        const auto currentPtr = pResourceManager->GetResCurrentPtr<Renderer::Material>(materialRef.resourceID);
+        ChinVulkan::BeginRendering(standardCmdBufferArray[currentFrame], Application::App::GetVulkanContext(),
+                                   currentPtr->pipeline);
+    }
+    */
     ChinVulkan::BeginRendering(standardCmdBufferArray[currentFrame], Application::App::GetVulkanContext(), material->pipeline);
 
-    VkBuffer vertexBuffers[] = { vertexBuffer };
+    VkBuffer vertexBuffers[] = {vertexBuffer};
     VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(standardCmdBufferArray[currentFrame], 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(standardCmdBufferArray[currentFrame], indexBuffer, 0, VK_INDEX_TYPE_UINT16);
@@ -196,33 +229,35 @@ void Game::TestGLScene::OnRender(uint32_t currentFrame)
     //vkCmdDraw(standardCmdBufferArray[currentFrame], 3, 1, 0, 0);
     vkCmdDrawIndexed(standardCmdBufferArray[currentFrame], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
-    ChinVulkan::EndRendering(standardCmdBufferArray[currentFrame], Application::App::GetVulkanContext(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    ChinVulkan::EndRendering(standardCmdBufferArray[currentFrame], Application::App::GetVulkanContext(),
+                             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 }
 
-bool Game::TestGLScene::OnKeyPress(const Chinstrap::KeyPressedEvent &event)
+bool Game::TestGLScene::OnKeyPress(const Chinstrap::KeyPressedEvent& event)
 {
     switch (event.keyCode)
     {
-        case GLFW_KEY_HOME:
-            if (!event.repeat)
-            {
-                QueueChangeToScene<TestMenuScene>();
-                return true;
-            }
+    case GLFW_KEY_HOME:
+        if (!event.repeat)
+        {
+            QueueChangeToScene<TestMenuScene>();
+            return true;
+        }
 
-        case GLFW_KEY_1:
-            if (!event.repeat)
-            {
-                CHIN_LOG_INFO("We're in the TestGLScene!!");
-                return false;
-            }
-
-        default:
+    case GLFW_KEY_1:
+        if (!event.repeat)
+        {
+            CHIN_LOG_INFO("We're in the TestGLScene!!");
             return false;
+        }
+
+    default:
+        return false;
     }
 }
 
-void Game::TestGLScene::OnEvent(Chinstrap::Event &event)
+void Game::TestGLScene::OnEvent(Chinstrap::Event& event)
 {
-    Chinstrap::EventDispatcher::Dispatch<Chinstrap::KeyPressedEvent>(event, [this](Chinstrap::KeyPressedEvent &dispatchedEvent) { return OnKeyPress(dispatchedEvent); });
+    Chinstrap::EventDispatcher::Dispatch<Chinstrap::KeyPressedEvent>(
+        event, [this](Chinstrap::KeyPressedEvent& dispatchedEvent) { return OnKeyPress(dispatchedEvent); });
 }

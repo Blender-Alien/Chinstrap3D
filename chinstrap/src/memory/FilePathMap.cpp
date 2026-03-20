@@ -4,6 +4,11 @@
 
 using namespace Chinstrap::Memory;
 
+void FilePath::ConvertToOSPath(const std::string_view& virtualFilePath, const char* OSPath)
+{
+    // TODO
+}
+
 FilePathMap::InsertRet FilePathMap::Insert(FilePath& filepath_arg, const std::string_view& inputString_arg)
 {
     if (setupStatus == SetupStatus::NOT_BEGUN)
@@ -52,6 +57,11 @@ FilePathMap::InsertRet FilePathMap::Insert(FilePath& filepath_arg, const std::st
         CHIN_LOG_WARN("A lookup in a FilePathMap was requested, before Setup was done!");
         return std::nullopt;
     }
+    if (!key_arg.GetHashID().has_value())
+    {
+        CHIN_LOG_WARN("A lookup in a FilePathMap was requested, filePath has no hashID!");
+        return std::nullopt;
+    }
     { // Binary Search
         uint32_t left = 0;
         uint32_t right = keyArray.size() - 1;
@@ -77,24 +87,21 @@ FilePathMap::InsertRet FilePathMap::Insert(FilePath& filepath_arg, const std::st
 }
 
 #ifndef CHIN_SHIPPING_BUILD
-bool FilePathMap::GrowTo(uint32_t numberOfElements_arg, std::optional<uint32_t> stringLengthHint_arg)
+bool FilePathMap::GrowBy(uint32_t byNumberOfElements_arg, std::optional<uint32_t> stringLengthHint_arg)
 {
-    if (keyArray.capacity() >= numberOfElements_arg)
-    {
-        CHIN_LOG_WARN("A FilePathMap was instructed to grow, but the requested size was not larger.");
-        return false;
-    }
-    keyArray.resize(numberOfElements_arg);
+    assert(byNumberOfElements_arg != 0);
+
+    keyArray.resize(byNumberOfElements_arg + keyArray.capacity());
 
     StackAllocator newValueStack;
     if (stringLengthHint_arg.has_value())
     {
-        newValueStack.Setup(numberOfElements_arg * sizeof(char[stringLengthHint_arg.value()]));
+        newValueStack.Setup((byNumberOfElements_arg + keyArray.capacity()) * sizeof(char[stringLengthHint_arg.value()]));
     }
     else
     {
         // Guess the average string size as 64 Characters to allocate ample space
-        newValueStack.Setup(numberOfElements_arg * sizeof(char[64]));
+        newValueStack.Setup((byNumberOfElements_arg + keyArray.capacity()) * sizeof(char[64]));
     }
 
     for (auto& keyIndex : keyArray)
@@ -117,6 +124,15 @@ bool FilePathMap::GrowTo(uint32_t numberOfElements_arg, std::optional<uint32_t> 
     return true;
 }
 #endif
+
+std::optional<std::string_view> FilePathMap::Iterate(uint32_t index) const
+{
+    if (keyArray.at(index).has_value())
+    {
+        return keyArray.at(index).value().charArray.dataConst();
+    }
+    return std::nullopt;
+}
 
 void FilePathMap::MergeSort(std::vector<std::optional<Key>>& array, std::size_t leftIndex, std::size_t rightIndex)
 {

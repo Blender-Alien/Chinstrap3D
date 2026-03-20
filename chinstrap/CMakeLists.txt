@@ -37,7 +37,6 @@ target_link_libraries(chinstrap spdlog::spdlog)
 target_link_libraries(chinstrap imgui)
 target_link_libraries(chinstrap glm)
 target_link_libraries(chinstrap VMA)
-target_link_libraries(chinstrap nlo-json)
 
 target_include_directories(chinstrap INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/.. PRIVATE ../vendor/fonts/)
 

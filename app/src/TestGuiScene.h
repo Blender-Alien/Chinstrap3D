@@ -6,6 +6,8 @@ namespace Game
 {
     struct TestGUIScene : public Chinstrap::Scene
     {
+        using Scene::Scene;
+
         void OnBegin() override;
         void OnShutdown() override;
         void OnUpdate(float deltaTime) override;

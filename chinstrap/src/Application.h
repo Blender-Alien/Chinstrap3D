@@ -68,7 +68,7 @@ namespace Chinstrap::Application
             {
                 if (scene == nullptr)
                 {
-                    scene = std::make_unique<TScene>();
+                    scene = std::make_unique<TScene>(&resourceManager);
                     return;
                 }
             }

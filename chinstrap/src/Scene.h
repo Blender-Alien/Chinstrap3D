@@ -7,11 +7,15 @@
 
 namespace Chinstrap::Application {struct App;}
 
+namespace Chinstrap::Resourcer {struct ResourceManager;}
+
 namespace Chinstrap {
     
     struct Scene
     {
-        std::function<std::unique_ptr<Scene>()> CreateQueued;
+        std::function<std::unique_ptr<Scene>(Resourcer::ResourceManager* pResourceManager)> CreateQueued;
+
+        Resourcer::ResourceManager* const pResourceManager;
 
         // Points to the first element in memory
         VkCommandBuffer* standardCmdBufferArray = nullptr;
@@ -20,6 +24,9 @@ namespace Chinstrap {
         float OnUpdateProfile = 0.0f;
         float OnRenderProfile = 0.0f;
         float OnEventProfile  = 0.0f;
+
+        explicit Scene(Resourcer::ResourceManager* pResourceManger_arg)
+            :  pResourceManager(pResourceManger_arg) {}
 
         virtual ~Scene() = default;
 
@@ -35,7 +42,10 @@ namespace Chinstrap {
         void QueueChangeToScene()
         {
             assert(CreateQueued == nullptr);
-            CreateQueued = [](){ return std::move(std::make_unique<TScene>()); };
+            CreateQueued = [](Resourcer::ResourceManager* pResourceManager)
+            {
+                return std::move(std::make_unique<TScene>(pResourceManager));
+            };
         }
 
         [[nodiscard]] virtual std::string GetName() const { assert(false); return ""; }

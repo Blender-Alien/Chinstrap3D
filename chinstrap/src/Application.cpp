@@ -125,7 +125,7 @@ void Application::App::Run(const Display::WindowSpec &windowSpec)
                     scene->get()->OnShutdown();
 
                     CHIN_LOG_INFO("Unreferencing Scene: [{}] ...", scene->get()->GetName());
-                    sceneStack.at(sceneIndex) = std::move(scene->get()->CreateQueued());
+                    sceneStack.at(sceneIndex) = std::move(scene->get()->CreateQueued(&resourceManager));
                     CHIN_LOG_INFO("... Slotted in Scene: [{}]", scene->get()->GetName());
 
                     Renderer::SetupSceneCmdBuffers(sceneIndex, window.renderContext);

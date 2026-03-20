@@ -169,17 +169,15 @@ void TestFilePathMap()
     }
     {
         FilePath path4;
-        path4.hashID = std::hash<std::string_view>()("Hello there!");
+        path4.Create("Hello there!");
         auto lookup4 = map.Lookup(path4);
         assert(!lookup4.has_value());
     }
 
-    assert(!map.GrowTo(2, 24));
-    assert(map.GrowTo(4, 24));
+    assert(map.GrowBy(1, 24));
 
     {
         FilePath path5;
-        path5.hashID = std::hash<std::string_view>()("Hello whats up?");
         auto ret = map.Insert(path5, "Hello whats up?");
         assert(ret == FilePathMap::InsertRet::SUCCESS);
         auto lookup5 = map.Lookup(path5);

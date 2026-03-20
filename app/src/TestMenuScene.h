@@ -8,6 +8,8 @@ namespace Game
     {
         Chinstrap::Renderer::Material* material = nullptr;
 
+        using Scene::Scene;
+
         void OnBegin() override;
         void OnUpdate(float deltaTime) override;
         void OnRender(uint32_t currentFrame) override;

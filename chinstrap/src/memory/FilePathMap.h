@@ -23,6 +23,11 @@ namespace Chinstrap::Memory
         // Convert to current OS specific path
         static void ConvertToOSPath(const std::string_view& virtualFilePath, const char* OSPath);
 
+        void Create(const std::string_view& virtualFilePath)
+        {
+            assert(!hashID.has_value());
+            hashID.emplace(std::hash<std::string_view>()(virtualFilePath));
+        }
     private:
         friend FilePathMap;
         std::optional<hashIDType> hashID;
@@ -55,8 +60,10 @@ struct Chinstrap::Memory::FilePathMap
     [[nodiscard]] std::optional<std::string_view> Lookup(const FilePath& key_arg) const;
 
 #ifndef CHIN_SHIPPING_BUILD
-    bool GrowTo(uint32_t numberOfElements_arg, std::optional<uint32_t> stringLengthHint_arg);
+    bool GrowBy(uint32_t byNumberOfElements_arg, std::optional<uint32_t> stringLengthHint_arg);
 #endif
+
+    [[nodiscard]] std::optional<std::string_view> Iterate(uint32_t index) const;
 
     void Setup(uint32_t numberOfElements_arg, std::optional<uint32_t> stringLengthHint_arg);
     // Call this after inserting multiple deserialized filepath's

@@ -1,25 +1,80 @@
 #include "ResourceManager.h"
 
+#include "../ops/Logging.h"
 #include "../rendering/RendererData.h"
-
 
 using namespace Chinstrap::Resourcer;
 
-ResourceManager::ResourceManager()
-    : aFilePaths(filepathAllocator)
+ResourceRef& ResourceRef::operator=(const ResourceRef& other)
 {
+    if (this != &other)
+    {
+        this->resourceID = other.resourceID;
+        if (referenceCount != nullptr)
+        { // Very important, we created a new valid Ref!
+            this->referenceCount = other.referenceCount;
+            this->unloadPtr = other.unloadPtr;
+            ++(*this->referenceCount);
+        }
+        return *this;
+    }
+    return *this;
+}
+
+ResourceRef::~ResourceRef()
+{
+    assert(*referenceCount > 0);
+
+    --(*referenceCount);
+    if (*referenceCount == 0)
+    {
+        unloadPtr->UnloadResource(resourceID);
+    }
 }
 
 #ifndef CHIN_SHIPPING_BUILD
-resourceIDType ResourceManager::CreateResource(const Memory::FilePath& filePath)
+void ResourceManager::CreateResource(const std::string_view& virtualFilePath, Memory::FilePath& filePath_out)
 {
+    auto result = filePathMap.Insert(filePath_out, virtualFilePath);
+    if (result == Memory::FilePathMap::InsertRet::NO_KEY_CAPACITY
+        || result == Memory::FilePathMap::InsertRet::NO_VALUE_CAPACITY)
+    {
+        // 20 is just some number I thought was okay, feel free to change it if you have a reason to
+        filePathMap.GrowBy(20, std::nullopt);
+        result = filePathMap.Insert(filePath_out, virtualFilePath);
+    }
+    if (result != Memory::FilePathMap::InsertRet::SUCCESS)
+    {
+        return;
+    }
+
+    resourceMetaData.emplace(filePath_out.GetHashID().value(), nextAvailableResourceID);
+    ++nextAvailableResourceID;
+}
+
+#ifndef CHIN_SHIPPING_BUILD
+bool ResourceManager::DeleteResource(const std::string_view& virtualFilePath)
+{
+    Memory::FilePath path;
+    path.Create(virtualFilePath);
+    return DeleteResource(path);
+}
+bool ResourceManager::DeleteResource(const Memory::FilePath& filePath)
+{
+    // Note that we're NOT actually onloading the resource itself.
+    // Trying to access it will still fail now because there is no MetaData object associated with it anymore.
+    // We don't really care about the wasted memory or invalid ResourceRef's, because we're not doing this
+    // in shipping and the only required effect we need to achieve is that we're not serializing
+    // this resource anymore, which should be the case when deleting it from resourceMetaData.
+    if (resourceMetaData.erase(filePath.GetHashID().value()) != 1)
+    {
+        auto path = filePathMap.Lookup(filePath).value();
+        CHIN_LOG_ERROR("Resource {} could not be deleted!", path);
+        return false;
+    }
+    return true;
 }
 #endif
-
-#ifndef CHIN_SHIPPING_BUILD
-void ResourceManager::DeleteResource(resourceIDType resourceID)
-{
-}
 
 ResourceManager::GetResourceRefRet ResourceManager::GetResourceRef(const Memory::FilePath& filePath, ResourceRef& resourceRef)
 {
@@ -54,46 +109,33 @@ ResourceManager::GetResourceRefRet ResourceManager::GetResourceRef(const Memory:
     resourceRef.resourceID = resource->resourceID;
     // Const cast here because std::unordered_map is annoying
     resourceRef.referenceCount = const_cast<uint32_t*>(&resource->referenceCount);
+    resourceRef.unloadPtr = this;
     ++(*resourceRef.referenceCount);
     return GetResourceRefRet::SUCCESS;
-}
-
-ResourceManager::GetResourceCurrentPtrRet ResourceManager::GetResourceCurrentPtr(const resourceIDType resourceID, void*& pointer) const
-{
-    const ResourceMetaData* resource;
-    try
-    {
-        resource = &resourceMetaData.at(resourceID);
-    } catch (std::out_of_range& e)
-    {
-        return GetResourceCurrentPtrRet::UNKNOWN_RESOURCE;
-    }
-    if (resource->pResource == nullptr)
-    {
-        return GetResourceCurrentPtrRet::RESOURCE_UNLOADED;
-    }
-    pointer = resource->pResource;
-    return GetResourceCurrentPtrRet::SUCCESS;
 }
 #endif
 
 void ResourceManager::Serialize()
 {
 }
-#ifdef CHINSHIPPING_BUILD
-void Chinstrap::Resourcer::ResourceManager::SerializeBinary()
+void ResourceManager::SerializeBinary()
 {
 }
-#endif
 
 void ResourceManager::Deserialize()
 {
 }
-#ifdef CHINSHIPPING_BUILD
-void Chinstrap::Resourcer::ResourceManager::DeserializeBinary()
+void ResourceManager::DeserializeBinary()
 {
 }
-#endif
+
+void ResourceManager::UnloadResource(resourceIDType resourceId)
+{
+}
+
+void ResourceManager::SaveAll()
+{
+}
 
 bool ResourceManager::Setup()
 {
@@ -126,7 +168,11 @@ void ResourceManager::Cleanup()
 {
     Serialize();
 
-    filepathAllocator.Cleanup();
     filePathMap.Cleanup();
     materialPool.Cleanup();
+}
+
+ResourceManager::ResourceManager()
+    : nextAvailableResourceID(0)
+{
 }
