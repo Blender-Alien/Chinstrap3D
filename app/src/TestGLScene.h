@@ -1,7 +1,6 @@
 #pragma once
 
 #include "chinstrap/src/Scene.h"
-#include "chinstrap/src/resourcer/ResourceManager.h"
 #include "chinstrap/src/rendering/RendererData.h"
 
 namespace Game
@@ -9,8 +8,6 @@ namespace Game
     struct TestGLScene : public Chinstrap::Scene
     {
         Chinstrap::Renderer::Material* material = nullptr;
-        Chinstrap::Resourcer::ResourceRef vertexShaderRef;
-        Chinstrap::Resourcer::ResourceRef fragmentShaderRef;
 
         // Temporary
         VkBuffer vertexBuffer;
@@ -28,7 +25,9 @@ namespace Game
             0, 1, 2, 2, 3, 0
         };
 
-        using Scene::Scene;
+        explicit TestGLScene(Chinstrap::Resourcer::ResourceManager* pResourceManger_arg)
+            : Scene(pResourceManger_arg)
+        {}
 
         void OnBegin() override;
         void OnShutdown() override;

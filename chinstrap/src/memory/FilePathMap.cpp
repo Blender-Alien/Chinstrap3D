@@ -199,11 +199,19 @@ void FilePathMap::Merge(std::vector<std::optional<Key>>& array, std::size_t left
 
 void FilePathMap::MergeSortKeyArray()
 {
+    if (keyArrayHasValueSize == 0 || keyArrayHasValueSize == 1)
+    {
+        return;
+    }
     MergeSort(keyArray, 0, keyArrayHasValueSize - 1);
 }
 
 void FilePathMap::InsertionSortKeyArray()
 {
+    if (keyArrayHasValueSize == 0 || keyArrayHasValueSize == 1)
+    {
+        return;
+    }
     const std::size_t range = keyArrayHasValueSize - 1;
 
     for (std::size_t index = 1; index <= range; ++index)

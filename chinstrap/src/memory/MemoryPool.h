@@ -37,7 +37,7 @@ namespace Chinstrap::Memory
         void Deallocate(type** dataPtr)
         {
             assert(*dataPtr != nullptr);
-            auto* freedData = reinterpret_cast<std::byte*>(*dataPtr);
+            auto freedData = reinterpret_cast<std::byte*>(*dataPtr);
 
             if (freePointer == nullptr)
             { // This is the first free chunk, so set the nextFreeIndex to its own index
@@ -55,6 +55,8 @@ namespace Chinstrap::Memory
         [[nodiscard]] bool Setup(uint32_t numberOfElements_arg)
         {
             assert(sizeof(uint32_t) <= sizeof(type)); // We need this in order to store the "next-free-index"
+
+            assert(numberOfElements_arg > 2);
 
             basePointer = static_cast<std::byte*>(malloc(sizeof(type) * numberOfElements_arg));
             if (basePointer == nullptr)

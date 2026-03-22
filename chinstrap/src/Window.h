@@ -9,6 +9,8 @@
 class GLFWwindow;
 class GLFWmonitor;
 
+namespace Chinstrap {struct Scene;}
+
 namespace Chinstrap::Display
 {
     struct WindowSpec

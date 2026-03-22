@@ -16,7 +16,6 @@ namespace Chinstrap::Application
         Display::Window window;
         UserSettings::GraphicsSettings graphicsSettings;
 
-        Resourcer::MaterialManager materialManager;
         Resourcer::ResourceManager resourceManager;
 
         uint32_t framerate = 0;
@@ -51,10 +50,6 @@ namespace Chinstrap::Application
         static const auto& GetFrameRate()
         {
             return Get().framerate;
-        }
-        static auto& GetMaterialManager()
-        {
-            return Get().materialManager;
         }
         static auto& GetResourceManager()
         {

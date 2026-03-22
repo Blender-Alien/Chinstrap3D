@@ -9,9 +9,6 @@
 #include "VulkanData.h"
 #include "RendererData.h"
 
-#include <fstream>
-
-
 namespace Chinstrap {struct Scene;}
 namespace Chinstrap::Display { struct Window;}
 namespace Chinstrap::UserSettings { struct GraphicsSettings;}
@@ -69,24 +66,4 @@ namespace Chinstrap::Renderer
 
     // When a new scene has been created, give out pointer(s) to the buffers, so that the scene can render
     void SetupSceneCmdBuffers(uint8_t sceneIndex, RenderContext &renderContext);
-}
-
-// Temporary
-static std::vector<char> readFile(const std::string& filePath)
-{
-    std::ifstream file(filePath, std::ios::binary | std::ios::ate);
-
-    if (!file.is_open())
-    {
-        CHIN_LOG_ERROR("Failed to open file {}!", filePath);
-    }
-
-    size_t fileSize = file.tellg();
-    std::vector<char> buffer(fileSize);
-
-    file.seekg(0);
-    file.read(buffer.data(), fileSize);
-
-    file.close();
-    return buffer;
 }

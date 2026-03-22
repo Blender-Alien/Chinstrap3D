@@ -5,30 +5,36 @@
 
 using namespace Chinstrap::Resourcer;
 
-ResourceRef& ResourceRef::operator=(const ResourceRef& other)
+void Chinstrap::Resourcer::UnloadResource(const resourceIDType resourceID, const ResourceType resourceType, ResourceManager* callbackContext)
 {
-    if (this != &other)
+    const auto it = callbackContext->resourceMetaData.find(resourceID);
+    const auto resource = &it->second;
+
+    if (resource->pResource == nullptr)
     {
-        this->resourceID = other.resourceID;
-        if (referenceCount != nullptr)
-        { // Very important, we created a new valid Ref!
-            this->referenceCount = other.referenceCount;
-            this->unloadPtr = other.unloadPtr;
-            ++(*this->referenceCount);
-        }
-        return *this;
+        // Resource wasn't loaded
+        return;
     }
-    return *this;
-}
-
-ResourceRef::~ResourceRef()
-{
-    assert(*referenceCount > 0);
-
-    --(*referenceCount);
-    if (*referenceCount == 0)
+    switch (resourceType)
     {
-        unloadPtr->UnloadResource(resourceID);
+    case ResourceType::SHADER:
+        {
+            auto ptr = reinterpret_cast<Renderer::Shader*>(resource->pResource);
+            ptr->~Shader();
+            callbackContext->shaderPool.Deallocate(&ptr);
+            break;
+        }
+    case ResourceType::MATERIAL:
+        {
+            auto ptr = reinterpret_cast<Renderer::Material*>(resource->pResource);
+            ptr->~Material();
+            callbackContext->materialPool.Deallocate(&ptr);
+            break;
+        }
+    default:
+        {
+            assert(false);
+        }
     }
 }
 
@@ -48,48 +54,56 @@ void ResourceManager::CreateResource(const std::string_view& virtualFilePath, Me
         return;
     }
 
-    resourceMetaData.emplace(filePath_out.GetHashID().value(), nextAvailableResourceID);
-    ++nextAvailableResourceID;
+    resourceMetaData.emplace(filePath_out.GetHashID().value(), filePath_out.GetHashID().value());
 }
+#endif
 
 #ifndef CHIN_SHIPPING_BUILD
-bool ResourceManager::DeleteResource(const std::string_view& virtualFilePath)
+bool ResourceManager::DeleteResource(const std::string_view& virtualFilePath, ResourceType resourceType)
 {
     Memory::FilePath path;
     path.Create(virtualFilePath);
-    return DeleteResource(path);
+    return DeleteResource(path, resourceType);
 }
-bool ResourceManager::DeleteResource(const Memory::FilePath& filePath)
+bool ResourceManager::DeleteResource(const Memory::FilePath& filePath, ResourceType resourceType)
 {
-    // Note that we're NOT actually onloading the resource itself.
-    // Trying to access it will still fail now because there is no MetaData object associated with it anymore.
-    // We don't really care about the wasted memory or invalid ResourceRef's, because we're not doing this
-    // in shipping and the only required effect we need to achieve is that we're not serializing
-    // this resource anymore, which should be the case when deleting it from resourceMetaData.
-    if (resourceMetaData.erase(filePath.GetHashID().value()) != 1)
+    ResourceMetaData* resource;
+    const auto it = resourceMetaData.find(filePath.GetHashID().value());
+    if (it != resourceMetaData.end())
+    {
+        resource = &it->second;
+    }
+    else
     {
         auto path = filePathMap.Lookup(filePath).value();
         CHIN_LOG_ERROR("Resource {} could not be deleted!", path);
         return false;
     }
+
+    UnloadResource(resource->resourceID, resourceType, this);
+
+    resource->resourceDeleted = true;
     return true;
 }
 #endif
 
-ResourceManager::GetResourceRefRet ResourceManager::GetResourceRef(const Memory::FilePath& filePath, ResourceRef& resourceRef)
+bool ResourceManager::GetResourceRef(const Memory::FilePath& filePath,
+    ResourceRef& resourceRef, std::byte* (*ResourceLoader)(std::byte* dataPtr, std::string_view OSFilePath))
 {
     if (!filePath.GetHashID().has_value())
     {
-        return GetResourceRefRet::FILE_PATH_INVALID;
+        return false;
     }
 
-    const ResourceMetaData* resource = nullptr;
-    try
+    ResourceMetaData* resource;
+    const auto it = resourceMetaData.find(filePath.GetHashID().value());
+    if (it != resourceMetaData.end())
     {
-        resource = &resourceMetaData.at(filePath.GetHashID().value());
-    } catch (std::out_of_range& e)
+        resource = &it->second;
+    }
+    else
     {
-        return GetResourceRefRet::UNKNOWN_RESOURCE;
+        return false;
     }
 
     if (resource->pResource == nullptr)
@@ -97,23 +111,45 @@ ResourceManager::GetResourceRefRet ResourceManager::GetResourceRef(const Memory:
         auto virtualFilePath = filePathMap.Lookup(filePath);
         if (!virtualFilePath.has_value())
         {
-            return GetResourceRefRet::FILE_PATH_INVALID;
+            return false;
         }
+
         char OSPath[virtualFilePath.value().size()];
+        strcpy(OSPath, virtualFilePath.value().data());
         Memory::FilePath::ConvertToOSPath(virtualFilePath.value(), OSPath);
 
-        // TODO: LOAD SHIT
-        return GetResourceRefRet::SUCCESS;
+        std::byte* memory = nullptr;
+        switch (resourceRef.resourceType)
+        {
+        case ResourceType::SHADER:
+            {
+                memory = reinterpret_cast<std::byte*>(shaderPool.Allocate());
+                break;
+            }
+        case ResourceType::MATERIAL:
+            {
+                memory = reinterpret_cast<std::byte*>(materialPool.Allocate());
+                break;
+            }
+        default:
+            {
+                assert(false);
+            }
+        }
+        resource->pResource = ResourceLoader(memory, OSPath);
+        if (resource->pResource == nullptr)
+        {
+            return false;
+        }
     }
-
     resourceRef.resourceID = resource->resourceID;
-    // Const cast here because std::unordered_map is annoying
-    resourceRef.referenceCount = const_cast<uint32_t*>(&resource->referenceCount);
-    resourceRef.unloadPtr = this;
+    resourceRef.referenceCount = &resource->referenceCount;
+    resourceRef.ptrResourceDeleted = &resource->resourceDeleted;
+    resourceRef.callbackContext = this;
+    resourceRef.unloadCallback = UnloadResource;
     ++(*resourceRef.referenceCount);
-    return GetResourceRefRet::SUCCESS;
+    return true;
 }
-#endif
 
 void ResourceManager::Serialize()
 {
@@ -129,10 +165,6 @@ void ResourceManager::DeserializeBinary()
 {
 }
 
-void ResourceManager::UnloadResource(resourceIDType resourceId)
-{
-}
-
 void ResourceManager::SaveAll()
 {
 }
@@ -141,7 +173,7 @@ bool ResourceManager::Setup()
 {
     { // Load virtual file paths
 
-        // TODO: Set size depending on number of deserialized filepaths
+        // TODO: Set size depending on number of deserialized file paths
         //       and maybe double that initially for a non shipping build
         filePathMap.Setup(10, std::nullopt);
         // Fill in deserialized filepaths
@@ -149,13 +181,25 @@ bool ResourceManager::Setup()
     }
 
     { // Load Materials
-        uint64_t numberOfSerializedResources = 0; // TODO
+        uint64_t numberOfSerializedResources = 2; // TODO
 #ifdef CHIN_SHIPPING_BUILD
         numberOfSerializedResources;
 #else // Start with headroom so we don't have to resize all the time
         numberOfSerializedResources *= 2;
 #endif
         if (!materialPool.Setup(numberOfSerializedResources))
+        {
+            return false;
+        }
+    }
+    { // Load Shaders
+        uint64_t numberOfSerializedResources = 2; // TODO
+#ifdef CHIN_SHIPPING_BUILD
+        numberOfSerializedResources;
+#else // Start with headroom so we don't have to resize all the time
+        numberOfSerializedResources *= 2;
+#endif
+        if (!shaderPool.Setup(numberOfSerializedResources))
         {
             return false;
         }
@@ -170,9 +214,5 @@ void ResourceManager::Cleanup()
 
     filePathMap.Cleanup();
     materialPool.Cleanup();
-}
-
-ResourceManager::ResourceManager()
-    : nextAvailableResourceID(0)
-{
+    shaderPool.Cleanup();
 }

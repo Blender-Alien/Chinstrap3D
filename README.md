@@ -15,7 +15,6 @@ realistic audio simulation with good pre-calculation tooling.
 - VMA 3.3.0 ( https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator )
 - GLM 1.0.3 ( https://github.com/g-truc/glm )
 - spdlog 1.17.0 ( https://github.com/gabime/spdlog )
-- nlohmann/json 3.12.0 ( https://github.com/nlohmann/json )
   
 ## How to build
 

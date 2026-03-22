@@ -61,6 +61,8 @@ int Application::App::Init()
         return -1;
     }
 
+    resourceManager.Setup();
+
     return 0;
 }
 
@@ -163,6 +165,6 @@ void Application::App::Cleanup()
     {
         scene->OnShutdown();
     }
-    materialManager.Destroy();
     window.Destroy();
+    resourceManager.Cleanup();
 }

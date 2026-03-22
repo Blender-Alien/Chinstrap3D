@@ -3,12 +3,16 @@
 #include "../Application.h"
 #include "../ops/Logging.h"
 
+#include <fstream>
+
 bool Chinstrap::Renderer::Shader::Create(const ChinVulkan::VulkanContext &vulkanContext, const char* codeBegin, const char* codeEnd)
 {
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = codeEnd - codeBegin;
     createInfo.pCode = reinterpret_cast<const uint32_t*>(codeBegin);
+
+    CHIN_LOG_INFO_VULKAN_F("Creating shader module with code size {}", codeEnd- codeBegin);
 
     if (vkCreateShaderModule(vulkanContext.virtualGPU, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
     {
@@ -18,12 +22,61 @@ bool Chinstrap::Renderer::Shader::Create(const ChinVulkan::VulkanContext &vulkan
     return true;
 }
 
+Chinstrap::Renderer::Shader::~Shader()
+{
+    vkDestroyShaderModule(Application::App::GetVulkanContext().virtualGPU, shaderModule, nullptr);
+}
+
+std::byte* Chinstrap::Renderer::ShaderLoader(std::byte* dataPtr, std::string_view OSFilePath)
+{
+    std::ifstream file(OSFilePath.data(), std::ios::binary | std::ios::ate);
+
+    if (!file.is_open())
+    {
+        CHIN_LOG_ERROR("Shader loader failed to open file {}!", OSFilePath);
+        return nullptr;
+    }
+
+    size_t fileSize = file.tellg();
+    char buffer[fileSize];
+
+    file.seekg(0);
+    file.read(buffer, fileSize);
+
+    file.close();
+
+    auto typeBegin = OSFilePath.find_last_of('_');
+    auto typeEnd = OSFilePath.find_last_of('.');
+
+    auto typeSubStr = OSFilePath.substr(typeBegin + 1, typeEnd - 1 - typeBegin);
+
+    Shader* shader = nullptr;
+    if (typeSubStr == "frag")
+    {
+        shader = new(dataPtr) Shader(Shader::ShaderType::FRAGMENT);
+    }
+    else if (typeSubStr == "vert")
+    {
+        shader = new(dataPtr) Shader(Shader::ShaderType::VERTEX);
+    }
+    else
+    {
+        CHIN_LOG_ERROR("Failed to identify shader type by filename! {}", OSFilePath);
+    }
+
+    shader->Create(Application::App::GetVulkanContext(), &buffer[0], &buffer[fileSize]);
+
+    return reinterpret_cast<std::byte*>(shader);
+}
+
 Chinstrap::Renderer::Material::Material(const ChinVulkan::VulkanContext &vulkanContext,
-    const Resourcer::ResourceRef& vertexShaderRef_arg, const Resourcer::ResourceRef& fragmentShaderRef_arg)
-    : vulkanContext(vulkanContext)
+                                        const Resourcer::ResourceRef& vertexShaderRef_arg, const Resourcer::ResourceRef& fragmentShaderRef_arg)
+    : vertexShaderRef(Resourcer::ResourceType::SHADER), fragmentShaderRef(Resourcer::ResourceType::SHADER), vulkanContext(vulkanContext)
 {
     vertexShaderRef = vertexShaderRef_arg;
     fragmentShaderRef = fragmentShaderRef_arg;
+
+    ExampleCreateMaterial();
 }
 
 void Chinstrap::Renderer::Material::Cleanup()
@@ -33,39 +86,19 @@ void Chinstrap::Renderer::Material::Cleanup()
     CHIN_LOG_INFO_VULKAN("Destroyed Material and resources");
 }
 
-inline VkShaderModule CreateShaderModule(const Chinstrap::ChinVulkan::VulkanContext &vulkanContext, const std::vector<char>& code)
+void Chinstrap::Renderer::Material::ExampleCreateMaterial()
 {
-    VkShaderModuleCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    createInfo.codeSize = code.size();
-    createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-
-    VkShaderModule shaderModule;
-    if (vkCreateShaderModule(vulkanContext.virtualGPU, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
-    {
-        CHIN_LOG_ERROR("Failed to create shader module!");
-    }
-    return shaderModule;
-}
-
-void Chinstrap::Renderer::ExampleCreateMaterial(const ChinVulkan::VulkanContext &vulkanContext, Material &material, const std::vector<char>& vertexCode, const std::vector<char>& fragmentCode)
-{
-    CHIN_LOG_INFO_VULKAN_F("VertexShader size: {0}; FragmentShader size: {1}", vertexCode.size(),
-                           fragmentCode.size());
-
-    VkShaderModule vertShaderModule = CreateShaderModule(vulkanContext, vertexCode);
-    VkShaderModule fragShaderModule = CreateShaderModule(vulkanContext, fragmentCode);
 
     VkPipelineShaderStageCreateInfo vertShaderStageCreateInfo = {};
     vertShaderStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertShaderStageCreateInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertShaderStageCreateInfo.module = vertShaderModule;
+    vertShaderStageCreateInfo.module = Application::App::GetResourceManager().GetResCurrentPtr<Shader>(vertexShaderRef.resourceID)->shaderModule;
     vertShaderStageCreateInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo fragShaderStageCreateInfo = {};
     fragShaderStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     fragShaderStageCreateInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragShaderStageCreateInfo.module = fragShaderModule;
+    fragShaderStageCreateInfo.module = Application::App::GetResourceManager().GetResCurrentPtr<Shader>(fragmentShaderRef.resourceID)->shaderModule;
     fragShaderStageCreateInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageCreateInfo, fragShaderStageCreateInfo};
@@ -153,7 +186,7 @@ void Chinstrap::Renderer::ExampleCreateMaterial(const ChinVulkan::VulkanContext 
     VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
     pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
-    if (vkCreatePipelineLayout(vulkanContext.virtualGPU, &pipelineLayoutCreateInfo, nullptr, &material.pipelineLayout)
+    if (vkCreatePipelineLayout(vulkanContext.virtualGPU, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout)
         != VK_SUCCESS)
     {
         CHIN_LOG_CRITICAL_VULKAN("Failed to create pipeline layout!");
@@ -164,7 +197,7 @@ void Chinstrap::Renderer::ExampleCreateMaterial(const ChinVulkan::VulkanContext 
     pipelineRenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
     pipelineRenderingCreateInfo.pNext = VK_NULL_HANDLE;
     pipelineRenderingCreateInfo.colorAttachmentCount = 1;
-    pipelineRenderingCreateInfo.pColorAttachmentFormats = &material.vulkanContext.swapChainImageFormat;
+    pipelineRenderingCreateInfo.pColorAttachmentFormats = &vulkanContext.swapChainImageFormat;
 
     VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
     graphicsPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -178,10 +211,10 @@ void Chinstrap::Renderer::ExampleCreateMaterial(const ChinVulkan::VulkanContext 
     graphicsPipelineCreateInfo.pMultisampleState = &multisampleStateCreateInfo;
     graphicsPipelineCreateInfo.pColorBlendState = &colorBlendStateCreateInfo;
     graphicsPipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
-    graphicsPipelineCreateInfo.layout = material.pipelineLayout;
+    graphicsPipelineCreateInfo.layout = pipelineLayout;
 
     if (vkCreateGraphicsPipelines(vulkanContext.virtualGPU, VK_NULL_HANDLE, 1, &graphicsPipelineCreateInfo, nullptr,
-                                  &material.pipeline)
+                                  &pipeline)
         != VK_SUCCESS)
     {
         CHIN_LOG_CRITICAL_VULKAN("Failed to create graphics pipeline!");
@@ -189,9 +222,6 @@ void Chinstrap::Renderer::ExampleCreateMaterial(const ChinVulkan::VulkanContext 
     }
 
     CHIN_LOG_INFO_VULKAN("Successfully created barebones material");
-
-    vkDestroyShaderModule(vulkanContext.virtualGPU, vertShaderModule, nullptr);
-    vkDestroyShaderModule(vulkanContext.virtualGPU, fragShaderModule, nullptr);
 }
 
 VkVertexInputBindingDescription Chinstrap::Renderer::GetVertexBindingDescription()

@@ -126,7 +126,7 @@ void TestFilePathMap()
     using namespace Chinstrap::Memory;
 
     FilePathMap map;
-    map.Setup(3, 24);
+    map.Setup(3, std::nullopt);
 
     FilePath path1;
     const char path1string[] = "/vendor/texture.png";

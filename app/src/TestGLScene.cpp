@@ -5,6 +5,8 @@
 #include "../../chinstrap/src/events/InputEvents.h"
 #include "chinstrap/src/ops/Logging.h"
 #include "chinstrap/src/rendering/VulkanFunctions.h"
+#include "chinstrap/src/resourcer/ResourceRef.h"
+
 #include <vk_mem_alloc.h>
 
 void Game::TestGLScene::OnBegin()
@@ -15,16 +17,17 @@ void Game::TestGLScene::OnBegin()
     {
         // We're explicitly creating the resources every program run here, because we don't have serialization support yet
 
-        // Previous absolute path: "../../../chinstrap/res/shaders/BasicVertex.spv";
-        // Previous absolute path: "../../../chinstrap/res/shaders/BasicFragment.spv";
-
+        Resourcer::ResourceRef vertexShaderRef(Resourcer::ResourceType::SHADER);
         Memory::FilePath vertexShaderPath;
-        pResourceManager->CreateResource("res/shaders/BasicVertex.spv", vertexShaderPath);
-        pResourceManager->GetResourceRef(vertexShaderPath, vertexShaderRef);
+        //pResourceManager->CreateResource("res/shaders/Basic_vert.spv", vertexShaderPath);
+        pResourceManager->CreateResource("../../../app/res/shaders/Basic_vert.spv", vertexShaderPath);
+        pResourceManager->GetResourceRef(vertexShaderPath, vertexShaderRef, Renderer::ShaderLoader);
 
+        Resourcer::ResourceRef fragmentShaderRef(Resourcer::ResourceType::SHADER);
         Memory::FilePath fragmentShaderPath;
-        pResourceManager->CreateResource("res/shaders/BasicFragment.spv", fragmentShaderPath);
-        pResourceManager->GetResourceRef(fragmentShaderPath, fragmentShaderRef);
+        //pResourceManager->CreateResource("res/shaders/Basic_frag.spv", fragmentShaderPath);
+        pResourceManager->CreateResource("../../../app/res/shaders/Basic_frag.spv", fragmentShaderPath);
+        pResourceManager->GetResourceRef(fragmentShaderPath, fragmentShaderRef, Renderer::ShaderLoader);
 
         // We don't have material support in ResourceManager yet, so we'll use a raw material here for now
         material = new Renderer::Material(vulkanContext, vertexShaderRef, fragmentShaderRef);
@@ -201,6 +204,7 @@ void Game::TestGLScene::OnShutdown()
     using namespace Chinstrap;
     vmaDestroyBuffer(Application::App::GetVulkanContext().allocator, indexBuffer, indexAllocation);
     vmaDestroyBuffer(Application::App::GetVulkanContext().allocator, vertexBuffer, vertexAllocation);
+    material->Cleanup();
     delete material;
 }
 
@@ -212,13 +216,6 @@ void Game::TestGLScene::OnRender(uint32_t currentFrame)
 {
     using namespace Chinstrap;
 
-    /* For later when we support materials in ResourceManager
-    {
-        const auto currentPtr = pResourceManager->GetResCurrentPtr<Renderer::Material>(materialRef.resourceID);
-        ChinVulkan::BeginRendering(standardCmdBufferArray[currentFrame], Application::App::GetVulkanContext(),
-                                   currentPtr->pipeline);
-    }
-    */
     ChinVulkan::BeginRendering(standardCmdBufferArray[currentFrame], Application::App::GetVulkanContext(), material->pipeline);
 
     VkBuffer vertexBuffers[] = {vertexBuffer};
