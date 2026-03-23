@@ -270,11 +270,11 @@ void FilePathMap::Setup(const uint32_t numberOfElements_arg, const std::optional
 #elif _WIN64
         char result[MAX_PATH];
         programPath = new std::string(result, GetModuleFileName(NULL, result, MAX_PATH));
-        constexpr char slash = '\';
+        constexpr char slash = '\\';
 #endif
         std::vector<std::size_t> slashPositions;
         { // Find all slashes
-            slashPositions.reserve(10); // Guess an initial number to avoid reallocations
+            slashPositions.reserve(8); // Guess an initial number to avoid reallocations
             std::size_t position = 0;
 
             while ((position = programPath->find(slash, position)) != std::string::npos)
