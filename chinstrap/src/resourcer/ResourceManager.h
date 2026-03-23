@@ -16,14 +16,19 @@ namespace Chinstrap::Renderer { struct Shader; }
 // This means we need to be able to serialize and unserialize a list (not necessarily stored as a list or array) of all resources,
 // and provide an API to facilitate changes to this list.
 //
-// We have resourceIDType which are given out at runtime that simply serve to facilitate the ResourceRef system.
-// To load, delete, create etc. a virtual file path is required.
-// These aren't stored directly everywhere, but we use FilePath objects which hold a
-// HashID of the virtual file path that has a stored string value in a HashMap filePathMap
-// when the resource was created or deserialized.
+// We define a resourceID by its virtual filepath.
+// These aren't stored directly everywhere, but we use FilePath objects which hold
+// the HashID's of the actual char[] in a Hash Map called filePathMap.
+// We can then map every FilePath (meaning every HashID) to a Resource object,
+// which holds all necessary runtime information.
 //
-// We serialize (or save) all ResourceMetaData objects held in our resourceMetaData HashMap (by looking up their ID's).
+// Resource objects hold pointers to the actual memory that holds the relevant data,
+// like objects of struct Shader. For every supported resource type,
+// there is a custom Memory pool data structure in place to hold these objects.
+//
+// We serialize (or save) all Resource objects held in our resourceData HashMap (by looking up their ID's).
 // That means the contents of this HashMap are exactly all resources related to the application in question.
+// In a non shipping build we can mark those as deleted through a bool variable, which will prevent them from being serialized.
 //
 // Tracking of these resources and their interferences when developing should be done through a developer-facing database,
 // which works with an editor that is interfacing with this struct and a VCS, NOT by the engine- or game-code.
@@ -34,15 +39,14 @@ namespace Chinstrap::Resourcer
 {
     struct ResourceManager;
 
-    // Data only needed at runtime, will be thrown away when the program ends
-    struct ResourceMetaData
+    struct Resource
     {
         std::byte* pResource = nullptr; // Pointer to actual resource in memory
         // How many (for example scenes) are referencing this resource in order make good decisions on when to unload it
         uint32_t referenceCount = 0;
 
-        resourceIDType resourceID;
-        static_assert(std::is_same_v<resourceIDType, Memory::FilePath::hashIDType>);
+        ResourceID resourceID;
+        static_assert(std::is_same_v<ResourceID, Memory::FilePath::HashID>);
 
 #ifndef CHIN_SHIPPING_BUILD
         // If we delete resources at runtime we still need this object around,
@@ -50,12 +54,15 @@ namespace Chinstrap::Resourcer
         bool resourceDeleted = false;
 #endif
 
-        explicit ResourceMetaData(resourceIDType resourceID)
+        explicit Resource(ResourceID resourceID)
             : resourceID(resourceID) {}
     };
 
     // This function is automatically called when all ResourceRef's to a resource are deconstructed
-    void UnloadResource(resourceIDType resourceID, ResourceType resourceType, ResourceManager* callbackContext);
+    void UnloadResource(ResourceID resourceID, ResourceType resourceType, ResourceManager* callbackContext);
+
+    // This function is automatically called by ResourceRef
+    std::byte* GetCurrentResourcePtr(ResourceID resourceID, ResourceManager* callbackContext);
 }
 
 struct Chinstrap::Resourcer::ResourceManager
@@ -63,34 +70,13 @@ struct Chinstrap::Resourcer::ResourceManager
 #ifndef CHIN_SHIPPING_BUILD
     void CreateResource(const std::string_view& virtualFilePath, Memory::FilePath& filePath_out);
     bool DeleteResource(const std::string_view& virtualFilePath, ResourceType resourceType);
-    bool DeleteResource(const Memory::FilePath& filePath, ResourceType resourceType);
+    bool DeleteResource(const Memory::FilePath& virtualFilePath, ResourceType resourceType);
 #endif
 
     // TODO: I'm not really happy with loading resources on the fly in a non organized fashion
     //       What we're doing right now, is not scalable to multiple threads (jobs)
     // This will load the resource if it's not already
-    bool GetResourceRef(const Memory::FilePath& filePath, ResourceRef& resourceRef,
-                                     std::byte* (*ResourceLoader)(std::byte* dataPtr, std::string_view OSFilePath));
-
-    template<typename resourceType>
-    [[nodiscard]] resourceType* GetResCurrentPtr(resourceIDType resourceID) const
-    {
-        const ResourceMetaData* resource;
-        const auto it = resourceMetaData.find(resourceID);
-        if (it != resourceMetaData.end())
-        {
-            resource = &it->second;
-        }
-        else
-        {
-            return nullptr;
-        }
-        if (resource->pResource == nullptr)
-        {
-            return nullptr;
-        }
-        return reinterpret_cast<resourceType*>(resource->pResource);
-    }
+    bool GetResourceRef(const Memory::FilePath& filePath, ResourceRef& resourceRef);
 
     void SaveAll();
 
@@ -117,7 +103,7 @@ public: /* Manage virtual file paths */
     // TODO: This should also be a custom HashMap
     // We want to serialize all resources contained at Save time by looking up their string values
     // by their hashID. We then write these virtual file paths in human readable or binary.
-    std::unordered_map<Memory::FilePath::hashIDType, ResourceMetaData> resourceMetaData;
+    std::unordered_map<Memory::FilePath::HashID, Resource> resourceData;
 
 public: /* Actually store resource data at runtime */
     Memory::MemoryPool<Renderer::Material> materialPool;

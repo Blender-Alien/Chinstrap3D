@@ -1,11 +1,17 @@
 #pragma once
 
+namespace Chinstrap::Renderer
+{
+    struct Shader;
+    struct Material;
+}
+
 namespace Chinstrap::Resourcer
 {
     struct ResourceManager;
 
     // Identify resources by given name and associated hashID
-    typedef std::size_t resourceIDType;
+    typedef std::size_t ResourceID;
 
     enum class ResourceType
     {
@@ -21,9 +27,11 @@ namespace Chinstrap::Resourcer
     // A valid resource has
     struct ResourceRef
     {
-        resourceIDType resourceID = NULL;
-
-        ResourceType resourceType;
+        [[nodiscard]] std::byte* GetData() const
+        {
+            assert(callbackContext != nullptr);
+            return getResourcePtr(resourceID, callbackContext);
+        }
 
         ResourceRef& operator=(const ResourceRef& other)
         {
@@ -31,11 +39,12 @@ namespace Chinstrap::Resourcer
             if (this != &other)
             {
                 this->resourceID = other.resourceID;
-                if (other.referenceCount != nullptr)
+                if (other.callbackContext != nullptr)
                 { // Very important, we created a new valid Ref!
-                    this->referenceCount = other.referenceCount;
-                    this->unloadCallback = other.unloadCallback;
                     this->callbackContext = other.callbackContext;
+                    this->unloadCallback = other.unloadCallback;
+                    this->getResourcePtr = other.getResourcePtr;
+                    this->referenceCount = other.referenceCount;
 #ifndef CHIN_SHIPPING_BUILD
                     this->ptrResourceDeleted = other.ptrResourceDeleted;
 #endif
@@ -45,6 +54,7 @@ namespace Chinstrap::Resourcer
             }
             return *this;
         }
+
         explicit ResourceRef(ResourceType resourceType_arg)
             : resourceType(resourceType_arg) {}
         ~ResourceRef()
@@ -66,11 +76,16 @@ namespace Chinstrap::Resourcer
 
     private:
         friend ResourceManager;
+
+        ResourceID resourceID = NULL;
+        ResourceType resourceType;
+
         uint32_t* referenceCount = nullptr;
 #ifndef CHIN_SHIPPING_BUILD
         bool* ptrResourceDeleted = nullptr;
 #endif
-        void (*unloadCallback)(resourceIDType resourceId, ResourceType resourceType, ResourceManager* callbackContext) = nullptr;
+        void (*unloadCallback)(ResourceID resourceId, ResourceType resourceType, ResourceManager* callbackContext) = nullptr;
+        std::byte* (*getResourcePtr)(ResourceID resourceID, ResourceManager* callbackContext) = nullptr;
         ResourceManager* callbackContext = nullptr;
     };
 }

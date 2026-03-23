@@ -8,20 +8,23 @@ namespace Chinstrap::Memory
     struct FilePathMap;
 
     // We handle filepath relative to the project working directory like this
-    // '/resources/sounds/beepboop.wav' called a 'VirtualPath'
-    // This can be requested as an OS specific path 'OSPath',
+    // '/app/resources/sounds/beepboop.wav' called a 'VirtualPath'
+    // This can be requested as an OS specific absolute path 'OSPath',
     // in order to load or stream the file in question
     struct FilePath
     {
-        typedef std::size_t hashIDType; // std::hash returns a value of type std::size_t
+        typedef std::size_t HashID; // std::hash returns a value of type std::size_t
 
-        [[nodiscard]] std::optional<hashIDType> GetHashID() const
+        [[nodiscard]] std::optional<HashID> GetHashID() const
         {
             return hashID;
         }
 
-        // Convert to current OS specific path
-        static void ConvertToOSPath(const std::string_view& virtualFilePath, const char* OSPath);
+        /**
+         * @return char* to char[] that needs to be deleted by caller,
+         * holds absolute OS-specific path.
+         */
+        static char* ConvertToOSPath(const std::string_view& virtualFilePath);
 
         void Create(const std::string_view& virtualFilePath)
         {
@@ -30,7 +33,7 @@ namespace Chinstrap::Memory
         }
     private:
         friend FilePathMap;
-        std::optional<hashIDType> hashID;
+        std::optional<HashID> hashID;
     };
 }
 
@@ -85,7 +88,7 @@ private:
     // Hold one hashID and associated string data
     struct Key
     {
-        FilePath::hashIDType hashID;
+        FilePath::HashID hashID;
         Memory::StackArray<char> charArray;
 
         bool operator<(const Key& key_arg) const
@@ -93,7 +96,7 @@ private:
             return hashID < key_arg.hashID;
         }
 
-        explicit Key(FilePath::hashIDType hashID_arg, Memory::StackAllocator& allocator_arg)
+        explicit Key(FilePath::HashID hashID_arg, Memory::StackAllocator& allocator_arg)
             : hashID(hashID_arg), charArray(allocator_arg) {}
     };
 
@@ -109,4 +112,8 @@ private:
 
     std::size_t keyArrayHasValueSize;
     std::vector<std::optional<Key>> keyArray;
+
+    friend FilePath;
+    inline static std::string* programPath;
+    inline static std::size_t rootIndex;
 };

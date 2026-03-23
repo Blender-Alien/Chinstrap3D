@@ -2,11 +2,42 @@
 
 #include "../ops/Logging.h"
 
+#include <climits>
+
+#if __linux__
+#include <unistd.h>
+#elif _WIN64
+#include <windows.h>
+#endif
+
 using namespace Chinstrap::Memory;
 
-void FilePath::ConvertToOSPath(const std::string_view& virtualFilePath, const char* OSPath)
+char* FilePath::ConvertToOSPath(const std::string_view& virtualFilePath)
 {
-    // TODO
+    assert(FilePathMap::programPath != nullptr);
+
+    char* OSPath = new char[FilePathMap::rootIndex + virtualFilePath.length() + 1]; // + 1 for '\0'
+
+    // On linux our full path looks something like this:
+    // "/home/username/projects/chinstrap3d/app/res/shaders/Basic.frag"
+    // A Windows example:
+    // "C:\Projects\chinstrap3d\app\res\shaders\Basic.frag"
+    //
+    // The common theme is our project root directory "chinstrap3D" which can also
+    // be a repository root for whatever game we're currently making like:
+    // "/home/username/projects/MyGameRepo/MyGame/res/shaders/Basic.frag"
+    //
+    // We require that the virtual filepath looks like this:
+    // "MyGame/res/shaders/Basic.frag", so we only have to go from executable location
+    // to the root project directory.
+    // We know that we're using Ninja Multi Config so our binary is going to be here:
+    // "MyGameRepo/bin/MyGame/Release/MyGame", so we just need to go back 4 directories.
+
+    strncpy(OSPath, FilePathMap::programPath->data(), FilePathMap::rootIndex);
+
+    strcpy(&OSPath[FilePathMap::rootIndex], virtualFilePath.data());
+
+    return OSPath;
 }
 
 FilePathMap::InsertRet FilePathMap::Insert(FilePath& filepath_arg, const std::string_view& inputString_arg)
@@ -17,7 +48,7 @@ FilePathMap::InsertRet FilePathMap::Insert(FilePath& filepath_arg, const std::st
         return InsertRet::BAD_REQUEST;
     }
 
-    const FilePath::hashIDType argHashID = std::hash<std::string_view>()(inputString_arg);
+    const FilePath::HashID argHashID = std::hash<std::string_view>()(inputString_arg);
 
     for (auto& keyIndex : keyArray)
     {
@@ -230,6 +261,31 @@ void FilePathMap::InsertionSortKeyArray()
 
 void FilePathMap::Setup(const uint32_t numberOfElements_arg, const std::optional<uint32_t> stringLengthHint_arg)
 {
+    { // OSPath has to be absolute, so that we can execute the game binary form anywhere and still load our resources
+#if __linux__
+        char result[PATH_MAX];
+        const auto count = readlink("/proc/self/exe", result, PATH_MAX);
+        programPath = new std::string(result, (count > 0) ? count : 0);
+        constexpr char slash = '/';
+#elif _WIN64
+        char result[MAX_PATH];
+        programPath = new std::string(result, GetModuleFileName(NULL, result, MAX_PATH));
+        constexpr char slash = '\';
+#endif
+        std::vector<std::size_t> slashPositions;
+        { // Find all slashes
+            slashPositions.reserve(10); // Guess an initial number to avoid reallocations
+            std::size_t position = 0;
+
+            while ((position = programPath->find(slash, position)) != std::string::npos)
+            {
+                slashPositions.push_back(position);
+                ++position;
+            }
+        }
+        rootIndex = slashPositions.at(slashPositions.size() - 4) + 1;
+    }
+
     if (setupStatus != SetupStatus::NOT_BEGUN)
     {
         CHIN_LOG_WARN("A FilePathMap was ordered to Setup(), but it already was or was in the process!");
@@ -256,6 +312,8 @@ void FilePathMap::Cleanup()
 {
     valueStack.Cleanup();
     keyArray.clear();
+
+    delete programPath;
 
     setupStatus = SetupStatus::NOT_BEGUN;
 }

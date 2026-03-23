@@ -51,10 +51,6 @@ namespace Chinstrap::Application
         {
             return Get().framerate;
         }
-        static auto& GetResourceManager()
-        {
-            return Get().resourceManager;
-        }
 
         template<typename TScene>
         void PushScene()

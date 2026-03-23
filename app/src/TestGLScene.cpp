@@ -13,21 +13,18 @@ void Game::TestGLScene::OnBegin()
 {
     using namespace Chinstrap;
     ChinVulkan::VulkanContext& vulkanContext = Application::App::GetVulkanContext();
-
     {
         // We're explicitly creating the resources every program run here, because we don't have serialization support yet
 
         Resourcer::ResourceRef vertexShaderRef(Resourcer::ResourceType::SHADER);
         Memory::FilePath vertexShaderPath;
-        //pResourceManager->CreateResource("res/shaders/Basic_vert.spv", vertexShaderPath);
-        pResourceManager->CreateResource("../../../app/res/shaders/Basic_vert.spv", vertexShaderPath);
-        pResourceManager->GetResourceRef(vertexShaderPath, vertexShaderRef, Renderer::ShaderLoader);
+        pResourceManager->CreateResource("app/res/shaders/Basic_vert.spv", vertexShaderPath);
+        pResourceManager->GetResourceRef(vertexShaderPath, vertexShaderRef);
 
         Resourcer::ResourceRef fragmentShaderRef(Resourcer::ResourceType::SHADER);
         Memory::FilePath fragmentShaderPath;
-        //pResourceManager->CreateResource("res/shaders/Basic_frag.spv", fragmentShaderPath);
-        pResourceManager->CreateResource("../../../app/res/shaders/Basic_frag.spv", fragmentShaderPath);
-        pResourceManager->GetResourceRef(fragmentShaderPath, fragmentShaderRef, Renderer::ShaderLoader);
+        pResourceManager->CreateResource("app/res/shaders/Basic_frag.spv", fragmentShaderPath);
+        pResourceManager->GetResourceRef(fragmentShaderPath, fragmentShaderRef);
 
         // We don't have material support in ResourceManager yet, so we'll use a raw material here for now
         material = new Renderer::Material(vulkanContext, vertexShaderRef, fragmentShaderRef);

@@ -3,8 +3,6 @@
 #include "../Application.h"
 #include "../ops/Logging.h"
 
-#include <fstream>
-
 bool Chinstrap::Renderer::Shader::Create(const ChinVulkan::VulkanContext &vulkanContext, const char* codeBegin, const char* codeEnd)
 {
     VkShaderModuleCreateInfo createInfo{};
@@ -12,7 +10,7 @@ bool Chinstrap::Renderer::Shader::Create(const ChinVulkan::VulkanContext &vulkan
     createInfo.codeSize = codeEnd - codeBegin;
     createInfo.pCode = reinterpret_cast<const uint32_t*>(codeBegin);
 
-    CHIN_LOG_INFO_VULKAN_F("Creating shader module with code size {}", codeEnd- codeBegin);
+    CHIN_LOG_INFO_VULKAN_F("Creating shader module with code size {}", codeEnd - codeBegin);
 
     if (vkCreateShaderModule(vulkanContext.virtualGPU, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
     {
@@ -27,14 +25,14 @@ Chinstrap::Renderer::Shader::~Shader()
     vkDestroyShaderModule(Application::App::GetVulkanContext().virtualGPU, shaderModule, nullptr);
 }
 
-std::byte* Chinstrap::Renderer::ShaderLoader(std::byte* dataPtr, std::string_view OSFilePath)
+bool Chinstrap::Renderer::ShaderLoader(Shader* dataPtr, std::string_view OSFilePath)
 {
     std::ifstream file(OSFilePath.data(), std::ios::binary | std::ios::ate);
 
     if (!file.is_open())
     {
         CHIN_LOG_ERROR("Shader loader failed to open file {}!", OSFilePath);
-        return nullptr;
+        return false;
     }
 
     size_t fileSize = file.tellg();
@@ -62,11 +60,11 @@ std::byte* Chinstrap::Renderer::ShaderLoader(std::byte* dataPtr, std::string_vie
     else
     {
         CHIN_LOG_ERROR("Failed to identify shader type by filename! {}", OSFilePath);
+        return false;
     }
 
     shader->Create(Application::App::GetVulkanContext(), &buffer[0], &buffer[fileSize]);
-
-    return reinterpret_cast<std::byte*>(shader);
+    return true;
 }
 
 Chinstrap::Renderer::Material::Material(const ChinVulkan::VulkanContext &vulkanContext,
@@ -86,19 +84,25 @@ void Chinstrap::Renderer::Material::Cleanup()
     CHIN_LOG_INFO_VULKAN("Destroyed Material and resources");
 }
 
+bool Chinstrap::Renderer::MaterialLoader(Material* dataPtr, std::string_view OSFilePath)
+{
+    // TODO
+    return false;
+}
+
 void Chinstrap::Renderer::Material::ExampleCreateMaterial()
 {
 
     VkPipelineShaderStageCreateInfo vertShaderStageCreateInfo = {};
     vertShaderStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertShaderStageCreateInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertShaderStageCreateInfo.module = Application::App::GetResourceManager().GetResCurrentPtr<Shader>(vertexShaderRef.resourceID)->shaderModule;
+    vertShaderStageCreateInfo.module = reinterpret_cast<Shader*>(vertexShaderRef.GetData())->shaderModule;
     vertShaderStageCreateInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo fragShaderStageCreateInfo = {};
     fragShaderStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     fragShaderStageCreateInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragShaderStageCreateInfo.module = Application::App::GetResourceManager().GetResCurrentPtr<Shader>(fragmentShaderRef.resourceID)->shaderModule;
+    fragShaderStageCreateInfo.module = reinterpret_cast<Shader*>(fragmentShaderRef.GetData())->shaderModule;
     fragShaderStageCreateInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageCreateInfo, fragShaderStageCreateInfo};

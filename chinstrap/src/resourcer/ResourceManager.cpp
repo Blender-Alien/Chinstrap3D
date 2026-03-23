@@ -5,9 +5,9 @@
 
 using namespace Chinstrap::Resourcer;
 
-void Chinstrap::Resourcer::UnloadResource(const resourceIDType resourceID, const ResourceType resourceType, ResourceManager* callbackContext)
+void Chinstrap::Resourcer::UnloadResource(const ResourceID resourceID, const ResourceType resourceType, ResourceManager* callbackContext)
 {
-    const auto it = callbackContext->resourceMetaData.find(resourceID);
+    const auto it = callbackContext->resourceData.find(resourceID);
     const auto resource = &it->second;
 
     if (resource->pResource == nullptr)
@@ -38,6 +38,25 @@ void Chinstrap::Resourcer::UnloadResource(const resourceIDType resourceID, const
     }
 }
 
+std::byte* Chinstrap::Resourcer::GetCurrentResourcePtr(const ResourceID resourceID, ResourceManager* callbackContext)
+{
+    const Resource* resource;
+    const auto it = callbackContext->resourceData.find(resourceID);
+    if (it != callbackContext->resourceData.end())
+    {
+        resource = &it->second;
+    }
+    else
+    {
+        return nullptr;
+    }
+    if (resource->pResource == nullptr)
+    {
+        return nullptr;
+    }
+    return resource->pResource;
+}
+
 #ifndef CHIN_SHIPPING_BUILD
 void ResourceManager::CreateResource(const std::string_view& virtualFilePath, Memory::FilePath& filePath_out)
 {
@@ -54,7 +73,7 @@ void ResourceManager::CreateResource(const std::string_view& virtualFilePath, Me
         return;
     }
 
-    resourceMetaData.emplace(filePath_out.GetHashID().value(), filePath_out.GetHashID().value());
+    resourceData.emplace(filePath_out.GetHashID().value(), filePath_out.GetHashID().value());
 }
 #endif
 
@@ -65,17 +84,17 @@ bool ResourceManager::DeleteResource(const std::string_view& virtualFilePath, Re
     path.Create(virtualFilePath);
     return DeleteResource(path, resourceType);
 }
-bool ResourceManager::DeleteResource(const Memory::FilePath& filePath, ResourceType resourceType)
+bool ResourceManager::DeleteResource(const Memory::FilePath& virtualFilePath, ResourceType resourceType)
 {
-    ResourceMetaData* resource;
-    const auto it = resourceMetaData.find(filePath.GetHashID().value());
-    if (it != resourceMetaData.end())
+    Resource* resource;
+    const auto it = resourceData.find(virtualFilePath.GetHashID().value());
+    if (it != resourceData.end())
     {
         resource = &it->second;
     }
     else
     {
-        auto path = filePathMap.Lookup(filePath).value();
+        auto path = filePathMap.Lookup(virtualFilePath).value();
         CHIN_LOG_ERROR("Resource {} could not be deleted!", path);
         return false;
     }
@@ -87,17 +106,16 @@ bool ResourceManager::DeleteResource(const Memory::FilePath& filePath, ResourceT
 }
 #endif
 
-bool ResourceManager::GetResourceRef(const Memory::FilePath& filePath,
-    ResourceRef& resourceRef, std::byte* (*ResourceLoader)(std::byte* dataPtr, std::string_view OSFilePath))
+bool ResourceManager::GetResourceRef(const Memory::FilePath& filePath, ResourceRef& resourceRef)
 {
     if (!filePath.GetHashID().has_value())
     {
         return false;
     }
 
-    ResourceMetaData* resource;
-    const auto it = resourceMetaData.find(filePath.GetHashID().value());
-    if (it != resourceMetaData.end())
+    Resource* resource;
+    const auto it = resourceData.find(filePath.GetHashID().value());
+    if (it != resourceData.end())
     {
         resource = &it->second;
     }
@@ -114,21 +132,22 @@ bool ResourceManager::GetResourceRef(const Memory::FilePath& filePath,
             return false;
         }
 
-        char OSPath[virtualFilePath.value().size()];
-        strcpy(OSPath, virtualFilePath.value().data());
-        Memory::FilePath::ConvertToOSPath(virtualFilePath.value(), OSPath);
+        const char* OSPath = Memory::FilePath::ConvertToOSPath(virtualFilePath.value());
 
-        std::byte* memory = nullptr;
         switch (resourceRef.resourceType)
         {
         case ResourceType::SHADER:
             {
-                memory = reinterpret_cast<std::byte*>(shaderPool.Allocate());
+                const auto memory = shaderPool.Allocate();
+                if (Renderer::ShaderLoader(memory, OSPath))
+                    resource->pResource = reinterpret_cast<std::byte*>(memory);
                 break;
             }
         case ResourceType::MATERIAL:
             {
-                memory = reinterpret_cast<std::byte*>(materialPool.Allocate());
+                const auto memory = materialPool.Allocate();
+                if (Renderer::MaterialLoader(memory, OSPath))
+                    resource->pResource = reinterpret_cast<std::byte*>(memory);
                 break;
             }
         default:
@@ -136,17 +155,14 @@ bool ResourceManager::GetResourceRef(const Memory::FilePath& filePath,
                 assert(false);
             }
         }
-        resource->pResource = ResourceLoader(memory, OSPath);
-        if (resource->pResource == nullptr)
-        {
-            return false;
-        }
+        delete[] OSPath;
     }
     resourceRef.resourceID = resource->resourceID;
     resourceRef.referenceCount = &resource->referenceCount;
     resourceRef.ptrResourceDeleted = &resource->resourceDeleted;
     resourceRef.callbackContext = this;
     resourceRef.unloadCallback = UnloadResource;
+    resourceRef.getResourcePtr = GetCurrentResourcePtr;
     ++(*resourceRef.referenceCount);
     return true;
 }

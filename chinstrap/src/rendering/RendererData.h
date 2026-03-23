@@ -38,7 +38,7 @@ namespace Chinstrap::Renderer
         ~Shader();
     };
 
-    std::byte* ShaderLoader(std::byte* dataPtr, std::string_view OSFilePath);
+    bool ShaderLoader(Shader* dataPtr, std::string_view OSFilePath);
 
     struct Material
     {
@@ -56,5 +56,7 @@ namespace Chinstrap::Renderer
 
         void Cleanup();
     };
+
+    bool MaterialLoader(Material* dataPtr, std::string_view OSFilePath);
 
 }
