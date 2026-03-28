@@ -80,7 +80,7 @@ struct Chinstrap::Resourcer::ResourceManager
 
     void SaveAll();
 
-    bool Setup();
+    bool Setup(Memory::FilePathMap* filePathMap_arg);
     void Cleanup();
 
     explicit ResourceManager() = default;
@@ -97,8 +97,7 @@ private:
 
 public: /* Manage virtual file paths */
 
-    // Hash map for every 'virtual file path' to avoid handling strings directly
-    Memory::FilePathMap filePathMap;
+    Memory::FilePathMap* pFilePathMap = nullptr;
 
     // TODO: This should also be a custom HashMap
     // We want to serialize all resources contained at Save time by looking up their string values

@@ -2,7 +2,6 @@
 
 #include "rendering/Renderer.h"
 #include "resourcer/ResourceManager.h"
-#include "resourcer/MaterialManager.h"
 #include "Window.h"
 #include "ops/Logging.h"
 
@@ -17,6 +16,7 @@ namespace Chinstrap::Application
         UserSettings::GraphicsSettings graphicsSettings;
 
         Resourcer::ResourceManager resourceManager;
+        Memory::FilePathMap filePathMap;
 
         uint32_t framerate = 0;
         bool running;

@@ -24,7 +24,7 @@ namespace Chinstrap::Memory
          * @return char* to char[] that needs to be deleted by caller,
          * holds absolute OS-specific path.
          */
-        static char* ConvertToOSPath(const std::string_view& virtualFilePath);
+        static std::unique_ptr<char> ConvertToOSPath(const std::string_view& virtualFilePath);
 
         void Create(const std::string_view& virtualFilePath)
         {
@@ -68,7 +68,7 @@ struct Chinstrap::Memory::FilePathMap
 
     [[nodiscard]] std::optional<std::string_view> Iterate(uint32_t index) const;
 
-    void Setup(uint32_t numberOfElements_arg, std::optional<uint32_t> stringLengthHint_arg);
+    void Setup();
     // Call this after inserting multiple deserialized filepath's
     void EndSetup()
     {

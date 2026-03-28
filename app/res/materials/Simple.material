@@ -1,0 +1,2 @@
+; app/res/shaders/Basic_vert.spv #vertexShaderPath
+; app/res/shaders/Basic_frag.spv #fragmentShaderPath

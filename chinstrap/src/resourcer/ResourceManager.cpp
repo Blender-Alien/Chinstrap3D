@@ -60,13 +60,13 @@ std::byte* Chinstrap::Resourcer::GetCurrentResourcePtr(const ResourceID resource
 #ifndef CHIN_SHIPPING_BUILD
 void ResourceManager::CreateResource(const std::string_view& virtualFilePath, Memory::FilePath& filePath_out)
 {
-    auto result = filePathMap.Insert(filePath_out, virtualFilePath);
+    auto result = pFilePathMap->Insert(filePath_out, virtualFilePath);
     if (result == Memory::FilePathMap::InsertRet::NO_KEY_CAPACITY
         || result == Memory::FilePathMap::InsertRet::NO_VALUE_CAPACITY)
     {
         // 20 is just some number I thought was okay, feel free to change it if you have a reason to
-        filePathMap.GrowBy(20, std::nullopt);
-        result = filePathMap.Insert(filePath_out, virtualFilePath);
+        pFilePathMap->GrowBy(20, std::nullopt);
+        result = pFilePathMap->Insert(filePath_out, virtualFilePath);
     }
     if (result != Memory::FilePathMap::InsertRet::SUCCESS)
     {
@@ -94,7 +94,7 @@ bool ResourceManager::DeleteResource(const Memory::FilePath& virtualFilePath, Re
     }
     else
     {
-        auto path = filePathMap.Lookup(virtualFilePath).value();
+        auto path = pFilePathMap->Lookup(virtualFilePath).value();
         CHIN_LOG_ERROR("Resource {} could not be deleted!", path);
         return false;
     }
@@ -126,27 +126,27 @@ bool ResourceManager::GetResourceRef(const Memory::FilePath& filePath, ResourceR
 
     if (resource->pResource == nullptr)
     { // Load resource
-        auto virtualFilePath = filePathMap.Lookup(filePath);
+        auto virtualFilePath = pFilePathMap->Lookup(filePath);
         if (!virtualFilePath.has_value())
         {
             return false;
         }
 
-        const char* OSPath = Memory::FilePath::ConvertToOSPath(virtualFilePath.value());
+        std::unique_ptr<char> OSPath = Memory::FilePath::ConvertToOSPath(virtualFilePath.value());
 
         switch (resourceRef.resourceType)
         {
         case ResourceType::SHADER:
             {
                 const auto memory = shaderPool.Allocate();
-                if (Renderer::ShaderLoader(memory, OSPath))
+                if (Renderer::ShaderLoader(memory, OSPath.get()))
                     resource->pResource = reinterpret_cast<std::byte*>(memory);
                 break;
             }
         case ResourceType::MATERIAL:
             {
                 const auto memory = materialPool.Allocate();
-                if (Renderer::MaterialLoader(memory, OSPath))
+                if (Renderer::MaterialLoader(memory, OSPath.get()))
                     resource->pResource = reinterpret_cast<std::byte*>(memory);
                 break;
             }
@@ -155,7 +155,6 @@ bool ResourceManager::GetResourceRef(const Memory::FilePath& filePath, ResourceR
                 assert(false);
             }
         }
-        delete[] OSPath;
     }
     resourceRef.resourceID = resource->resourceID;
     resourceRef.referenceCount = &resource->referenceCount;
@@ -185,15 +184,13 @@ void ResourceManager::SaveAll()
 {
 }
 
-bool ResourceManager::Setup()
+bool ResourceManager::Setup(Memory::FilePathMap* filePathMap_arg)
 {
+    pFilePathMap = filePathMap_arg;
     { // Load virtual file paths
 
-        // TODO: Set size depending on number of deserialized file paths
-        //       and maybe double that initially for a non shipping build
-        filePathMap.Setup(10, std::nullopt);
         // Fill in deserialized filepaths
-        filePathMap.EndSetup();
+        pFilePathMap->EndSetup();
     }
 
     { // Load Materials
@@ -228,7 +225,6 @@ void ResourceManager::Cleanup()
 {
     Serialize();
 
-    filePathMap.Cleanup();
     materialPool.Cleanup();
     shaderPool.Cleanup();
 }

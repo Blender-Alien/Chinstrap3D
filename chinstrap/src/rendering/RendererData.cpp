@@ -1,5 +1,7 @@
 #include "RendererData.h"
 
+#include "../serialization/SerializeReadable.h"
+
 #include "../Application.h"
 #include "../ops/Logging.h"
 
@@ -67,27 +69,54 @@ bool Chinstrap::Renderer::ShaderLoader(Shader* dataPtr, std::string_view OSFileP
     return true;
 }
 
-Chinstrap::Renderer::Material::Material(const ChinVulkan::VulkanContext &vulkanContext,
-                                        const Resourcer::ResourceRef& vertexShaderRef_arg, const Resourcer::ResourceRef& fragmentShaderRef_arg)
-    : vertexShaderRef(Resourcer::ResourceType::SHADER), fragmentShaderRef(Resourcer::ResourceType::SHADER), vulkanContext(vulkanContext)
+Chinstrap::Renderer::Material::Material(Memory::FilePath& vertexShaderPath_arg, Memory::FilePath& fragmentShaderPath_arg)
 {
-    vertexShaderRef = vertexShaderRef_arg;
-    fragmentShaderRef = fragmentShaderRef_arg;
-
-    ExampleCreateMaterial();
 }
 
 void Chinstrap::Renderer::Material::Cleanup()
 {
-    vkDestroyPipeline(vulkanContext.virtualGPU, pipeline, nullptr);
-    vkDestroyPipelineLayout(vulkanContext.virtualGPU, pipelineLayout, nullptr);
+    vkDestroyPipeline(pVulkanContext->virtualGPU, pipeline, nullptr);
+    vkDestroyPipelineLayout(pVulkanContext->virtualGPU, pipelineLayout, nullptr);
     CHIN_LOG_INFO_VULKAN("Destroyed Material and resources");
 }
 
 bool Chinstrap::Renderer::MaterialLoader(Material* dataPtr, std::string_view OSFilePath)
 {
-    // TODO
-    return false;
+    std::ifstream fileStream(OSFilePath.data());
+    if (!fileStream.is_open())
+    {
+        return false;
+    }
+
+    std::string fieldData[2];
+    uint32_t index = 0;
+
+    std::string line;
+    while (std::getline(fileStream, line))
+    {
+        if (Serialization::IsLineField(line))
+        {
+            fieldData[index] = std::move(line);
+        }
+        ++index;
+    }
+
+    Memory::FilePath vertexShaderPath;
+    {
+        auto positions = Serialization::GetFieldContent(fieldData[0]);
+        vertexShaderPath.Create(fieldData[0].substr(std::get<0>(positions), std::get<1>(positions)));
+    }
+    Memory::FilePath fragmentShaderPath;
+    {
+        auto positions = Serialization::GetFieldContent(fieldData[1]);
+        fragmentShaderPath.Create(fieldData[1].substr(std::get<0>(positions), std::get<1>(positions)));
+    }
+
+    auto* material = new(dataPtr) Material(vertexShaderPath, fragmentShaderPath);
+
+    material->Create();
+
+    return true;
 }
 
 void Chinstrap::Renderer::Material::ExampleCreateMaterial()
@@ -136,14 +165,14 @@ void Chinstrap::Renderer::Material::ExampleCreateMaterial()
     VkViewport viewport{};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
-    viewport.width = static_cast<float>(vulkanContext.swapChainExtent.width);
-    viewport.height = static_cast<float>(vulkanContext.swapChainExtent.height);
+    viewport.width = static_cast<float>(pVulkanContext.swapChainExtent.width);
+    viewport.height = static_cast<float>(pVulkanContext.swapChainExtent.height);
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
     VkRect2D scissor{};
     scissor.offset = {0, 0};
-    scissor.extent = vulkanContext.swapChainExtent;
+    scissor.extent = pVulkanContext.swapChainExtent;
 
     VkPipelineViewportStateCreateInfo viewportStateCreateInfo = {};
     viewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -190,7 +219,7 @@ void Chinstrap::Renderer::Material::ExampleCreateMaterial()
     VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
     pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
-    if (vkCreatePipelineLayout(vulkanContext.virtualGPU, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout)
+    if (vkCreatePipelineLayout(pVulkanContext.virtualGPU, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout)
         != VK_SUCCESS)
     {
         CHIN_LOG_CRITICAL_VULKAN("Failed to create pipeline layout!");
@@ -201,7 +230,7 @@ void Chinstrap::Renderer::Material::ExampleCreateMaterial()
     pipelineRenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
     pipelineRenderingCreateInfo.pNext = VK_NULL_HANDLE;
     pipelineRenderingCreateInfo.colorAttachmentCount = 1;
-    pipelineRenderingCreateInfo.pColorAttachmentFormats = &vulkanContext.swapChainImageFormat;
+    pipelineRenderingCreateInfo.pColorAttachmentFormats = &pVulkanContext.swapChainImageFormat;
 
     VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
     graphicsPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -217,7 +246,7 @@ void Chinstrap::Renderer::Material::ExampleCreateMaterial()
     graphicsPipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
     graphicsPipelineCreateInfo.layout = pipelineLayout;
 
-    if (vkCreateGraphicsPipelines(vulkanContext.virtualGPU, VK_NULL_HANDLE, 1, &graphicsPipelineCreateInfo, nullptr,
+    if (vkCreateGraphicsPipelines(pVulkanContext.virtualGPU, VK_NULL_HANDLE, 1, &graphicsPipelineCreateInfo, nullptr,
                                   &pipeline)
         != VK_SUCCESS)
     {
@@ -226,6 +255,10 @@ void Chinstrap::Renderer::Material::ExampleCreateMaterial()
     }
 
     CHIN_LOG_INFO_VULKAN("Successfully created barebones material");
+}
+
+bool Chinstrap::Renderer::Material::Create()
+{
 }
 
 VkVertexInputBindingDescription Chinstrap::Renderer::GetVertexBindingDescription()

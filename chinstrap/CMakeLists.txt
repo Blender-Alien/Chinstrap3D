@@ -13,6 +13,8 @@ file(GLOB sources
         "src/memory/*.h"
         "src/resourcer/*.cpp"
         "src/resourcer/*.h"
+        "src/serialization/*.cpp"
+        "src/serialization/*.h"
 
         "../vendor/fonts/Roboto/Roboto-Regular.h"
 )

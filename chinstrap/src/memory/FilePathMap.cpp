@@ -12,7 +12,7 @@
 
 using namespace Chinstrap::Memory;
 
-char* FilePath::ConvertToOSPath(const std::string_view& virtualFilePath)
+std::unique_ptr<char> FilePath::ConvertToOSPath(const std::string_view& virtualFilePath)
 {
     assert(FilePathMap::programPath != nullptr);
 
@@ -37,7 +37,9 @@ char* FilePath::ConvertToOSPath(const std::string_view& virtualFilePath)
 
     strcpy(&OSPath[FilePathMap::rootIndex], virtualFilePath.data());
 
-    return OSPath;
+    auto ptr = std::make_unique<char>(*OSPath);
+
+    return std::move(ptr);
 }
 
 FilePathMap::InsertRet FilePathMap::Insert(FilePath& filepath_arg, const std::string_view& inputString_arg)
@@ -259,7 +261,7 @@ void FilePathMap::InsertionSortKeyArray()
     }
 }
 
-void FilePathMap::Setup(const uint32_t numberOfElements_arg, const std::optional<uint32_t> stringLengthHint_arg)
+void FilePathMap::Setup()
 {
     { // OSPath has to be absolute, so that we can execute the game binary form anywhere and still load our resources
 #if __linux__
@@ -294,22 +296,20 @@ void FilePathMap::Setup(const uint32_t numberOfElements_arg, const std::optional
     }
     setupStatus = SetupStatus::IN_SETUP;
 
-    keyArray.resize(numberOfElements_arg);
+    // TODO: Deserialize these values, add some more when non shipping build
+    uint32_t numberOfElements;
+    uint32_t totalValuesSize;
+
+    keyArray.resize(numberOfElements);
     keyArrayHasValueSize = 0;
 
-    if (stringLengthHint_arg.has_value())
-    {
-        valueStack.Setup(numberOfElements_arg * sizeof(char[stringLengthHint_arg.value()]));
-    }
-    else
-    {
-        // Guess the average string size as 64 Characters to allocate ample space
-        valueStack.Setup(numberOfElements_arg * sizeof(char[64]));
-    }
+    valueStack.Setup(numberOfElements * sizeof(char[totalValuesSize]));
 }
 
 void FilePathMap::Cleanup()
 {
+    // TODO: Serialize numberOfElements and totalValueSize for next run
+
     valueStack.Cleanup();
     keyArray.clear();
 

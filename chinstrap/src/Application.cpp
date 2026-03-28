@@ -49,6 +49,8 @@ int Application::App::Init()
     assert(!pAppInstance); // Have we already initialized?
     pAppInstance = this;
 
+    filePathMap.Setup();
+
     running = false;
 
     for (auto &scene : sceneTransitionQueue)
@@ -167,4 +169,5 @@ void Application::App::Cleanup()
     }
     window.Destroy();
     resourceManager.Cleanup();
+    filePathMap.Cleanup();
 }
