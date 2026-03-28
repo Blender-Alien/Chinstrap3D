@@ -8,6 +8,7 @@
 #include "GLFW/glfw3.h"
 
 #include "../resourcer/ResourceRef.h"
+#include "../memory/FilePathMap.h"
 
 #include <array>
 
@@ -21,6 +22,8 @@ namespace Chinstrap::Renderer
     VkVertexInputBindingDescription GetVertexBindingDescription();
     std::array<VkVertexInputAttributeDescription, 2> GetVertexAttributeDescriptions();
 
+    // TODO: Let's actually not have shaders as resources, but only defined as file-paths within materials.
+    //       We can instead have a global array of shaderModules paired with filepath hashID.
     struct Shader
     {
         enum class ShaderType
@@ -45,14 +48,14 @@ namespace Chinstrap::Renderer
         VkPipeline pipeline = VK_NULL_HANDLE;
         VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
 
-        Resourcer::ResourceRef vertexShaderRef;
-        Resourcer::ResourceRef fragmentShaderRef;
+        Memory::FilePath vertexShaderPath;
+        Memory::FilePath fragmentShaderPath;
 
         void ExampleCreateMaterial();
+        bool Create();
 
-        const ChinVulkan::VulkanContext &vulkanContext;
-        Material(const ChinVulkan::VulkanContext &vulkanContext,
-            const Resourcer::ResourceRef& vertexShaderRef_arg, const Resourcer::ResourceRef& fragmentShaderRef_arg);
+        const ChinVulkan::VulkanContext* pVulkanContext = nullptr;
+        Material(Memory::FilePath& vertexShaderPath_arg, Memory::FilePath& fragmentShaderPath_arg);
 
         void Cleanup();
     };

@@ -14,5 +14,3 @@ void TestStackArray2D();
 void TestStackArray();
 
 void TestMemoryPool();
-
-void TestFilePathMap();
