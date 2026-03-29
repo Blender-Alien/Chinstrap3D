@@ -19,5 +19,5 @@ std::tuple<uint32_t, uint32_t> Chinstrap::Serialization::GetFieldContent(const s
     // "; stuff #fieldAnnotation"
 
     const auto annotationPos = field.find_last_of('#');
-    return std::make_tuple(3, annotationPos - 1);
+    return std::make_tuple(2, annotationPos - 3);
 }

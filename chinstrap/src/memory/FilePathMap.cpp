@@ -37,7 +37,7 @@ std::unique_ptr<char> FilePath::ConvertToOSPath(const std::string_view& virtualF
 
     strcpy(&OSPath[FilePathMap::rootIndex], virtualFilePath.data());
 
-    auto ptr = std::make_unique<char>(*OSPath);
+    std::unique_ptr<char> ptr(OSPath);
 
     return std::move(ptr);
 }
@@ -261,7 +261,36 @@ void FilePathMap::InsertionSortKeyArray()
     }
 }
 
-void FilePathMap::Setup()
+void FilePathMap::Setup(uint32_t numberOfElements, uint32_t totalValuesSize)
+{
+    if (setupStatus != SetupStatus::NOT_BEGUN)
+    {
+        CHIN_LOG_WARN("A FilePathMap was ordered to Setup(), but it already was or was in the process!");
+        assert(false); // We have already setup!
+        return;
+    }
+    setupStatus = SetupStatus::IN_SETUP;
+
+    keyArray.resize(numberOfElements);
+    keyArrayHasValueSize = 0;
+
+    valueStack.Setup(numberOfElements * sizeof(char[totalValuesSize]));
+}
+
+void FilePathMap::Cleanup()
+{
+    // TODO: Serialize numberOfElements and totalValueSize for next run
+
+    valueStack.Cleanup();
+    keyArray.clear();
+
+    delete programPath;
+
+    setupStatus = SetupStatus::NOT_BEGUN;
+}
+
+FilePathMap::FilePathMap()
+    : keyArrayHasValueSize(0), keyArray(0)
 {
     { // OSPath has to be absolute, so that we can execute the game binary form anywhere and still load our resources
 #if __linux__
@@ -287,38 +316,4 @@ void FilePathMap::Setup()
         }
         rootIndex = slashPositions.at(slashPositions.size() - 4) + 1;
     }
-
-    if (setupStatus != SetupStatus::NOT_BEGUN)
-    {
-        CHIN_LOG_WARN("A FilePathMap was ordered to Setup(), but it already was or was in the process!");
-        assert(false); // We have already setup!
-        return;
-    }
-    setupStatus = SetupStatus::IN_SETUP;
-
-    // TODO: Deserialize these values, add some more when non shipping build
-    uint32_t numberOfElements;
-    uint32_t totalValuesSize;
-
-    keyArray.resize(numberOfElements);
-    keyArrayHasValueSize = 0;
-
-    valueStack.Setup(numberOfElements * sizeof(char[totalValuesSize]));
-}
-
-void FilePathMap::Cleanup()
-{
-    // TODO: Serialize numberOfElements and totalValueSize for next run
-
-    valueStack.Cleanup();
-    keyArray.clear();
-
-    delete programPath;
-
-    setupStatus = SetupStatus::NOT_BEGUN;
-}
-
-FilePathMap::FilePathMap()
-    : keyArrayHasValueSize(0), keyArray(0)
-{
 }

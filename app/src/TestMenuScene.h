@@ -6,8 +6,6 @@ namespace Game
 {
     struct TestMenuScene : public Chinstrap::Scene
     {
-        Chinstrap::Renderer::Material* material = nullptr;
-
         using Scene::Scene;
 
         void OnBegin() override;

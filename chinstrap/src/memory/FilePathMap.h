@@ -26,7 +26,7 @@ namespace Chinstrap::Memory
          */
         static std::unique_ptr<char> ConvertToOSPath(const std::string_view& virtualFilePath);
 
-        void Create(const std::string_view& virtualFilePath)
+        void Hash(const std::string_view& virtualFilePath)
         {
             assert(!hashID.has_value());
             hashID.emplace(std::hash<std::string_view>()(virtualFilePath));
@@ -68,7 +68,7 @@ struct Chinstrap::Memory::FilePathMap
 
     [[nodiscard]] std::optional<std::string_view> Iterate(uint32_t index) const;
 
-    void Setup();
+    void Setup(uint32_t numberOfElements, uint32_t totalValuesSize);
     // Call this after inserting multiple deserialized filepath's
     void EndSetup()
     {

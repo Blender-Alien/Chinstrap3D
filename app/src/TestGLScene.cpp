@@ -14,20 +14,9 @@ void Game::TestGLScene::OnBegin()
     using namespace Chinstrap;
     ChinVulkan::VulkanContext& vulkanContext = Application::App::GetVulkanContext();
     {
-        // We're explicitly creating the resources every program run here, because we don't have serialization support yet
-
-        Resourcer::ResourceRef vertexShaderRef(Resourcer::ResourceType::SHADER);
-        Memory::FilePath vertexShaderPath;
-        pResourceManager->CreateResource("app/res/shaders/Basic_vert.spv", vertexShaderPath);
-        pResourceManager->GetResourceRef(vertexShaderPath, vertexShaderRef);
-
-        Resourcer::ResourceRef fragmentShaderRef(Resourcer::ResourceType::SHADER);
-        Memory::FilePath fragmentShaderPath;
-        pResourceManager->CreateResource("app/res/shaders/Basic_frag.spv", fragmentShaderPath);
-        pResourceManager->GetResourceRef(fragmentShaderPath, fragmentShaderRef);
-
-        // We don't have material support in ResourceManager yet, so we'll use a raw material here for now
-        material = new Renderer::Material(vulkanContext, vertexShaderRef, fragmentShaderRef);
+        Memory::FilePath materialPath;
+        materialPath.Hash("app/res/materials/Simple.material");
+        pResourceManager->GetResourceRef(materialPath, materialRef);
     }
 
     /* This is going to be abstracted once resource loading (of vertices etc.)
@@ -201,8 +190,6 @@ void Game::TestGLScene::OnShutdown()
     using namespace Chinstrap;
     vmaDestroyBuffer(Application::App::GetVulkanContext().allocator, indexBuffer, indexAllocation);
     vmaDestroyBuffer(Application::App::GetVulkanContext().allocator, vertexBuffer, vertexAllocation);
-    material->Cleanup();
-    delete material;
 }
 
 void Game::TestGLScene::OnUpdate(float deltaTime)
@@ -213,7 +200,15 @@ void Game::TestGLScene::OnRender(uint32_t currentFrame)
 {
     using namespace Chinstrap;
 
-    ChinVulkan::BeginRendering(standardCmdBufferArray[currentFrame], Application::App::GetVulkanContext(), material->pipeline);
+    {
+        const auto currentMaterial = materialRef.GetData();
+        if (currentMaterial == nullptr)
+        {
+            return;
+        }
+        ChinVulkan::BeginRendering(standardCmdBufferArray[currentFrame], Application::App::GetVulkanContext(),
+            reinterpret_cast<Renderer::Material*>(currentMaterial)->pipeline);
+    }
 
     VkBuffer vertexBuffers[] = {vertexBuffer};
     VkDeviceSize offsets[] = {0};
