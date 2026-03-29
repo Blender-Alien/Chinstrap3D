@@ -22,26 +22,8 @@ namespace Chinstrap::Renderer
     VkVertexInputBindingDescription GetVertexBindingDescription();
     std::array<VkVertexInputAttributeDescription, 2> GetVertexAttributeDescriptions();
 
-    // TODO: Let's actually not have shaders as resources, but only defined as file-paths within materials.
-    //       We can instead have a global array of shaderModules paired with filepath hashID.
-    struct Shader
-    {
-        enum class ShaderType
-        {
-            VERTEX, FRAGMENT
-        };
-
-        VkShaderModule shaderModule = VK_NULL_HANDLE;
-        ShaderType shaderType;
-
-        bool Create(const ChinVulkan::VulkanContext &vulkanContext, const char* codeBegin, const char* codeEnd);
-
-        explicit Shader(const ShaderType shaderType)
-            : shaderType(shaderType) {}
-        ~Shader();
-    };
-
-    bool ShaderLoader(Shader* dataPtr, std::string_view OSFilePath);
+    bool CreateShader(const ChinVulkan::VulkanContext &vulkanContext,VkShaderModule& shaderModule, const char* codeBegin, const char* codeEnd);
+    bool ShaderLoader(VkShaderModule& shaderModule, std::string_view OSFilePath);
 
     struct Material
     {
@@ -51,15 +33,18 @@ namespace Chinstrap::Renderer
         Memory::FilePath vertexShaderPath;
         Memory::FilePath fragmentShaderPath;
 
-        void ExampleCreateMaterial();
-        bool Create();
+        // Temporary
+        std::string vertexPath;
+        std::string fragmentPath;
+
+        void ExampleCreateMaterial(VkShaderModule vertexShader, VkShaderModule fragmentShader);
+
+        bool Create(ChinVulkan::VulkanContext* vulkanContext);
 
         const ChinVulkan::VulkanContext* pVulkanContext = nullptr;
-        Material(Memory::FilePath& vertexShaderPath_arg, Memory::FilePath& fragmentShaderPath_arg);
-
-        void Cleanup();
+        Material(const Memory::FilePath& vertexShaderPath_arg, const Memory::FilePath& fragmentShaderPath_arg);
+        ~Material();
     };
 
     bool MaterialLoader(Material* dataPtr, std::string_view OSFilePath);
-
 }

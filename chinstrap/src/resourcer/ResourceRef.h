@@ -2,7 +2,6 @@
 
 namespace Chinstrap::Renderer
 {
-    struct Shader;
     struct Material;
 }
 
@@ -15,7 +14,7 @@ namespace Chinstrap::Resourcer
 
     enum class ResourceType
     {
-        MATERIAL, SHADER
+        MATERIAL
     };
 
     // A ResourceRef can be created at any time by a user,
@@ -29,7 +28,10 @@ namespace Chinstrap::Resourcer
     {
         [[nodiscard]] std::byte* GetData() const
         {
-            assert(callbackContext != nullptr);
+            if (callbackContext == nullptr)
+            {
+                return nullptr;
+            }
             return getResourcePtr(resourceID, callbackContext);
         }
 

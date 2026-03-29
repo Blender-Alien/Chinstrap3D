@@ -17,13 +17,6 @@ void Chinstrap::Resourcer::UnloadResource(const ResourceID resourceID, const Res
     }
     switch (resourceType)
     {
-    case ResourceType::SHADER:
-        {
-            auto ptr = reinterpret_cast<Renderer::Shader*>(resource->pResource);
-            ptr->~Shader();
-            callbackContext->shaderPool.Deallocate(&ptr);
-            break;
-        }
     case ResourceType::MATERIAL:
         {
             auto ptr = reinterpret_cast<Renderer::Material*>(resource->pResource);
@@ -36,6 +29,7 @@ void Chinstrap::Resourcer::UnloadResource(const ResourceID resourceID, const Res
             assert(false);
         }
     }
+    resource->pResource = nullptr;
 }
 
 std::byte* Chinstrap::Resourcer::GetCurrentResourcePtr(const ResourceID resourceID, ResourceManager* callbackContext)
@@ -73,7 +67,15 @@ void ResourceManager::CreateResource(const std::string_view& virtualFilePath, Me
         return;
     }
 
-    resourceData.emplace(filePath_out.GetHashID().value(), filePath_out.GetHashID().value());
+    ResourceType resourceType;
+    if (virtualFilePath.find(".material"))
+    {
+        resourceType = ResourceType::MATERIAL;
+    }
+
+    resourceData.emplace(std::piecewise_construct,
+        std::forward_as_tuple(filePath_out.GetHashID().value()),
+        std::forward_as_tuple(filePath_out.GetHashID().value(), resourceType));
 }
 #endif
 
@@ -81,7 +83,7 @@ void ResourceManager::CreateResource(const std::string_view& virtualFilePath, Me
 bool ResourceManager::DeleteResource(const std::string_view& virtualFilePath, ResourceType resourceType)
 {
     Memory::FilePath path;
-    path.Create(virtualFilePath);
+    path.Hash(virtualFilePath);
     return DeleteResource(path, resourceType);
 }
 bool ResourceManager::DeleteResource(const Memory::FilePath& virtualFilePath, ResourceType resourceType)
@@ -106,6 +108,33 @@ bool ResourceManager::DeleteResource(const Memory::FilePath& virtualFilePath, Re
 }
 #endif
 
+bool ResourceManager::LoadResource(const Memory::FilePath& filePath, Resource* resource, ResourceRef& resourceRef)
+{
+    auto virtualFilePath = pFilePathMap->Lookup(filePath);
+    if (!virtualFilePath.has_value())
+    {
+        return false;
+    }
+
+    std::unique_ptr<char> OSPath = Memory::FilePath::ConvertToOSPath(virtualFilePath.value());
+
+    switch (resourceRef.resourceType)
+    {
+    case ResourceType::MATERIAL:
+        {
+            const auto memory = materialPool.Allocate();
+            if (Renderer::MaterialLoader(memory, OSPath.get()))
+                resource->pResource = reinterpret_cast<std::byte*>(memory);
+            break;
+        }
+    default:
+        {
+            assert(false);
+        }
+    }
+    return true;
+}
+
 bool ResourceManager::GetResourceRef(const Memory::FilePath& filePath, ResourceRef& resourceRef)
 {
     if (!filePath.GetHashID().has_value())
@@ -125,35 +154,10 @@ bool ResourceManager::GetResourceRef(const Memory::FilePath& filePath, ResourceR
     }
 
     if (resource->pResource == nullptr)
-    { // Load resource
-        auto virtualFilePath = pFilePathMap->Lookup(filePath);
-        if (!virtualFilePath.has_value())
+    {
+        if (!LoadResource(filePath, resource, resourceRef))
         {
             return false;
-        }
-
-        std::unique_ptr<char> OSPath = Memory::FilePath::ConvertToOSPath(virtualFilePath.value());
-
-        switch (resourceRef.resourceType)
-        {
-        case ResourceType::SHADER:
-            {
-                const auto memory = shaderPool.Allocate();
-                if (Renderer::ShaderLoader(memory, OSPath.get()))
-                    resource->pResource = reinterpret_cast<std::byte*>(memory);
-                break;
-            }
-        case ResourceType::MATERIAL:
-            {
-                const auto memory = materialPool.Allocate();
-                if (Renderer::MaterialLoader(memory, OSPath.get()))
-                    resource->pResource = reinterpret_cast<std::byte*>(memory);
-                break;
-            }
-        default:
-            {
-                assert(false);
-            }
         }
     }
     resourceRef.resourceID = resource->resourceID;
@@ -184,37 +188,69 @@ void ResourceManager::SaveAll()
 {
 }
 
-bool ResourceManager::Setup(Memory::FilePathMap* filePathMap_arg)
+bool ResourceManager::Setup(Memory::FilePathMap* filePathMap_arg, const std::string& appName)
 {
     pFilePathMap = filePathMap_arg;
-    { // Load virtual file paths
 
-        // Fill in deserialized filepaths
+    std::vector<Memory::FilePath> materialPaths;
+
+    { // Load virtual file paths
+        std::string resourceListPath = appName + "/resources.txt";
+        auto OSResourceListPath = Memory::FilePath::ConvertToOSPath(resourceListPath);
+
+        std::ifstream fileStream(OSResourceListPath.get());
+        if (!fileStream.is_open())
+        {
+            return false;
+        }
+
+        std::vector<std::string> paths;
+        std::string line;
+        while (std::getline(fileStream, line))
+        {
+            paths.push_back(std::move(line));
+        }
+
+        {
+            std::ifstream file(OSResourceListPath.get(), std::ios::binary | std::ios::ate);
+            std::size_t sizeInBytes = file.tellg();
+#ifdef CHIN_SHIPPING_BUILD
+            pFilePathMap->Setup(paths.size(), sizeInBytes);
+#else
+            pFilePathMap->Setup(paths.size() * 2, sizeInBytes * 2);
+#endif
+        }
+
+        for (auto& path : paths)
+        {
+            Memory::FilePath filePath;
+            auto ret = pFilePathMap->Insert(filePath, path);
+            assert(ret == Memory::FilePathMap::InsertRet::SUCCESS);
+
+            if (path.find(".material"))
+            {
+                materialPaths.push_back(filePath);
+            }
+            // etc ...
+        }
+
         pFilePathMap->EndSetup();
     }
 
     { // Load Materials
-        uint64_t numberOfSerializedResources = 2; // TODO
-#ifdef CHIN_SHIPPING_BUILD
-        numberOfSerializedResources;
-#else // Start with headroom so we don't have to resize all the time
+        uint64_t numberOfSerializedResources = std::max(materialPaths.size(), static_cast<std::size_t>(3));
+#ifndef CHIN_SHIPPING_BUILD // Start with headroom so we don't have to resize all the time
         numberOfSerializedResources *= 2;
 #endif
         if (!materialPool.Setup(numberOfSerializedResources))
         {
             return false;
         }
-    }
-    { // Load Shaders
-        uint64_t numberOfSerializedResources = 2; // TODO
-#ifdef CHIN_SHIPPING_BUILD
-        numberOfSerializedResources;
-#else // Start with headroom so we don't have to resize all the time
-        numberOfSerializedResources *= 2;
-#endif
-        if (!shaderPool.Setup(numberOfSerializedResources))
+        for (auto& materialPath : materialPaths)
         {
-            return false;
+            resourceData.emplace(std::piecewise_construct,
+                std::forward_as_tuple(materialPath.GetHashID().value()),
+                std::forward_as_tuple(materialPath.GetHashID().value(), ResourceType::MATERIAL));
         }
     }
 
@@ -225,6 +261,9 @@ void ResourceManager::Cleanup()
 {
     Serialize();
 
+    for (auto& resource : resourceData)
+    {
+        UnloadResource(resource.second.resourceID, resource.second.resourceType, this);
+    }
     materialPool.Cleanup();
-    shaderPool.Cleanup();
 }

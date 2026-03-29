@@ -5,7 +5,7 @@
 #include "../Application.h"
 #include "../ops/Logging.h"
 
-bool Chinstrap::Renderer::Shader::Create(const ChinVulkan::VulkanContext &vulkanContext, const char* codeBegin, const char* codeEnd)
+bool Chinstrap::Renderer::CreateShader(const ChinVulkan::VulkanContext &vulkanContext, VkShaderModule& shaderModule, const char* codeBegin, const char* codeEnd)
 {
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -22,12 +22,7 @@ bool Chinstrap::Renderer::Shader::Create(const ChinVulkan::VulkanContext &vulkan
     return true;
 }
 
-Chinstrap::Renderer::Shader::~Shader()
-{
-    vkDestroyShaderModule(Application::App::GetVulkanContext().virtualGPU, shaderModule, nullptr);
-}
-
-bool Chinstrap::Renderer::ShaderLoader(Shader* dataPtr, std::string_view OSFilePath)
+bool Chinstrap::Renderer::ShaderLoader(VkShaderModule& shaderModule, std::string_view OSFilePath)
 {
     std::ifstream file(OSFilePath.data(), std::ios::binary | std::ios::ate);
 
@@ -42,42 +37,21 @@ bool Chinstrap::Renderer::ShaderLoader(Shader* dataPtr, std::string_view OSFileP
 
     file.seekg(0);
     file.read(buffer, fileSize);
-
     file.close();
 
-    auto typeBegin = OSFilePath.find_last_of('_');
-    auto typeEnd = OSFilePath.find_last_of('.');
-
-    auto typeSubStr = OSFilePath.substr(typeBegin + 1, typeEnd - 1 - typeBegin);
-
-    Shader* shader = nullptr;
-    if (typeSubStr == "frag")
-    {
-        shader = new(dataPtr) Shader(Shader::ShaderType::FRAGMENT);
-    }
-    else if (typeSubStr == "vert")
-    {
-        shader = new(dataPtr) Shader(Shader::ShaderType::VERTEX);
-    }
-    else
-    {
-        CHIN_LOG_ERROR("Failed to identify shader type by filename! {}", OSFilePath);
-        return false;
-    }
-
-    shader->Create(Application::App::GetVulkanContext(), &buffer[0], &buffer[fileSize]);
-    return true;
+    return CreateShader(Application::App::GetVulkanContext(), shaderModule,&buffer[0], &buffer[fileSize]);
 }
 
-Chinstrap::Renderer::Material::Material(Memory::FilePath& vertexShaderPath_arg, Memory::FilePath& fragmentShaderPath_arg)
+Chinstrap::Renderer::Material::Material(const Memory::FilePath& vertexShaderPath_arg, const Memory::FilePath& fragmentShaderPath_arg)
+    : vertexShaderPath(vertexShaderPath_arg), fragmentShaderPath(fragmentShaderPath_arg)
 {
 }
 
-void Chinstrap::Renderer::Material::Cleanup()
+Chinstrap::Renderer::Material::~Material()
 {
     vkDestroyPipeline(pVulkanContext->virtualGPU, pipeline, nullptr);
     vkDestroyPipelineLayout(pVulkanContext->virtualGPU, pipelineLayout, nullptr);
-    CHIN_LOG_INFO_VULKAN("Destroyed Material and resources");
+    CHIN_LOG_INFO_VULKAN("Destroyed Material");
 }
 
 bool Chinstrap::Renderer::MaterialLoader(Material* dataPtr, std::string_view OSFilePath)
@@ -104,34 +78,104 @@ bool Chinstrap::Renderer::MaterialLoader(Material* dataPtr, std::string_view OSF
     Memory::FilePath vertexShaderPath;
     {
         auto positions = Serialization::GetFieldContent(fieldData[0]);
-        vertexShaderPath.Create(fieldData[0].substr(std::get<0>(positions), std::get<1>(positions)));
+        vertexShaderPath.Hash(fieldData[0].substr(std::get<0>(positions), std::get<1>(positions)));
     }
     Memory::FilePath fragmentShaderPath;
     {
         auto positions = Serialization::GetFieldContent(fieldData[1]);
-        fragmentShaderPath.Create(fieldData[1].substr(std::get<0>(positions), std::get<1>(positions)));
+        fragmentShaderPath.Hash(fieldData[1].substr(std::get<0>(positions), std::get<1>(positions)));
     }
 
     auto* material = new(dataPtr) Material(vertexShaderPath, fragmentShaderPath);
 
-    material->Create();
+
+    // Temporary
+    {
+        auto positions = Serialization::GetFieldContent(fieldData[0]);
+        material->vertexPath = fieldData[0].substr(std::get<0>(positions), std::get<1>(positions));
+    }
+    {
+        auto positions = Serialization::GetFieldContent(fieldData[1]);
+        material->fragmentPath = fieldData[1].substr(std::get<0>(positions), std::get<1>(positions));
+    }
+    material->Create(&Application::App::GetVulkanContext());
 
     return true;
 }
 
-void Chinstrap::Renderer::Material::ExampleCreateMaterial()
+bool Chinstrap::Renderer::Material::Create(ChinVulkan::VulkanContext* vulkanContext)
+{
+    pVulkanContext = vulkanContext;
+
+    VkShaderModule vertexShader;
+    VkShaderModule fragmentShader;
+    // TODO: These won't return anything because the hashID's were never interned into filePathMap
+    //       We need a general String hashmap, but let's just directly pass the strings for now
+    /*
+    auto vertexPath = Application::App::GetFilePathMap().Lookup(vertexShaderPath);
+    auto fragmentPath = Application::App::GetFilePathMap().Lookup(fragmentShaderPath);
+    if (!vertexPath.has_value() || !fragmentPath.has_value())
+    {
+        return false;
+    }
+    */
+
+    if (!ShaderLoader(vertexShader, Memory::FilePath::ConvertToOSPath(vertexPath).get()))
+    {
+        return false;
+    }
+    if (!ShaderLoader(fragmentShader, Memory::FilePath::ConvertToOSPath(fragmentPath).get()))
+    {
+        return false;
+    }
+
+    ExampleCreateMaterial(vertexShader, fragmentShader);
+
+    vkDestroyShaderModule(Application::App::GetVulkanContext().virtualGPU, vertexShader, nullptr);
+    vkDestroyShaderModule(Application::App::GetVulkanContext().virtualGPU, fragmentShader, nullptr);
+
+    return true;
+}
+
+VkVertexInputBindingDescription Chinstrap::Renderer::GetVertexBindingDescription()
+{
+    VkVertexInputBindingDescription bindingDescription = {};
+    bindingDescription.binding = 0;
+    bindingDescription.stride = sizeof(Vertex);
+    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+    return bindingDescription;
+}
+
+std::array<VkVertexInputAttributeDescription, 2> Chinstrap::Renderer::GetVertexAttributeDescriptions()
+{
+    std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = {};
+    attributeDescriptions[0].binding = 0;
+    attributeDescriptions[0].location = 0;
+    attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[0].offset = offsetof(Vertex, position);
+
+    attributeDescriptions[1].binding = 0;
+    attributeDescriptions[1].location = 1;
+    attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+    attributeDescriptions[1].offset = offsetof(Vertex, color);
+
+    return attributeDescriptions;
+}
+
+void Chinstrap::Renderer::Material::ExampleCreateMaterial(VkShaderModule vertexShader, VkShaderModule fragmentShader)
 {
 
     VkPipelineShaderStageCreateInfo vertShaderStageCreateInfo = {};
     vertShaderStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertShaderStageCreateInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertShaderStageCreateInfo.module = reinterpret_cast<Shader*>(vertexShaderRef.GetData())->shaderModule;
+    vertShaderStageCreateInfo.module = vertexShader;
     vertShaderStageCreateInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo fragShaderStageCreateInfo = {};
     fragShaderStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     fragShaderStageCreateInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragShaderStageCreateInfo.module = reinterpret_cast<Shader*>(fragmentShaderRef.GetData())->shaderModule;
+    fragShaderStageCreateInfo.module = fragmentShader;
     fragShaderStageCreateInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageCreateInfo, fragShaderStageCreateInfo};
@@ -165,14 +209,14 @@ void Chinstrap::Renderer::Material::ExampleCreateMaterial()
     VkViewport viewport{};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
-    viewport.width = static_cast<float>(pVulkanContext.swapChainExtent.width);
-    viewport.height = static_cast<float>(pVulkanContext.swapChainExtent.height);
+    viewport.width = static_cast<float>(pVulkanContext->swapChainExtent.width);
+    viewport.height = static_cast<float>(pVulkanContext->swapChainExtent.height);
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
     VkRect2D scissor{};
     scissor.offset = {0, 0};
-    scissor.extent = pVulkanContext.swapChainExtent;
+    scissor.extent = pVulkanContext->swapChainExtent;
 
     VkPipelineViewportStateCreateInfo viewportStateCreateInfo = {};
     viewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -219,7 +263,7 @@ void Chinstrap::Renderer::Material::ExampleCreateMaterial()
     VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
     pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
-    if (vkCreatePipelineLayout(pVulkanContext.virtualGPU, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout)
+    if (vkCreatePipelineLayout(pVulkanContext->virtualGPU, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout)
         != VK_SUCCESS)
     {
         CHIN_LOG_CRITICAL_VULKAN("Failed to create pipeline layout!");
@@ -230,7 +274,7 @@ void Chinstrap::Renderer::Material::ExampleCreateMaterial()
     pipelineRenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
     pipelineRenderingCreateInfo.pNext = VK_NULL_HANDLE;
     pipelineRenderingCreateInfo.colorAttachmentCount = 1;
-    pipelineRenderingCreateInfo.pColorAttachmentFormats = &pVulkanContext.swapChainImageFormat;
+    pipelineRenderingCreateInfo.pColorAttachmentFormats = &pVulkanContext->swapChainImageFormat;
 
     VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
     graphicsPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -246,7 +290,7 @@ void Chinstrap::Renderer::Material::ExampleCreateMaterial()
     graphicsPipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
     graphicsPipelineCreateInfo.layout = pipelineLayout;
 
-    if (vkCreateGraphicsPipelines(pVulkanContext.virtualGPU, VK_NULL_HANDLE, 1, &graphicsPipelineCreateInfo, nullptr,
+    if (vkCreateGraphicsPipelines(pVulkanContext->virtualGPU, VK_NULL_HANDLE, 1, &graphicsPipelineCreateInfo, nullptr,
                                   &pipeline)
         != VK_SUCCESS)
     {
@@ -255,34 +299,4 @@ void Chinstrap::Renderer::Material::ExampleCreateMaterial()
     }
 
     CHIN_LOG_INFO_VULKAN("Successfully created barebones material");
-}
-
-bool Chinstrap::Renderer::Material::Create()
-{
-}
-
-VkVertexInputBindingDescription Chinstrap::Renderer::GetVertexBindingDescription()
-{
-    VkVertexInputBindingDescription bindingDescription = {};
-    bindingDescription.binding = 0;
-    bindingDescription.stride = sizeof(Vertex);
-    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-    return bindingDescription;
-}
-
-std::array<VkVertexInputAttributeDescription, 2> Chinstrap::Renderer::GetVertexAttributeDescriptions()
-{
-    std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = {};
-    attributeDescriptions[0].binding = 0;
-    attributeDescriptions[0].location = 0;
-    attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
-    attributeDescriptions[0].offset = offsetof(Vertex, position);
-
-    attributeDescriptions[1].binding = 0;
-    attributeDescriptions[1].location = 1;
-    attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-    return attributeDescriptions;
 }

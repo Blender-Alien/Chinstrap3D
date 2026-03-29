@@ -26,7 +26,10 @@ namespace Chinstrap::Application
         // Set the expected stackSize to avoid memory fragmentation
         explicit App(uint8_t sceneStackSize);
 
-        int Init();
+        /**
+         * @param appName must match up with folder to app-files like: "app/resources.txt" ==> appName == "app"
+         */
+        int Init(const std::string& appName);
         void Run(const Display::WindowSpec& windowSpec);
         void Stop();
 
@@ -38,6 +41,10 @@ namespace Chinstrap::Application
         static auto& GetVulkanContext()
         {
             return Get().window.vulkanContext;
+        }
+        static const auto& GetFilePathMap()
+        {
+            return Get().filePathMap;
         }
         static auto& GetWindow()
         {

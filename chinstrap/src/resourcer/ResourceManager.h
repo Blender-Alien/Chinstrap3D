@@ -45,6 +45,7 @@ namespace Chinstrap::Resourcer
         // How many (for example scenes) are referencing this resource in order make good decisions on when to unload it
         uint32_t referenceCount = 0;
 
+        ResourceType resourceType;
         ResourceID resourceID;
         static_assert(std::is_same_v<ResourceID, Memory::FilePath::HashID>);
 
@@ -54,8 +55,8 @@ namespace Chinstrap::Resourcer
         bool resourceDeleted = false;
 #endif
 
-        explicit Resource(ResourceID resourceID)
-            : resourceID(resourceID) {}
+        explicit Resource(ResourceID resourceID, ResourceType resourceType_arg)
+            : resourceType(resourceType_arg), resourceID(resourceID) {}
     };
 
     // This function is automatically called when all ResourceRef's to a resource are deconstructed
@@ -80,7 +81,7 @@ struct Chinstrap::Resourcer::ResourceManager
 
     void SaveAll();
 
-    bool Setup(Memory::FilePathMap* filePathMap_arg);
+    bool Setup(Memory::FilePathMap* filePathMap_arg, const std::string& appName);
     void Cleanup();
 
     explicit ResourceManager() = default;
@@ -95,6 +96,8 @@ private:
     void Deserialize();
     void DeserializeBinary();
 
+    bool LoadResource(const Memory::FilePath& filePath, Resource* resource, ResourceRef& resourceRef);
+
 public: /* Manage virtual file paths */
 
     Memory::FilePathMap* pFilePathMap = nullptr;
@@ -106,5 +109,4 @@ public: /* Manage virtual file paths */
 
 public: /* Actually store resource data at runtime */
     Memory::MemoryPool<Renderer::Material> materialPool;
-    Memory::MemoryPool<Renderer::Shader> shaderPool;
 };

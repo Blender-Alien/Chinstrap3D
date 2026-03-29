@@ -7,7 +7,7 @@ namespace Game
 {
     struct TestGLScene : public Chinstrap::Scene
     {
-        Chinstrap::Renderer::Material* material = nullptr;
+        Chinstrap::Resourcer::ResourceRef materialRef;
 
         // Temporary
         VkBuffer vertexBuffer;
@@ -26,7 +26,7 @@ namespace Game
         };
 
         explicit TestGLScene(Chinstrap::Resourcer::ResourceManager* pResourceManger_arg)
-            : Scene(pResourceManger_arg)
+            : Scene(pResourceManger_arg), materialRef(Chinstrap::Resourcer::ResourceType::MATERIAL)
         {}
 
         void OnBegin() override;

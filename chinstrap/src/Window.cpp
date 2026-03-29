@@ -104,5 +104,5 @@ void Chinstrap::Display::Window::Create(const WindowSpec &windowSpec_arg, UserSe
 
 void Chinstrap::Display::Window::FinishRendering() const
 {
- vkDeviceWaitIdle(vulkanContext.virtualGPU);
+     vkDeviceWaitIdle(vulkanContext.virtualGPU);
 }

@@ -44,12 +44,10 @@ namespace Chinstrap::Application
     }
 }
 
-int Application::App::Init()
+int Application::App::Init(const std::string& appName)
 {
     assert(!pAppInstance); // Have we already initialized?
     pAppInstance = this;
-
-    filePathMap.Setup();
 
     running = false;
 
@@ -63,7 +61,7 @@ int Application::App::Init()
         return -1;
     }
 
-    resourceManager.Setup();
+    resourceManager.Setup(&filePathMap, appName);
 
     return 0;
 }
@@ -167,7 +165,7 @@ void Application::App::Cleanup()
     {
         scene->OnShutdown();
     }
-    window.Destroy();
     resourceManager.Cleanup();
+    window.Destroy();
     filePathMap.Cleanup();
 }

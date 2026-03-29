@@ -28,7 +28,7 @@ void Game::TestMenuScene::OnRender(uint32_t currentFrame)
     {
         auto targetCommandBuffer = standardCmdBufferArray[currentFrame];
         auto vulkanContext = Application::App::GetVulkanContext();
-        auto pipeline = material->pipeline;
+        //auto pipeline = material->pipeline;
 
         VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -88,7 +88,7 @@ void Game::TestMenuScene::OnRender(uint32_t currentFrame)
                 vkCmdBeginRendering(targetCommandBuffer, &renderInfo);
 
             // Get pipeline from material resource system
-            vkCmdBindPipeline(targetCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+            //vkCmdBindPipeline(targetCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
         }
         {
             VkViewport viewport = {};
