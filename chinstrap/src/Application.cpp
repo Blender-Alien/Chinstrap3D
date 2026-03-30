@@ -9,6 +9,12 @@
 
 #include "rendering/VulkanFunctions.h"
 
+#if __linux__
+#include <unistd.h>
+#elif _WIN64
+#include <windows.h>
+#endif
+
 namespace
 {
     using namespace Chinstrap;
@@ -61,7 +67,37 @@ int Application::App::Init(const std::string& appName)
         return -1;
     }
 
-    resourceManager.Setup(&filePathMap, appName);
+    // TODO: Maybe we can serialize the previous usage during runtime and take that as a staring point
+    devStrings.Setup(16, 256);
+    devStrings.EndSetup();
+
+    { // We need to know where our application is in the Operating system filesystem,
+      // and we can precalculate the index of our root index in that string.
+#if __linux__
+        char result[PATH_MAX];
+        const auto count = readlink("/proc/self/exe", result, PATH_MAX);
+        programPath = new std::string(result, (count > 0) ? count : 0);
+        constexpr char slash = '/';
+#elif _WIN64
+        char result[MAX_PATH];
+        programPath = new std::string(result, GetModuleFileName(NULL, result, MAX_PATH));
+        constexpr char slash = '\\';
+#endif
+        std::vector<std::size_t> slashPositions;
+        { // Find all slashes
+            slashPositions.reserve(8); // Guess an initial number to avoid reallocations
+            std::size_t position = 0;
+
+            while ((position = programPath->find(slash, position)) != std::string::npos)
+            {
+                slashPositions.push_back(position);
+                ++position;
+            }
+        }
+        programPathRootIndex = slashPositions.at(slashPositions.size() - 4) + 1;
+    }
+
+    resourceManager.Setup(appName);
 
     return 0;
 }
@@ -158,6 +194,35 @@ void Application::App::Stop()
     running = false;
 }
 
+void Application::App::InternString(Memory::DevString& string_arg, const std::string_view& inputString_arg)
+{
+    auto ret = Get().devStrings.Insert(string_arg, inputString_arg);
+    switch (ret)
+    {
+    case Memory::StringMap::InsertRet::SUCCESS:
+        break;
+    case Memory::StringMap::InsertRet::COLLISION_OR_DUPLICATE:
+        CHIN_LOG_ERROR("App tried to intern a DevString, but there was a collision OR duplicate!");
+        break;
+    case Memory::StringMap::InsertRet::NO_KEY_CAPACITY:
+        CHIN_LOG_ERROR("App tried to intern a DevString, but there was no key capacity!");
+        Get().devStrings.GrowBy(10, std::nullopt);
+        break;
+    case Memory::StringMap::InsertRet::NO_VALUE_CAPACITY:
+        CHIN_LOG_ERROR("App tried to intern a DevString, but there was no value capacity!");
+        Get().devStrings.GrowBy(10, std::nullopt);
+        break;
+    case Memory::StringMap::InsertRet::BAD_REQUEST:
+        CHIN_LOG_ERROR("App tried to intern a DevString, but it was a bad request!");
+        break;
+    }
+}
+
+std::optional<std::string_view> Application::App::LookupString(const Memory::DevString& key_arg)
+{
+    return Get().devStrings.Lookup(key_arg);
+}
+
 void Application::App::Cleanup()
 {
     window.FinishRendering();
@@ -167,5 +232,6 @@ void Application::App::Cleanup()
     }
     resourceManager.Cleanup();
     window.Destroy();
-    filePathMap.Cleanup();
+    delete programPath;
+    devStrings.Cleanup();
 }

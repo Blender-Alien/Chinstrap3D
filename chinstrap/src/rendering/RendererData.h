@@ -7,8 +7,7 @@
 #include "VulkanData.h"
 #include "GLFW/glfw3.h"
 
-#include "../resourcer/ResourceRef.h"
-#include "../memory/FilePathMap.h"
+#include "../memory/StringMap.h"
 
 #include <array>
 
@@ -30,19 +29,15 @@ namespace Chinstrap::Renderer
         VkPipeline pipeline = VK_NULL_HANDLE;
         VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
 
-        Memory::FilePath vertexShaderPath;
-        Memory::FilePath fragmentShaderPath;
-
-        // Temporary
-        std::string vertexPath;
-        std::string fragmentPath;
+        Memory::DevString vertexShaderPath; // @Serialized
+        Memory::DevString fragmentShaderPath; // @Serialized
 
         void ExampleCreateMaterial(VkShaderModule vertexShader, VkShaderModule fragmentShader);
 
         bool Create(ChinVulkan::VulkanContext* vulkanContext);
 
         const ChinVulkan::VulkanContext* pVulkanContext = nullptr;
-        Material(const Memory::FilePath& vertexShaderPath_arg, const Memory::FilePath& fragmentShaderPath_arg);
+        Material(const Memory::DevString& vertexShaderPath_arg, const Memory::DevString& fragmentShaderPath_arg);
         ~Material();
     };
 

@@ -42,7 +42,7 @@ bool Chinstrap::Renderer::ShaderLoader(VkShaderModule& shaderModule, std::string
     return CreateShader(Application::App::GetVulkanContext(), shaderModule,&buffer[0], &buffer[fileSize]);
 }
 
-Chinstrap::Renderer::Material::Material(const Memory::FilePath& vertexShaderPath_arg, const Memory::FilePath& fragmentShaderPath_arg)
+Chinstrap::Renderer::Material::Material(const Memory::DevString& vertexShaderPath_arg, const Memory::DevString& fragmentShaderPath_arg)
     : vertexShaderPath(vertexShaderPath_arg), fragmentShaderPath(fragmentShaderPath_arg)
 {
 }
@@ -75,31 +75,20 @@ bool Chinstrap::Renderer::MaterialLoader(Material* dataPtr, std::string_view OSF
         ++index;
     }
 
-    Memory::FilePath vertexShaderPath;
+    Memory::DevString vertexShaderPath;
     {
         auto positions = Serialization::GetFieldContent(fieldData[0]);
-        vertexShaderPath.Hash(fieldData[0].substr(std::get<0>(positions), std::get<1>(positions)));
+        Application::App::InternString(vertexShaderPath, fieldData[0].substr(std::get<0>(positions), std::get<1>(positions)));
+
     }
-    Memory::FilePath fragmentShaderPath;
+    Memory::DevString fragmentShaderPath;
     {
         auto positions = Serialization::GetFieldContent(fieldData[1]);
-        fragmentShaderPath.Hash(fieldData[1].substr(std::get<0>(positions), std::get<1>(positions)));
+        Application::App::InternString(fragmentShaderPath, fieldData[1].substr(std::get<0>(positions), std::get<1>(positions)));
     }
 
     auto* material = new(dataPtr) Material(vertexShaderPath, fragmentShaderPath);
-
-
-    // Temporary
-    {
-        auto positions = Serialization::GetFieldContent(fieldData[0]);
-        material->vertexPath = fieldData[0].substr(std::get<0>(positions), std::get<1>(positions));
-    }
-    {
-        auto positions = Serialization::GetFieldContent(fieldData[1]);
-        material->fragmentPath = fieldData[1].substr(std::get<0>(positions), std::get<1>(positions));
-    }
     material->Create(&Application::App::GetVulkanContext());
-
     return true;
 }
 
@@ -109,22 +98,19 @@ bool Chinstrap::Renderer::Material::Create(ChinVulkan::VulkanContext* vulkanCont
 
     VkShaderModule vertexShader;
     VkShaderModule fragmentShader;
-    // TODO: These won't return anything because the hashID's were never interned into filePathMap
-    //       We need a general String hashmap, but let's just directly pass the strings for now
-    /*
-    auto vertexPath = Application::App::GetFilePathMap().Lookup(vertexShaderPath);
-    auto fragmentPath = Application::App::GetFilePathMap().Lookup(fragmentShaderPath);
+
+    const auto vertexPath = Application::App::LookupString(vertexShaderPath);
+    const auto fragmentPath = Application::App::LookupString(fragmentShaderPath);
     if (!vertexPath.has_value() || !fragmentPath.has_value())
     {
         return false;
     }
-    */
 
-    if (!ShaderLoader(vertexShader, Memory::FilePath::ConvertToOSPath(vertexPath).get()))
+    if (!ShaderLoader(vertexShader, Memory::ConvertToOSPath(vertexPath.value()).get()))
     {
         return false;
     }
-    if (!ShaderLoader(fragmentShader, Memory::FilePath::ConvertToOSPath(fragmentPath).get()))
+    if (!ShaderLoader(fragmentShader, Memory::ConvertToOSPath(fragmentPath.value()).get()))
     {
         return false;
     }

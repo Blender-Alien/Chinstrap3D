@@ -1,22 +1,17 @@
-#include "FilePathMap.h"
+#include "StringMap.h"
 
 #include "../ops/Logging.h"
 
 #include <climits>
 
-#if __linux__
-#include <unistd.h>
-#elif _WIN64
-#include <windows.h>
-#endif
+#include "../Application.h"
 
-using namespace Chinstrap::Memory;
-
-std::unique_ptr<char> FilePath::ConvertToOSPath(const std::string_view& virtualFilePath)
+std::unique_ptr<char> Chinstrap::Memory::ConvertToOSPath(const std::string_view& virtualFilePath)
 {
-    assert(FilePathMap::programPath != nullptr);
+    using namespace Chinstrap::Application;
+    assert(App::programPath != nullptr);
 
-    char* OSPath = new char[FilePathMap::rootIndex + virtualFilePath.length() + 1]; // + 1 for '\0'
+    char* OSPath = new char[App::programPathRootIndex + virtualFilePath.length() + 1]; // + 1 for '\0'
 
     // On linux our full path looks something like this:
     // "/home/username/projects/chinstrap3d/app/res/shaders/Basic.frag"
@@ -33,16 +28,18 @@ std::unique_ptr<char> FilePath::ConvertToOSPath(const std::string_view& virtualF
     // We know that we're using Ninja Multi Config so our binary is going to be here:
     // "MyGameRepo/bin/MyGame/Release/MyGame", so we just need to go back 4 directories.
 
-    strncpy(OSPath, FilePathMap::programPath->data(), FilePathMap::rootIndex);
+    strncpy(OSPath, App::programPath->data(), App::programPathRootIndex);
 
-    strcpy(&OSPath[FilePathMap::rootIndex], virtualFilePath.data());
+    strcpy(&OSPath[App::programPathRootIndex], virtualFilePath.data());
 
     std::unique_ptr<char> ptr(OSPath);
 
     return std::move(ptr);
 }
 
-FilePathMap::InsertRet FilePathMap::Insert(FilePath& filepath_arg, const std::string_view& inputString_arg)
+using namespace Chinstrap::Memory;
+
+StringMap::InsertRet StringMap::Insert(DevString& string_arg, const std::string_view& inputString_arg)
 {
     if (setupStatus == SetupStatus::NOT_BEGUN)
     {
@@ -50,7 +47,7 @@ FilePathMap::InsertRet FilePathMap::Insert(FilePath& filepath_arg, const std::st
         return InsertRet::BAD_REQUEST;
     }
 
-    const FilePath::HashID argHashID = std::hash<std::string_view>()(inputString_arg);
+    const DevString::HashIDType argHashID = std::hash<std::string_view>()(inputString_arg);
 
     for (auto& keyIndex : keyArray)
     {
@@ -68,7 +65,7 @@ FilePathMap::InsertRet FilePathMap::Insert(FilePath& filepath_arg, const std::st
             keyIndex.value().charArray.data()[inputString_arg.size()] = '\0';
 
             // Give back hashID
-            filepath_arg.hashID.emplace(argHashID);
+            string_arg.hashID.emplace(argHashID);
 
             if (setupStatus == SetupStatus::SETUP_DONE)
             {
@@ -83,16 +80,16 @@ FilePathMap::InsertRet FilePathMap::Insert(FilePath& filepath_arg, const std::st
     return InsertRet::NO_KEY_CAPACITY;
 }
 
-[[nodiscard]] std::optional<std::string_view> FilePathMap::Lookup(const FilePath& key_arg) const
+[[nodiscard]] std::optional<std::string_view> StringMap::Lookup(const DevString& key_arg) const
 {
     if (setupStatus != SetupStatus::SETUP_DONE)
     {
-        CHIN_LOG_WARN("A lookup in a FilePathMap was requested, before Setup was done!");
+        CHIN_LOG_WARN("A lookup in a StringMap was requested, before Setup was done!");
         return std::nullopt;
     }
     if (!key_arg.GetHashID().has_value())
     {
-        CHIN_LOG_WARN("A lookup in a FilePathMap was requested, filePath has no hashID!");
+        CHIN_LOG_WARN("A lookup in a StringMap was requested, string has no hashID!");
         return std::nullopt;
     }
     { // Binary Search
@@ -120,16 +117,16 @@ FilePathMap::InsertRet FilePathMap::Insert(FilePath& filepath_arg, const std::st
 }
 
 #ifndef CHIN_SHIPPING_BUILD
-bool FilePathMap::GrowBy(uint32_t byNumberOfElements_arg, std::optional<uint32_t> stringLengthHint_arg)
+bool StringMap::GrowBy(uint32_t byNumberOfElements_arg, std::optional<uint32_t> avgStringLengthHint_arg)
 {
     assert(byNumberOfElements_arg != 0);
 
     keyArray.resize(byNumberOfElements_arg + keyArray.capacity());
 
     StackAllocator newValueStack;
-    if (stringLengthHint_arg.has_value())
+    if (avgStringLengthHint_arg.has_value())
     {
-        newValueStack.Setup((byNumberOfElements_arg + keyArray.capacity()) * sizeof(char[stringLengthHint_arg.value()]));
+        newValueStack.Setup((byNumberOfElements_arg + keyArray.capacity()) * sizeof(char[avgStringLengthHint_arg.value()]));
     }
     else
     {
@@ -158,7 +155,7 @@ bool FilePathMap::GrowBy(uint32_t byNumberOfElements_arg, std::optional<uint32_t
 }
 #endif
 
-std::optional<std::string_view> FilePathMap::Iterate(uint32_t index) const
+std::optional<std::string_view> StringMap::Iterate(uint32_t index) const
 {
     if (keyArray.at(index).has_value())
     {
@@ -167,7 +164,7 @@ std::optional<std::string_view> FilePathMap::Iterate(uint32_t index) const
     return std::nullopt;
 }
 
-void FilePathMap::MergeSort(std::vector<std::optional<Key>>& array, std::size_t leftIndex, std::size_t rightIndex)
+void StringMap::MergeSort(std::vector<std::optional<Key>>& array, std::size_t leftIndex, std::size_t rightIndex)
 {
     assert(array.at(rightIndex).has_value()); // Make sure you give a valid range!
     if (leftIndex >= rightIndex)
@@ -180,7 +177,7 @@ void FilePathMap::MergeSort(std::vector<std::optional<Key>>& array, std::size_t 
     Merge(array, leftIndex, middleIndex, rightIndex);
 }
 
-void FilePathMap::Merge(std::vector<std::optional<Key>>& array, std::size_t leftIndex, std::size_t middleIndex, std::size_t rightIndex)
+void StringMap::Merge(std::vector<std::optional<Key>>& array, std::size_t leftIndex, std::size_t middleIndex, std::size_t rightIndex)
 {
     std::size_t nLeft = middleIndex - leftIndex + 1;
     std::size_t nRight = rightIndex - middleIndex;
@@ -230,7 +227,7 @@ void FilePathMap::Merge(std::vector<std::optional<Key>>& array, std::size_t left
     }
 }
 
-void FilePathMap::MergeSortKeyArray()
+void StringMap::MergeSortKeyArray()
 {
     if (keyArrayHasValueSize == 0 || keyArrayHasValueSize == 1)
     {
@@ -239,7 +236,7 @@ void FilePathMap::MergeSortKeyArray()
     MergeSort(keyArray, 0, keyArrayHasValueSize - 1);
 }
 
-void FilePathMap::InsertionSortKeyArray()
+void StringMap::InsertionSortKeyArray()
 {
     if (keyArrayHasValueSize == 0 || keyArrayHasValueSize == 1)
     {
@@ -261,7 +258,7 @@ void FilePathMap::InsertionSortKeyArray()
     }
 }
 
-void FilePathMap::Setup(uint32_t numberOfElements, uint32_t totalValuesSize)
+void StringMap::Setup(uint32_t numberOfElements, uint32_t totalValuesSize)
 {
     if (setupStatus != SetupStatus::NOT_BEGUN)
     {
@@ -277,43 +274,17 @@ void FilePathMap::Setup(uint32_t numberOfElements, uint32_t totalValuesSize)
     valueStack.Setup(numberOfElements * sizeof(char[totalValuesSize]));
 }
 
-void FilePathMap::Cleanup()
+void StringMap::Cleanup()
 {
     // TODO: Serialize numberOfElements and totalValueSize for next run
 
     valueStack.Cleanup();
     keyArray.clear();
 
-    delete programPath;
-
     setupStatus = SetupStatus::NOT_BEGUN;
 }
 
-FilePathMap::FilePathMap()
+StringMap::StringMap()
     : keyArrayHasValueSize(0), keyArray(0)
 {
-    { // OSPath has to be absolute, so that we can execute the game binary form anywhere and still load our resources
-#if __linux__
-        char result[PATH_MAX];
-        const auto count = readlink("/proc/self/exe", result, PATH_MAX);
-        programPath = new std::string(result, (count > 0) ? count : 0);
-        constexpr char slash = '/';
-#elif _WIN64
-        char result[MAX_PATH];
-        programPath = new std::string(result, GetModuleFileName(NULL, result, MAX_PATH));
-        constexpr char slash = '\\';
-#endif
-        std::vector<std::size_t> slashPositions;
-        { // Find all slashes
-            slashPositions.reserve(8); // Guess an initial number to avoid reallocations
-            std::size_t position = 0;
-
-            while ((position = programPath->find(slash, position)) != std::string::npos)
-            {
-                slashPositions.push_back(position);
-                ++position;
-            }
-        }
-        rootIndex = slashPositions.at(slashPositions.size() - 4) + 1;
-    }
 }
