@@ -22,7 +22,7 @@ void Chinstrap::DevInterface::ContextInfo(float posScaleX, float posScaleY)
 void Chinstrap::DevInterface::PerformanceInfo(float posScaleX, float posScaleY)
 {
     ImGui::Begin("Performance");
-    ImGui::Text("%d FPS", Application::App::GetFrameRate());
+    ImGui::Text("%d FPS", Application::App::framerate);
 
     using namespace UserSettings;
     auto& setting = Application::App::GetGraphicsSettings().vSync;

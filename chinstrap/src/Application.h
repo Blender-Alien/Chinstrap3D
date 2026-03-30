@@ -16,9 +16,17 @@ namespace Chinstrap::Application
         UserSettings::GraphicsSettings graphicsSettings;
 
         Resourcer::ResourceManager resourceManager;
-        Memory::FilePathMap filePathMap;
 
-        uint32_t framerate = 0;
+        inline static std::string* programPath;
+        inline static std::size_t programPathRootIndex;
+
+        /**
+         * Use for random strings needed at runtime
+         * TODO: How exactly can we avoid growing this thing a lot?
+         */
+        Memory::StringMap devStrings;
+
+        inline static uint32_t framerate = 0;
         bool running;
 
         App(App const&)  = delete;
@@ -42,10 +50,6 @@ namespace Chinstrap::Application
         {
             return Get().window.vulkanContext;
         }
-        static const auto& GetFilePathMap()
-        {
-            return Get().filePathMap;
-        }
         static auto& GetWindow()
         {
             return Get().window;
@@ -58,6 +62,9 @@ namespace Chinstrap::Application
         {
             return Get().framerate;
         }
+
+        static void InternString(Memory::DevString& string_arg, const std::string_view& inputString_arg);
+        static std::optional<std::string_view> LookupString(const Memory::DevString& key_arg);
 
         template<typename TScene>
         void PushScene()

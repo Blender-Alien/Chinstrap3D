@@ -14,7 +14,7 @@ void Game::TestGLScene::OnBegin()
     using namespace Chinstrap;
     ChinVulkan::VulkanContext& vulkanContext = Application::App::GetVulkanContext();
     {
-        Memory::FilePath materialPath;
+        Memory::DevString materialPath;
         materialPath.Hash("app/res/materials/Simple.material");
         pResourceManager->GetResourceRef(materialPath, materialRef);
     }

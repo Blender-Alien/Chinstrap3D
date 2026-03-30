@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../memory/FilePathMap.h"
+#include "../memory/StringMap.h"
 #include "../memory/MemoryPool.h"
 
 #include "ResourceRef.h"
@@ -47,7 +47,7 @@ namespace Chinstrap::Resourcer
 
         ResourceType resourceType;
         ResourceID resourceID;
-        static_assert(std::is_same_v<ResourceID, Memory::FilePath::HashID>);
+        static_assert(std::is_same_v<ResourceID, Memory::DevString::HashIDType>);
 
 #ifndef CHIN_SHIPPING_BUILD
         // If we delete resources at runtime we still need this object around,
@@ -69,19 +69,19 @@ namespace Chinstrap::Resourcer
 struct Chinstrap::Resourcer::ResourceManager
 {
 #ifndef CHIN_SHIPPING_BUILD
-    void CreateResource(const std::string_view& virtualFilePath, Memory::FilePath& filePath_out);
+    void CreateResource(const std::string_view& virtualFilePath, Memory::DevString& filePath_out);
     bool DeleteResource(const std::string_view& virtualFilePath, ResourceType resourceType);
-    bool DeleteResource(const Memory::FilePath& virtualFilePath, ResourceType resourceType);
+    bool DeleteResource(const Memory::DevString& virtualFilePath, ResourceType resourceType);
 #endif
 
     // TODO: I'm not really happy with loading resources on the fly in a non organized fashion
     //       What we're doing right now, is not scalable to multiple threads (jobs)
     // This will load the resource if it's not already
-    bool GetResourceRef(const Memory::FilePath& filePath, ResourceRef& resourceRef);
+    bool GetResourceRef(const Memory::DevString& filePath, ResourceRef& resourceRef);
 
     void SaveAll();
 
-    bool Setup(Memory::FilePathMap* filePathMap_arg, const std::string& appName);
+    bool Setup(const std::string& appName);
     void Cleanup();
 
     explicit ResourceManager() = default;
@@ -96,16 +96,16 @@ private:
     void Deserialize();
     void DeserializeBinary();
 
-    bool LoadResource(const Memory::FilePath& filePath, Resource* resource, ResourceRef& resourceRef);
+    bool LoadResource(const Memory::DevString& filePath, Resource* resource, ResourceRef& resourceRef);
 
 public: /* Manage virtual file paths */
 
-    Memory::FilePathMap* pFilePathMap = nullptr;
+    Memory::StringMap filePathMap;
 
     // TODO: This should also be a custom HashMap
     // We want to serialize all resources contained at Save time by looking up their string values
     // by their hashID. We then write these virtual file paths in human readable or binary.
-    std::unordered_map<Memory::FilePath::HashID, Resource> resourceData;
+    std::unordered_map<Memory::DevString::HashIDType, Resource> resourceData;
 
 public: /* Actually store resource data at runtime */
     Memory::MemoryPool<Renderer::Material> materialPool;

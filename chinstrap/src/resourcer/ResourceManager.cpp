@@ -52,17 +52,17 @@ std::byte* Chinstrap::Resourcer::GetCurrentResourcePtr(const ResourceID resource
 }
 
 #ifndef CHIN_SHIPPING_BUILD
-void ResourceManager::CreateResource(const std::string_view& virtualFilePath, Memory::FilePath& filePath_out)
+void ResourceManager::CreateResource(const std::string_view& virtualFilePath, Memory::DevString& filePath_out)
 {
-    auto result = pFilePathMap->Insert(filePath_out, virtualFilePath);
-    if (result == Memory::FilePathMap::InsertRet::NO_KEY_CAPACITY
-        || result == Memory::FilePathMap::InsertRet::NO_VALUE_CAPACITY)
+    auto result = filePathMap.Insert(filePath_out, virtualFilePath);
+    if (result == Memory::StringMap::InsertRet::NO_KEY_CAPACITY
+        || result == Memory::StringMap::InsertRet::NO_VALUE_CAPACITY)
     {
         // 20 is just some number I thought was okay, feel free to change it if you have a reason to
-        pFilePathMap->GrowBy(20, std::nullopt);
-        result = pFilePathMap->Insert(filePath_out, virtualFilePath);
+        filePathMap.GrowBy(20, std::nullopt);
+        result = filePathMap.Insert(filePath_out, virtualFilePath);
     }
-    if (result != Memory::FilePathMap::InsertRet::SUCCESS)
+    if (result != Memory::StringMap::InsertRet::SUCCESS)
     {
         return;
     }
@@ -82,11 +82,11 @@ void ResourceManager::CreateResource(const std::string_view& virtualFilePath, Me
 #ifndef CHIN_SHIPPING_BUILD
 bool ResourceManager::DeleteResource(const std::string_view& virtualFilePath, ResourceType resourceType)
 {
-    Memory::FilePath path;
+    Memory::DevString path;
     path.Hash(virtualFilePath);
     return DeleteResource(path, resourceType);
 }
-bool ResourceManager::DeleteResource(const Memory::FilePath& virtualFilePath, ResourceType resourceType)
+bool ResourceManager::DeleteResource(const Memory::DevString& virtualFilePath, ResourceType resourceType)
 {
     Resource* resource;
     const auto it = resourceData.find(virtualFilePath.GetHashID().value());
@@ -96,7 +96,7 @@ bool ResourceManager::DeleteResource(const Memory::FilePath& virtualFilePath, Re
     }
     else
     {
-        auto path = pFilePathMap->Lookup(virtualFilePath).value();
+        auto path = filePathMap.Lookup(virtualFilePath).value();
         CHIN_LOG_ERROR("Resource {} could not be deleted!", path);
         return false;
     }
@@ -108,15 +108,15 @@ bool ResourceManager::DeleteResource(const Memory::FilePath& virtualFilePath, Re
 }
 #endif
 
-bool ResourceManager::LoadResource(const Memory::FilePath& filePath, Resource* resource, ResourceRef& resourceRef)
+bool ResourceManager::LoadResource(const Memory::DevString& filePath, Resource* resource, ResourceRef& resourceRef)
 {
-    auto virtualFilePath = pFilePathMap->Lookup(filePath);
+    auto virtualFilePath = filePathMap.Lookup(filePath);
     if (!virtualFilePath.has_value())
     {
         return false;
     }
 
-    std::unique_ptr<char> OSPath = Memory::FilePath::ConvertToOSPath(virtualFilePath.value());
+    std::unique_ptr<char> OSPath = Memory::ConvertToOSPath(virtualFilePath.value());
 
     switch (resourceRef.resourceType)
     {
@@ -135,7 +135,7 @@ bool ResourceManager::LoadResource(const Memory::FilePath& filePath, Resource* r
     return true;
 }
 
-bool ResourceManager::GetResourceRef(const Memory::FilePath& filePath, ResourceRef& resourceRef)
+bool ResourceManager::GetResourceRef(const Memory::DevString& filePath, ResourceRef& resourceRef)
 {
     if (!filePath.GetHashID().has_value())
     {
@@ -188,15 +188,13 @@ void ResourceManager::SaveAll()
 {
 }
 
-bool ResourceManager::Setup(Memory::FilePathMap* filePathMap_arg, const std::string& appName)
+bool ResourceManager::Setup(const std::string& appName)
 {
-    pFilePathMap = filePathMap_arg;
-
-    std::vector<Memory::FilePath> materialPaths;
+    std::vector<Memory::DevString> materialPaths;
 
     { // Load virtual file paths
         std::string resourceListPath = appName + "/resources.txt";
-        auto OSResourceListPath = Memory::FilePath::ConvertToOSPath(resourceListPath);
+        auto OSResourceListPath = Memory::ConvertToOSPath(resourceListPath);
 
         std::ifstream fileStream(OSResourceListPath.get());
         if (!fileStream.is_open())
@@ -215,17 +213,17 @@ bool ResourceManager::Setup(Memory::FilePathMap* filePathMap_arg, const std::str
             std::ifstream file(OSResourceListPath.get(), std::ios::binary | std::ios::ate);
             std::size_t sizeInBytes = file.tellg();
 #ifdef CHIN_SHIPPING_BUILD
-            pFilePathMap->Setup(paths.size(), sizeInBytes);
+            filePathMap.Setup(paths.size(), sizeInBytes);
 #else
-            pFilePathMap->Setup(paths.size() * 2, sizeInBytes * 2);
+            filePathMap.Setup(paths.size() * 2, sizeInBytes * 2);
 #endif
         }
 
         for (auto& path : paths)
         {
-            Memory::FilePath filePath;
-            auto ret = pFilePathMap->Insert(filePath, path);
-            assert(ret == Memory::FilePathMap::InsertRet::SUCCESS);
+            Memory::DevString filePath;
+            auto ret = filePathMap.Insert(filePath, path);
+            assert(ret == Memory::StringMap::InsertRet::SUCCESS);
 
             if (path.find(".material"))
             {
@@ -234,7 +232,7 @@ bool ResourceManager::Setup(Memory::FilePathMap* filePathMap_arg, const std::str
             // etc ...
         }
 
-        pFilePathMap->EndSetup();
+        filePathMap.EndSetup();
     }
 
     { // Load Materials
@@ -266,4 +264,5 @@ void ResourceManager::Cleanup()
         UnloadResource(resource.second.resourceID, resource.second.resourceType, this);
     }
     materialPool.Cleanup();
+    filePathMap.Cleanup();
 }
