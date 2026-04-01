@@ -67,12 +67,12 @@ StringMap::InsertRet StringMap::Insert(DevString& string_arg, const std::string_
             // Give back hashID
             string_arg.hashID.emplace(argHashID);
 
+            ++keyArrayHasValueSize;
             if (setupStatus == SetupStatus::SETUP_DONE)
             {
                 InsertionSortKeyArray();
             } // else, we will sort later in EndSetup()
 
-            ++keyArrayHasValueSize;
             return InsertRet::SUCCESS;
         }
         if (keyIndex.value().hashID == argHashID) { return InsertRet::COLLISION_OR_DUPLICATE; }
@@ -113,6 +113,7 @@ StringMap::InsertRet StringMap::Insert(DevString& string_arg, const std::string_
             right = middle - 1;
         }
     }
+    CHIN_LOG_WARN("StringMap lookup failed!");
     return std::nullopt;
 }
 
@@ -242,19 +243,17 @@ void StringMap::InsertionSortKeyArray()
     {
         return;
     }
-    const std::size_t range = keyArrayHasValueSize - 1;
 
-    for (std::size_t index = 1; index <= range; ++index)
+    for (std::size_t index = 1; index < keyArrayHasValueSize; ++index)
     {
-        auto key = keyArray[index];
-        std::size_t j = index - 1;
+        std::size_t j = index;
 
-        while (j > 0 && keyArray.at(j).value().hashID > key.value().hashID)
+        while (j > 0 && keyArray.at(j-1).value().hashID > keyArray.at(j).value().hashID)
         {
-            keyArray.at(j + 1).value() = keyArray.at(j).value();
-            --j;
+            std::swap(keyArray.at(j).value(), keyArray.at(j-1).value());
+            --j
+            ;
         }
-        keyArray.at(j + 1) = key;
     }
 }
 

@@ -124,8 +124,11 @@ bool ResourceManager::LoadResource(const Memory::DevString& filePath, Resource* 
     case ResourceType::MATERIAL:
         {
             const auto memory = materialPool.Allocate();
-            if (Renderer::MaterialLoader(memory, OSPath.get()))
-                resource->pResource = reinterpret_cast<std::byte*>(memory);
+            if (!Renderer::MaterialLoader(memory, OSPath.get()))
+            {
+                CHIN_LOG_ERROR("Failed to load material: {}", OSPath.get());
+            }
+            resource->pResource = reinterpret_cast<std::byte*>(memory);
             break;
         }
     default:
