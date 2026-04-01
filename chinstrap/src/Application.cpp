@@ -50,7 +50,7 @@ namespace Chinstrap::Application
     }
 }
 
-int Application::App::Init(const std::string& appName)
+int Application::App::Init()
 {
     assert(!pAppInstance); // Have we already initialized?
     pAppInstance = this;
@@ -66,10 +66,6 @@ int Application::App::Init(const std::string& appName)
     {
         return -1;
     }
-
-    // TODO: Maybe we can serialize the previous usage during runtime and take that as a staring point
-    devStrings.Setup(16, 256);
-    devStrings.EndSetup();
 
     { // We need to know where our application is in the Operating system filesystem,
       // and we can precalculate the index of our root index in that string.
@@ -96,6 +92,30 @@ int Application::App::Init(const std::string& appName)
         }
         programPathRootIndex = slashPositions.at(slashPositions.size() - 4) + 1;
     }
+
+    { // Parse config.chin
+
+        auto path = "config.chin"; // We expect this in the project root
+        std::ifstream fileStream(Memory::ConvertToOSPath(path).get());
+        if (!fileStream.is_open())
+        {
+            return -1;
+        }
+
+        std::string line;
+        while (std::getline(fileStream, line))
+        {
+            if (auto index = line.find(" #applicationName"))
+            {
+                appName = std::move(line.substr(0, index));
+            }
+        }
+    }
+
+    // TODO: Maybe we can serialize the previous usage during runtime and take that as a starting point
+    //       We could use config.chin for that
+    devStrings.Setup(16, 256);
+    devStrings.EndSetup();
 
     resourceManager.Setup(appName);
 

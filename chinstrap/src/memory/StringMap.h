@@ -38,12 +38,12 @@ struct Chinstrap::Memory::StringMap
      */
     [[nodiscard]] std::optional<std::string_view> Lookup(const DevString& key_arg) const;
 
-#ifndef CHIN_SHIPPING_BUILD
     /**
      * @param byNumberOfElements_arg How many more elements should be able to fit?
+     * @param avgStringLengthHint_arg How much more space should be allocated per new element?
+     * If left empty, the average of previous value sizes will be used.
      */
     bool GrowBy(uint32_t byNumberOfElements_arg, std::optional<uint32_t> avgStringLengthHint_arg);
-#endif
 
     [[nodiscard]] std::optional<std::string_view> Iterate(uint32_t index) const;
 

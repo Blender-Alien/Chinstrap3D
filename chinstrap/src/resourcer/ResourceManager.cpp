@@ -1,5 +1,6 @@
 #include "ResourceManager.h"
 
+#include "../Application.h"
 #include "../ops/Logging.h"
 #include "../rendering/RendererData.h"
 
@@ -170,69 +171,70 @@ bool ResourceManager::GetResourceRef(const Memory::DevString& filePath, Resource
     return true;
 }
 
-void ResourceManager::Serialize()
+void ResourceManager::SerializeFilePaths()
 {
+    // TODO: This can wait until we have an editor to create stuff with
 }
-void ResourceManager::SerializeBinary()
-{
-}
-
-void ResourceManager::Deserialize()
-{
-}
-void ResourceManager::DeserializeBinary()
+void ResourceManager::SerializeFilePathsBinary()
 {
 }
 
-void ResourceManager::SaveAll()
+bool ResourceManager::DeserializeFilePaths(std::vector<Memory::DevString>& materialPaths)
+{
+    std::string resourceListPath = Application::App::appName + "/resources.chin";
+    auto OSResourceListPath = Memory::ConvertToOSPath(resourceListPath);
+
+    std::ifstream fileStream(OSResourceListPath.get());
+    if (!fileStream.is_open())
+    {
+        return false;
+    }
+
+    std::vector<std::string> paths;
+    std::string line;
+    while (std::getline(fileStream, line))
+    {
+        paths.push_back(std::move(line));
+    }
+
+    {
+        std::ifstream file(OSResourceListPath.get(), std::ios::binary | std::ios::ate);
+        std::size_t sizeInBytes = file.tellg();
+#ifdef CHIN_SHIPPING_BUILD
+        filePathMap.Setup(paths.size(), sizeInBytes);
+#else
+        filePathMap.Setup(paths.size() * 2, sizeInBytes * 2);
+#endif
+    }
+
+    for (auto& path : paths)
+    {
+        Memory::DevString filePath;
+        auto ret = filePathMap.Insert(filePath, path);
+        assert(ret == Memory::StringMap::InsertRet::SUCCESS);
+
+        if (path.find(".material"))
+        {
+            materialPaths.push_back(filePath);
+        }
+        // etc ...
+    }
+
+    filePathMap.EndSetup();
+    return true;
+}
+
+void ResourceManager::DeserializeFilePathsBinary()
 {
 }
 
 bool ResourceManager::Setup(const std::string& appName)
 {
     std::vector<Memory::DevString> materialPaths;
-
-    { // Load virtual file paths
-        std::string resourceListPath = appName + "/resources.txt";
-        auto OSResourceListPath = Memory::ConvertToOSPath(resourceListPath);
-
-        std::ifstream fileStream(OSResourceListPath.get());
-        if (!fileStream.is_open())
-        {
-            return false;
-        }
-
-        std::vector<std::string> paths;
-        std::string line;
-        while (std::getline(fileStream, line))
-        {
-            paths.push_back(std::move(line));
-        }
-
-        {
-            std::ifstream file(OSResourceListPath.get(), std::ios::binary | std::ios::ate);
-            std::size_t sizeInBytes = file.tellg();
-#ifdef CHIN_SHIPPING_BUILD
-            filePathMap.Setup(paths.size(), sizeInBytes);
-#else
-            filePathMap.Setup(paths.size() * 2, sizeInBytes * 2);
-#endif
-        }
-
-        for (auto& path : paths)
-        {
-            Memory::DevString filePath;
-            auto ret = filePathMap.Insert(filePath, path);
-            assert(ret == Memory::StringMap::InsertRet::SUCCESS);
-
-            if (path.find(".material"))
-            {
-                materialPaths.push_back(filePath);
-            }
-            // etc ...
-        }
-
-        filePathMap.EndSetup();
+    if (!DeserializeFilePaths(materialPaths))
+    {
+        CHIN_LOG_CRITICAL("Failed to deserialize file paths!");
+        return false;
     }
 
     { // Load Materials
@@ -257,7 +259,7 @@ bool ResourceManager::Setup(const std::string& appName)
 
 void ResourceManager::Cleanup()
 {
-    Serialize();
+    SerializeFilePaths();
 
     for (auto& resource : resourceData)
     {
