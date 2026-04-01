@@ -9,7 +9,7 @@ int main()
     Chinstrap::Application::App app(2); // Create a single app object on the stack
 
     // Initialize the stack object once
-    if (app.Init("app") != 0)
+    if (app.Init() != 0)
     {
         return -1;
     }

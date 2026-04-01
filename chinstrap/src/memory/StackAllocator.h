@@ -25,9 +25,11 @@ namespace Chinstrap::Memory
 
         explicit StackAllocator() = default;
         ~StackAllocator();
-    private:
+
 
         uint32_t stackSizeInBytes = 0;
+    private:
+
         std::byte* basePointer = nullptr;
         std::byte* topPointer = nullptr;
         StackPointer stackPointer = nullptr;

@@ -79,8 +79,6 @@ struct Chinstrap::Resourcer::ResourceManager
     // This will load the resource if it's not already
     bool GetResourceRef(const Memory::DevString& filePath, ResourceRef& resourceRef);
 
-    void SaveAll();
-
     bool Setup(const std::string& appName);
     void Cleanup();
 
@@ -90,11 +88,11 @@ struct Chinstrap::Resourcer::ResourceManager
     ResourceManager& operator=(ResourceManager const&) = delete;
 
 private:
-    void Serialize();
-    void SerializeBinary();
+    void SerializeFilePaths();
+    void SerializeFilePathsBinary();
 
-    void Deserialize();
-    void DeserializeBinary();
+    bool DeserializeFilePaths(std::vector<Memory::DevString>& materialPaths);
+    void DeserializeFilePathsBinary();
 
     bool LoadResource(const Memory::DevString& filePath, Resource* resource, ResourceRef& resourceRef);
 

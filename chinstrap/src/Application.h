@@ -20,6 +20,8 @@ namespace Chinstrap::Application
         inline static std::string* programPath;
         inline static std::size_t programPathRootIndex;
 
+        inline static std::string appName;
+
         /**
          * Use for random strings needed at runtime
          * TODO: How exactly can we avoid growing this thing a lot?
@@ -34,10 +36,7 @@ namespace Chinstrap::Application
         // Set the expected stackSize to avoid memory fragmentation
         explicit App(uint8_t sceneStackSize);
 
-        /**
-         * @param appName must match up with folder to app-files like: "app/resources.txt" ==> appName == "app"
-         */
-        int Init(const std::string& appName);
+        int Init();
         void Run(const Display::WindowSpec& windowSpec);
         void Stop();
 

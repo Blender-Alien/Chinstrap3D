@@ -116,8 +116,7 @@ StringMap::InsertRet StringMap::Insert(DevString& string_arg, const std::string_
     return std::nullopt;
 }
 
-#ifndef CHIN_SHIPPING_BUILD
-bool StringMap::GrowBy(uint32_t byNumberOfElements_arg, std::optional<uint32_t> avgStringLengthHint_arg)
+bool StringMap::GrowBy(const uint32_t byNumberOfElements_arg, std::optional<uint32_t> avgStringLengthHint_arg)
 {
     assert(byNumberOfElements_arg != 0);
 
@@ -126,12 +125,14 @@ bool StringMap::GrowBy(uint32_t byNumberOfElements_arg, std::optional<uint32_t> 
     StackAllocator newValueStack;
     if (avgStringLengthHint_arg.has_value())
     {
-        newValueStack.Setup((byNumberOfElements_arg + keyArray.capacity()) * sizeof(char[avgStringLengthHint_arg.value()]));
+        const uint64_t growSize = valueStack.stackSizeInBytes + (sizeof(char[avgStringLengthHint_arg.value()]) * byNumberOfElements_arg);
+        assert(growSize + valueStack.stackSizeInBytes);
+        newValueStack.Setup(growSize);
     }
     else
     {
-        // Guess the average string size as 64 Characters to allocate ample space
-        newValueStack.Setup((byNumberOfElements_arg + keyArray.capacity()) * sizeof(char[64]));
+        const uint32_t previousElementValueSize = valueStack.stackSizeInBytes / (keyArray.capacity() - byNumberOfElements_arg);
+        newValueStack.Setup(valueStack.stackSizeInBytes + (byNumberOfElements_arg * previousElementValueSize));
     }
 
     for (auto& keyIndex : keyArray)
@@ -153,7 +154,6 @@ bool StringMap::GrowBy(uint32_t byNumberOfElements_arg, std::optional<uint32_t> 
 
     return true;
 }
-#endif
 
 std::optional<std::string_view> StringMap::Iterate(uint32_t index) const
 {
