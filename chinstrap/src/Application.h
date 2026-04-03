@@ -4,6 +4,7 @@
 #include "resourcer/ResourceManager.h"
 #include "Window.h"
 #include "ops/Logging.h"
+#include "UserSettings.h"
 
 namespace Chinstrap {struct Scene;}
 
@@ -17,14 +18,13 @@ namespace Chinstrap::Application
 
         Resourcer::ResourceManager resourceManager;
 
+        // These things can be static because they are independent of any program state
         inline static std::string* programPath;
         inline static std::size_t programPathRootIndex;
-
         inline static std::string appName;
 
         /**
          * Use for random strings needed at runtime
-         * TODO: How exactly can we avoid growing this thing a lot?
          */
         Memory::StringMap devStrings;
 
@@ -33,14 +33,13 @@ namespace Chinstrap::Application
 
         App(App const&)  = delete;
         App(App const&&) = delete;
-        // Set the expected stackSize to avoid memory fragmentation
+        // Set the expected stackSize
         explicit App(uint8_t sceneStackSize);
 
         int Init();
         void Run(const Display::WindowSpec& windowSpec);
         void Stop();
 
-        // Enforce that the container itself should not be changed in any way after initialization
         static const auto& GetSceneStack()
         {
             return Get().sceneStack;

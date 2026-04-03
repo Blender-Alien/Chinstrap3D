@@ -1,9 +1,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
 
-#include "events/InputEvents.h"
 #include "Window.h"
-#include "events/WindowEvents.h"
 #include "rendering/VulkanFunctions.h"
 
 Chinstrap::Display::Window::Window()
@@ -65,15 +63,15 @@ void Chinstrap::Display::Window::Create(const WindowSpec &windowSpec_arg, UserSe
         Window &window = *static_cast<Window *>(glfwGetWindowUserPointer(handle));
         window.vulkanContext.swapChainInadequate = true;
 
-        WindowResizedEvent event(width, height);
-        window.EventPassthrough(event);
+        Event event(EventType::WindowResize, {width, height});
+        window.eventPassthrough(event);
     });
     glfwSetWindowCloseCallback(glfwWindow, [](GLFWwindow *handle)
     {
         const Window &window = *static_cast<Window *>(glfwGetWindowUserPointer(handle));
 
-        WindowClosedEvent event;
-        window.EventPassthrough(event);
+        Event event(EventType::WindowClose, {});
+        window.eventPassthrough(event);
     });
     glfwSetKeyCallback(glfwWindow, [](GLFWwindow *handle, int key, int scancode, int action, int mods)
     {
@@ -84,19 +82,26 @@ void Chinstrap::Display::Window::Create(const WindowSpec &windowSpec_arg, UserSe
             case GLFW_PRESS:
             case GLFW_REPEAT:
             {
-                KeyPressedEvent event(key, action == GLFW_REPEAT);
-                window.EventPassthrough(event);
+                Event event(EventType::KeyPressed, {key, action == GLFW_REPEAT});
+                window.eventPassthrough(event);
                 break;
             }
             case GLFW_RELEASE:
             {
-                KeyReleasedEvent event(key);
-                window.EventPassthrough(event);
+                Event event(EventType::KeyReleased, {key});
+                window.eventPassthrough(event);
                 break;
             }
             default:
                 assert(false);
         }
+    });
+    glfwSetMouseButtonCallback(glfwWindow, [](GLFWwindow* handle, int button, int action, int mods)
+    {
+        const Window &window = *static_cast<Window *>(glfwGetWindowUserPointer(handle));
+
+        Event event(EventType::MouseButtonPressed, {button});
+        window.eventPassthrough(event);
     });
 
     renderContext.Create(&vulkanContext, this, &graphicsSettings_arg, &sceneStack_arg);

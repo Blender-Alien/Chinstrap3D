@@ -2,7 +2,6 @@
 
 #include "TestMenuScene.h"
 
-#include "../../chinstrap/src/events/InputEvents.h"
 #include "chinstrap/src/ops/Logging.h"
 #include "chinstrap/src/rendering/VulkanFunctions.h"
 #include "chinstrap/src/resourcer/ResourceRef.h"
@@ -222,19 +221,19 @@ void Game::TestGLScene::OnRender(uint32_t currentFrame)
                              VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 }
 
-bool Game::TestGLScene::OnKeyPress(const Chinstrap::KeyPressedEvent& event)
+bool OnKeyPress(const Chinstrap::Event& event, std::optional<Game::TestGLScene*> scene)
 {
-    switch (event.keyCode)
+    switch (event.eventData.KeyPressed.keyCode)
     {
     case GLFW_KEY_HOME:
-        if (!event.repeat)
+        if (!event.eventData.KeyPressed.repeat)
         {
-            QueueChangeToScene<TestMenuScene>();
+            scene.value()->QueueChangeToScene<Game::TestMenuScene>();
             return true;
         }
 
     case GLFW_KEY_1:
-        if (!event.repeat)
+        if (!event.eventData.KeyPressed.repeat)
         {
             CHIN_LOG_INFO("We're in the TestGLScene!!");
             return false;
@@ -245,8 +244,19 @@ bool Game::TestGLScene::OnKeyPress(const Chinstrap::KeyPressedEvent& event)
     }
 }
 
+bool OnMouseClick(const Chinstrap::Event& event)
+{
+    CHIN_LOG_WARN("\n"
+                  "(\\___/)\n"
+                  " \\* */\n"
+                  "  \\ /\n"
+                  "   ¤\n");
+    return false;
+}
+
 void Game::TestGLScene::OnEvent(Chinstrap::Event& event)
 {
-    Chinstrap::EventDispatcher::Dispatch<Chinstrap::KeyPressedEvent>(
-        event, [this](Chinstrap::KeyPressedEvent& dispatchedEvent) { return OnKeyPress(dispatchedEvent); });
+    Chinstrap::DispatchEvent<TestGLScene>(Chinstrap::EventType::KeyPressed, event, OnKeyPress, this);
+
+    Chinstrap::DispatchEventNoContext(Chinstrap::EventType::MouseButtonPressed, event, OnMouseClick);
 }

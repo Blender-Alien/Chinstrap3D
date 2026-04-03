@@ -2,7 +2,6 @@
 #include "events/Event.h"
 #include "rendering/VulkanData.h"
 #include "rendering/Renderer.h"
-#include "UserSettings.h"
 
 #include <functional>
 
@@ -28,7 +27,7 @@ namespace Chinstrap::Display
 
     struct Window
     {
-        std::function<void(Event&)> EventPassthrough;
+        void(*eventPassthrough)(Event& event);
 
         GLFWwindow *glfwWindow = nullptr;
         ChinVulkan::VulkanContext vulkanContext;

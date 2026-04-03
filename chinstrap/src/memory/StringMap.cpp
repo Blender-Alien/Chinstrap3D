@@ -251,8 +251,7 @@ void StringMap::InsertionSortKeyArray()
         while (j > 0 && keyArray.at(j-1).value().hashID > keyArray.at(j).value().hashID)
         {
             std::swap(keyArray.at(j).value(), keyArray.at(j-1).value());
-            --j
-            ;
+            --j;
         }
     }
 }
@@ -275,8 +274,6 @@ void StringMap::Setup(uint32_t numberOfElements, uint32_t totalValuesSize)
 
 void StringMap::Cleanup()
 {
-    // TODO: Serialize numberOfElements and totalValueSize for next run
-
     valueStack.Cleanup();
     keyArray.clear();
 

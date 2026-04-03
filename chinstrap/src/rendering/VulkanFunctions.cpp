@@ -8,7 +8,7 @@
 #include "Renderer.h"
 #include "VulkanData.h"
 #include "../ops/Logging.h"
-#include "../Window.h"
+#include "../UserSettings.h"
 
 #include <set>
 #include <limits>

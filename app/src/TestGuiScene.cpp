@@ -1,6 +1,5 @@
 #include "TestGuiScene.h"
 
-#include "../../chinstrap/src/events/InputEvents.h"
 #include "../../chinstrap/src/ops/DevInterface.h"
 
 #include "chinstrap/src/rendering/VulkanFunctions.h"
@@ -31,16 +30,6 @@ void Game::TestGUIScene::OnRender(uint32_t currentFrame)
     ChinVulkan::ExampleRecordDevInterfaceCommandBuffer(standardCmdBufferArray[currentFrame], Application::App::GetVulkanContext());
 }
 
-bool Game::TestGUIScene::OnKeyPress(const Chinstrap::KeyPressedEvent &event)
-{
-    switch (event.keyCode)
-    {
-        default:
-            return false;
-    }
-}
-
 void Game::TestGUIScene::OnEvent(Chinstrap::Event &event)
 {
-    Chinstrap::EventDispatcher::Dispatch<Chinstrap::KeyPressedEvent>(event, [this](Chinstrap::KeyPressedEvent &dispatchedEvent) { return OnKeyPress(dispatchedEvent); });
 }

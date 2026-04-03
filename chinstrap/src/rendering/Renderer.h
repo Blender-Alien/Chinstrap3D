@@ -15,6 +15,11 @@ namespace Chinstrap::UserSettings { struct GraphicsSettings;}
 
 namespace Chinstrap::Renderer
 {
+    // Note: This struct is so big in size because StackArray stores all relevant stuff on the stack,
+    // and this all accumulates. If it is required that structs like this be much smaller, we could
+    // consider rewriting our Memory datastructures to store some of our extra context data on the heap
+    // directly next to the actual data.
+
     struct RenderContext
     {
         static uint32_t imageIndex;

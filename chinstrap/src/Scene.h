@@ -1,7 +1,6 @@
 #pragma once
 
 #include "events/Event.h"
-#include "events/InputEvents.h"
 
 #include "Application.h"
 
@@ -36,7 +35,6 @@ namespace Chinstrap {
         virtual void OnRender(uint32_t currentFrame) {}
 
         virtual void OnEvent(Event& event) {}
-        virtual bool OnKeyPress(const Chinstrap::KeyPressedEvent &event) {return false;}
 
         template<typename TScene>
         void QueueChangeToScene()

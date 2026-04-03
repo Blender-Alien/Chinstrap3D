@@ -27,7 +27,7 @@ namespace
         for (unsigned int i = Application::App::GetSceneStack().size(); i > 0; i--)
         {
             Application::App::GetSceneStack()[i-1]->OnEvent(event);
-            if (event.IsHandled())
+            if (event.handled)
                 return;
         }
     }
@@ -129,7 +129,7 @@ void Application::App::Run(const Display::WindowSpec &windowSpec)
     running = true;
 
     window.Create(windowSpec, graphicsSettings, sceneStack);
-    window.EventPassthrough = [](Event& event){ ForwardEvents(event); };
+    window.eventPassthrough = ForwardEvents;
 
     double timeAtPreviousFrame = glfwGetTime(), timeAtPreviousSecond = glfwGetTime();
     double currentTime = 0.0f;

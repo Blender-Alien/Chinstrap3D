@@ -35,8 +35,7 @@ namespace Game
         void OnRender(uint32_t currentFrame) override;
 
         void OnEvent(Chinstrap::Event &event) override;
-
-        bool OnKeyPress(const Chinstrap::KeyPressedEvent &event) override;
+        //bool OnKeyPress(const Chinstrap::Event& event);
 
         [[nodiscard]] std::string GetName() const override { return "TestGLScene"; }
     };
