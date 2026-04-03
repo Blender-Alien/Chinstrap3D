@@ -58,19 +58,25 @@ void Chinstrap::Display::Window::Create(const WindowSpec &windowSpec_arg, UserSe
 
     /* Set all the event callbacks */
 
-    glfwSetFramebufferSizeCallback(glfwWindow,[](GLFWwindow* handle, int width, int height)
-    {
-        Window &window = *static_cast<Window *>(glfwGetWindowUserPointer(handle));
-        window.vulkanContext.swapChainInadequate = true;
-
-        Event event(EventType::WindowResize, {width, height});
-        window.eventPassthrough(event);
-    });
     glfwSetWindowCloseCallback(glfwWindow, [](GLFWwindow *handle)
     {
         const Window &window = *static_cast<Window *>(glfwGetWindowUserPointer(handle));
 
-        Event event(EventType::WindowClose, {});
+        auto data = Event::EventDataUnion();
+
+        Event event(EventType::WindowClose, data);
+        window.eventPassthrough(event);
+    });
+    glfwSetWindowSizeCallback(glfwWindow,[](GLFWwindow* handle, int width, int height)
+    {
+        Window &window = *static_cast<Window *>(glfwGetWindowUserPointer(handle));
+        window.vulkanContext.swapChainInadequate = true;
+
+        auto data = Event::EventDataUnion();
+        data.WindowResized.width = width;
+        data.WindowResized.height = height;
+
+        Event event(EventType::WindowResize, data);
         window.eventPassthrough(event);
     });
     glfwSetKeyCallback(glfwWindow, [](GLFWwindow *handle, int key, int scancode, int action, int mods)
@@ -82,13 +88,19 @@ void Chinstrap::Display::Window::Create(const WindowSpec &windowSpec_arg, UserSe
             case GLFW_PRESS:
             case GLFW_REPEAT:
             {
-                Event event(EventType::KeyPressed, {key, action == GLFW_REPEAT});
+                auto data = Event::EventDataUnion();
+                data.KeyPressed.keyCode = key;
+                data.KeyPressed.repeat = GLFW_REPEAT;
+
+                Event event(EventType::KeyPressed, data);
                 window.eventPassthrough(event);
                 break;
             }
             case GLFW_RELEASE:
             {
-                Event event(EventType::KeyReleased, {key});
+                auto data = Event::EventDataUnion();
+                data.KeyReleased.keyCode = key;
+                Event event(EventType::KeyReleased, data);
                 window.eventPassthrough(event);
                 break;
             }
@@ -100,7 +112,49 @@ void Chinstrap::Display::Window::Create(const WindowSpec &windowSpec_arg, UserSe
     {
         const Window &window = *static_cast<Window *>(glfwGetWindowUserPointer(handle));
 
-        Event event(EventType::MouseButtonPressed, {button});
+        switch (action)
+        {
+        case GLFW_PRESS:
+            {
+                auto data = Event::EventDataUnion();
+                data.MouseButtonPressed.mouseButton = button;
+
+                Event event(EventType::MouseButtonPressed, data);
+                window.eventPassthrough(event);
+                break;
+            }
+        case GLFW_RELEASE:
+            {
+                auto data = Event::EventDataUnion();
+                data.MouseButtonReleased.mouseButton = button;
+
+                Event event(EventType::MouseButtonReleased, data);
+                window.eventPassthrough(event);
+                break;
+            }
+        default:
+            assert(false);
+        }
+    });
+    glfwSetCursorPosCallback(glfwWindow,[](GLFWwindow* handle, double moveX, double moveY)
+    {
+        Window &window = *static_cast<Window *>(glfwGetWindowUserPointer(handle));
+
+        auto data = Event::EventDataUnion();
+        data.MouseMoved.mouseX = moveX;
+        data.MouseMoved.mouseY = moveY;
+
+        Event event(EventType::MouseMoved, data);
+        window.eventPassthrough(event);
+    });
+    glfwSetScrollCallback(glfwWindow, [](GLFWwindow* handle, double offsetX, double offsetY)
+    {
+        Window &window = *static_cast<Window *>(glfwGetWindowUserPointer(handle));
+
+        auto data = Event::EventDataUnion();
+        data.MouseScrolled.mouseOffsetY = offsetY;
+
+        Event event(EventType::MouseScrolled, data);
         window.eventPassthrough(event);
     });
 

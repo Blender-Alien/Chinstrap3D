@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-#include <optional>
 
 namespace Chinstrap { struct Scene; }
 
@@ -27,8 +26,8 @@ namespace Chinstrap
             struct { int keyCode; } KeyReleased;
             struct { int mouseButton; } MouseButtonPressed;
             struct { int mouseButton; } MouseButtonReleased;
-            struct { int mouseX; int mouseY; } MouseMoved;
-            struct { int mouseOffsetY; } MouseScrolled;
+            struct { double mouseX; double mouseY; } MouseMoved;
+            struct { double mouseOffsetY; } MouseScrolled;
         } EventDataUnion;
 
         EventDataUnion eventData;
@@ -38,34 +37,9 @@ namespace Chinstrap
         // This is expensive, so should only be used for logging and such.
         [[nodiscard]] std::string ToString() const;
 
-        explicit Event(const EventType type_arg, const EventDataUnion eventData_arg)
+        explicit Event(const EventType type_arg, const EventDataUnion& eventData_arg)
             : eventData(eventData_arg), type(type_arg), handled(false) {}
     };
-
-    template<typename Context>
-    void DispatchEvent(EventType type, Event& event,
-        bool(*lambda)(const Event& event, std::optional<Context*> context),
-        std::optional<Context*> context)
-    {
-        if (type == event.type)
-        {
-            if (lambda(event, context))
-            {
-                event.handled = true;
-            }
-        }
-    }
-
-    inline void DispatchEventNoContext(EventType type, Event& event, bool(*lambda)(const Event& event))
-    {
-        if (type == event.type)
-        {
-            if (lambda(event))
-            {
-                event.handled = true;
-            }
-        }
-    }
 
     inline std::string Event::ToString() const
     {
@@ -75,8 +49,8 @@ namespace Chinstrap
             return "Closing window";
         case EventType::WindowResize:
             return "Window resizing: " +
-                std::to_string(eventData.WindowResized.height) + "x" +
-                std::to_string(eventData.WindowResized.width);
+                std::to_string(eventData.WindowResized.width) + "x" +
+                std::to_string(eventData.WindowResized.height);
         case EventType::KeyPressed:
             return "Key pressed: " +
                 std::to_string(eventData.KeyPressed.keyCode) + " repeated: " +

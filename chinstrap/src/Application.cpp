@@ -23,7 +23,17 @@ namespace
 
     void ForwardEvents(Event &event)
     {
-        CHIN_LOG_INFO(event.ToString());
+        // Not all event types are worthy of printing out by default
+        // TODO: We could control this via config.chin
+        switch (event.type)
+        {
+        case EventType::MouseMoved:
+        case EventType::MouseScrolled:
+            break;
+        default:
+            CHIN_LOG_INFO(event.ToString());
+        }
+
         for (unsigned int i = Application::App::GetSceneStack().size(); i > 0; i--)
         {
             Application::App::GetSceneStack()[i-1]->OnEvent(event);

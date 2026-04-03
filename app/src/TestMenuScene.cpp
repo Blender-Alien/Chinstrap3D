@@ -109,6 +109,33 @@ void Game::TestMenuScene::OnRender(uint32_t currentFrame)
     ChinVulkan::EndRendering(standardCmdBufferArray[currentFrame], Application::App::GetVulkanContext(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 }
 
+void Game::TestMenuScene::OnKeyPress(Chinstrap::Event& event)
+{
+    switch (event.eventData.KeyPressed.keyCode)
+    {
+    case GLFW_KEY_HOME:
+        if (!event.eventData.KeyPressed.repeat)
+        {
+            QueueChangeToScene<TestGLScene>();
+            event.handled = true;
+        }
+
+    case GLFW_KEY_1:
+        if (!event.eventData.KeyPressed.repeat)
+        {
+            CHIN_LOG_INFO("We're in the TestGLScene!!");
+        }
+    default: ;
+    }
+}
+
 void Game::TestMenuScene::OnEvent(Chinstrap::Event &event)
 {
+    switch (event.type)
+    {
+    case Chinstrap::EventType::KeyPressed:
+        OnKeyPress(event);
+        break;
+    default: ;
+    }
 }

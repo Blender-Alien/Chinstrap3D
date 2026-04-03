@@ -221,42 +221,46 @@ void Game::TestGLScene::OnRender(uint32_t currentFrame)
                              VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 }
 
-bool OnKeyPress(const Chinstrap::Event& event, std::optional<Game::TestGLScene*> scene)
+void Game::TestGLScene::OnKeyPress(Chinstrap::Event& event)
 {
     switch (event.eventData.KeyPressed.keyCode)
     {
     case GLFW_KEY_HOME:
         if (!event.eventData.KeyPressed.repeat)
         {
-            scene.value()->QueueChangeToScene<Game::TestMenuScene>();
-            return true;
+            QueueChangeToScene<TestMenuScene>();
+            event.handled = true;
         }
 
     case GLFW_KEY_1:
         if (!event.eventData.KeyPressed.repeat)
         {
             CHIN_LOG_INFO("We're in the TestGLScene!!");
-            return false;
         }
-
-    default:
-        return false;
+    default: ;
     }
 }
 
 bool OnMouseClick(const Chinstrap::Event& event)
 {
-    CHIN_LOG_WARN("\n"
+    CHIN_LOG_WARN("RATTUS\n"
                   "(\\___/)\n"
                   " \\* */\n"
                   "  \\ /\n"
                   "   ¤\n");
-    return false;
+    return true;
 }
 
 void Game::TestGLScene::OnEvent(Chinstrap::Event& event)
 {
-    Chinstrap::DispatchEvent<TestGLScene>(Chinstrap::EventType::KeyPressed, event, OnKeyPress, this);
-
-    Chinstrap::DispatchEventNoContext(Chinstrap::EventType::MouseButtonPressed, event, OnMouseClick);
+    switch (event.type)
+    {
+    case Chinstrap::EventType::KeyPressed:
+        OnKeyPress(event);
+        break;
+    case Chinstrap::EventType::MouseButtonPressed:
+        OnMouseClick(event);
+        break;
+    default: ;
+    }
 }

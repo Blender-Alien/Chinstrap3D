@@ -3,8 +3,6 @@
 #include "rendering/VulkanData.h"
 #include "rendering/Renderer.h"
 
-#include <functional>
-
 class GLFWwindow;
 class GLFWmonitor;
 
