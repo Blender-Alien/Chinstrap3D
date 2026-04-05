@@ -1,1 +1,6 @@
 app #applicationName
+
+info #loggingLevel
+warn #loggingFlushLevel
+3 #loggingFlushInterval
+chinlog/app/ #loggingPath

@@ -104,6 +104,7 @@ bool ResourceManager::DeleteResource(const Memory::DevString& virtualFilePath, R
 
     UnloadResource(resource->resourceID, resourceType, this);
 
+    CHIN_LOG_INFO("Resource {} was deleted", filePathMap.Lookup(virtualFilePath).value());
     resource->resourceDeleted = true;
     return true;
 }
@@ -128,6 +129,7 @@ bool ResourceManager::LoadResource(const Memory::DevString& filePath, Resource* 
             {
                 CHIN_LOG_ERROR("Failed to load material: {}", OSPath.get());
             }
+            CHIN_LOG_INFO("Successfully loaded material: {}", OSPath.get());
             resource->pResource = reinterpret_cast<std::byte*>(memory);
             break;
         }
@@ -184,7 +186,7 @@ void ResourceManager::SerializeFilePathsBinary()
 
 bool ResourceManager::DeserializeFilePaths(std::vector<Memory::DevString>& materialPaths)
 {
-    std::string resourceListPath = Application::App::appName + "/resources.chin";
+    std::string resourceListPath = Application::App::config.appName + "/resources.chin";
     auto OSResourceListPath = Memory::ConvertToOSPath(resourceListPath);
 
     std::ifstream fileStream(OSResourceListPath.get());

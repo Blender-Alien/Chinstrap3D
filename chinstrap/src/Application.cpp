@@ -41,6 +41,129 @@ namespace
                 return;
         }
     }
+
+    void FindProgramPath()
+    { // We need to know where our application is in the Operating system filesystem,
+        // and we can precalculate the index of our root index in that string.
+#if __linux__
+        char result[PATH_MAX];
+        const auto count = readlink("/proc/self/exe", result, PATH_MAX);
+        Application::App::config.programPath = new std::string(result, (count > 0) ? count : 0);
+        constexpr char slash = '/';
+#elif _WIN64
+        char result[MAX_PATH];
+        programPath = new std::string(result, GetModuleFileName(NULL, result, MAX_PATH));
+        constexpr char slash = '\\';
+#endif
+        std::vector<std::size_t> slashPositions;
+            { // Find all slashes
+            slashPositions.reserve(8); // Guess an initial number to avoid reallocations
+            std::size_t position = 0;
+
+            while ((position = Application::App::config.programPath->find(slash, position)) != std::string::npos)
+            {
+                slashPositions.push_back(position);
+                ++position;
+            }
+            }
+        Application::App::config.programPathRootIndex = slashPositions.at(slashPositions.size() - 4) + 1;
+    }
+
+    bool ParseEngineConfig()
+    {
+
+        auto path = "config.chin"; // We expect this in the project root
+        std::ifstream fileStream(Memory::ConvertToOSPath(path).get());
+        if (!fileStream.is_open())
+        {
+            return false;
+        }
+
+        std::string line;
+        while (std::getline(fileStream, line))
+        {
+            if (auto index = line.find(" #applicationName"); index != SIZE_MAX)
+            {
+                Application::App::config.appName = std::move(line.substr(0, index));
+                continue;
+            }
+            if (auto index = line.find(" #loggingPath"); index != SIZE_MAX)
+            {
+                Application::App::config.loggingPath = std::move(line.substr(0, index));
+                continue;
+            }
+            if (auto index = line.find(" #loggingLevel"); index != SIZE_MAX)
+            {
+                const std::string value = std::move(line.substr(0, index));
+                if (value == "warn")
+                    spdlog::set_level(spdlog::level::warn);
+                else if (value == "err")
+                    spdlog::set_level(spdlog::level::err);
+                else if (value == "critical")
+                    spdlog::set_level(spdlog::level::critical);
+                // Automatic default used by spdlog is "info"
+                continue;
+            }
+            if (auto index = line.find(" #loggingFlushInterval"); index != SIZE_MAX)
+            {
+                Application::App::config.loggingFlushInterval =
+                    std::chrono::seconds(std::stoi(line.substr(0, index)));
+                continue;
+            }
+#ifndef CHIN_SHIPPING_BUILD
+            if (auto index = line.find(" #loggingFlushLevel"); index != SIZE_MAX)
+            {
+                spdlog::level::level_enum level;
+
+                const std::string value = std::move(line.substr(0, index));
+                if (value == "info")
+                    level = spdlog::level::info;
+                else if (value == "warn")
+                    level = spdlog::level::warn;
+                else if (value == "err")
+                    level = spdlog::level::err;
+                else if (value == "critical")
+                    level = spdlog::level::critical;
+                else
+                    continue;
+
+                Application::App::config.loggingFlushLevel = level;
+                continue;
+            }
+#endif
+        }
+
+        if (Application::App::config.appName.empty()
+            || Application::App::config.loggingPath.empty())
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    void SetupLogging()
+    {
+        fileLogger = spdlog::basic_logger_mt("chinlog", Memory::ConvertToOSPath(Application::App::config.loggingPath + "chinlog.txt").get());
+
+        /* In a shipping build we don't need constant flushing, and especially not the performance impact of doing so!
+         * Instead, we can rely on flush_on which will give us everything as soon as anything interesting happens.
+         * That way, we still get a log with warnings, errors and criticals when we didn't exit the program normally,
+         * without constantly preemptively writing info logs, while still getting info logs at the end of a normal run!
+         */
+#ifndef CHIN_SHIPPING_BUILD
+        spdlog::flush_every(Application::App::config.loggingFlushInterval);
+#endif
+        fileLogger->flush_on(Application::App::config.loggingFlushLevel);
+
+        {
+            const auto level = spdlog::get_level();
+            spdlog::set_level(spdlog::level::info);
+            fileLogger.get()->info("Chinstrap App Initialization");
+            spdlog::set_level(level);
+        }
+    }
+
 }
 
 namespace Chinstrap::Application
@@ -60,7 +183,7 @@ namespace Chinstrap::Application
     }
 }
 
-int Application::App::Init()
+bool Application::App::Init()
 {
     assert(!pAppInstance); // Have we already initialized?
     pAppInstance = this;
@@ -74,62 +197,28 @@ int Application::App::Init()
 
     if (!glfwInit())
     {
-        return -1;
+        return false;
     }
 
-    { // We need to know where our application is in the Operating system filesystem,
-      // and we can precalculate the index of our root index in that string.
-#if __linux__
-        char result[PATH_MAX];
-        const auto count = readlink("/proc/self/exe", result, PATH_MAX);
-        programPath = new std::string(result, (count > 0) ? count : 0);
-        constexpr char slash = '/';
-#elif _WIN64
-        char result[MAX_PATH];
-        programPath = new std::string(result, GetModuleFileName(NULL, result, MAX_PATH));
-        constexpr char slash = '\\';
-#endif
-        std::vector<std::size_t> slashPositions;
-        { // Find all slashes
-            slashPositions.reserve(8); // Guess an initial number to avoid reallocations
-            std::size_t position = 0;
-
-            while ((position = programPath->find(slash, position)) != std::string::npos)
-            {
-                slashPositions.push_back(position);
-                ++position;
-            }
-        }
-        programPathRootIndex = slashPositions.at(slashPositions.size() - 4) + 1;
+    FindProgramPath();
+    if (!ParseEngineConfig())
+    { // We cannot set up our normal logging when we have failed parsing the config, so we have to do this manually
+        // TODO: We can extend this to include info about what went wrong.
+        const auto logger =
+            spdlog::basic_logger_st("fail_logger", Memory::ConvertToOSPath("fail_log.txt").get());
+        logger->info("Attempted to startup chinstrap.");
+        logger->critical("Failed to parse config.chin!");
+        return false;
     }
-
-    { // Parse config.chin
-
-        auto path = "config.chin"; // We expect this in the project root
-        std::ifstream fileStream(Memory::ConvertToOSPath(path).get());
-        if (!fileStream.is_open())
-        {
-            return -1;
-        }
-
-        std::string line;
-        while (std::getline(fileStream, line))
-        {
-            if (auto index = line.find(" #applicationName"))
-            {
-                appName = std::move(line.substr(0, index));
-            }
-        }
-    }
+    SetupLogging();
 
     // TODO: Maybe we can serialize the previous usage during runtime and take that as a starting point
-    //       We could use config.chin for that
     devStrings.Setup(16, 256);
     devStrings.EndSetup();
 
-    resourceManager.Setup(appName);
+    resourceManager.Setup(config.appName);
 
-    return 0;
+    return true;
 }
 
 void Application::App::Run(const Display::WindowSpec &windowSpec)
@@ -262,6 +351,6 @@ void Application::App::Cleanup()
     }
     resourceManager.Cleanup();
     window.Destroy();
-    delete programPath;
+    delete config.programPath;
     devStrings.Cleanup();
 }

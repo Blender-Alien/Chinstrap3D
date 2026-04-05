@@ -2,6 +2,9 @@ bin/
 .cache/
 .idea/
 
+chinlog/app/*
+fail_log.txt
+
 CMakeUserPresets.json
 **/CMakeCache.txt
 **/CMakeUserPresets.json

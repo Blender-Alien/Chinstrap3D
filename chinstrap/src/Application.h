@@ -10,18 +10,31 @@ namespace Chinstrap {struct Scene;}
 
 namespace Chinstrap::Application
 {
+    /**
+     * This gets filled directly at app initialization via parsing "config.chin".
+     * If a member is not std::optional, it is guaranteed to have a valid value.
+     */
+    struct ChinConfig
+    {
+        std::string* programPath = nullptr;
+        std::size_t programPathRootIndex = 0;
+        std::string appName;
+
+        std::string loggingPath;
+        std::chrono::seconds loggingFlushInterval = std::chrono::seconds(3);
+        spdlog::level::level_enum loggingFlushLevel = spdlog::level::warn;
+    };
+
     struct App
     {
+        // Config can be static because values are independent of any program state
+        inline static ChinConfig config;
+
         // Single object to handle a window and vulkanContext
         Display::Window window;
         UserSettings::GraphicsSettings graphicsSettings;
 
         Resourcer::ResourceManager resourceManager;
-
-        // These things can be static because they are independent of any program state
-        inline static std::string* programPath;
-        inline static std::size_t programPathRootIndex;
-        inline static std::string appName;
 
         /**
          * Use for random strings needed at runtime
@@ -36,7 +49,7 @@ namespace Chinstrap::Application
         // Set the expected stackSize
         explicit App(uint8_t sceneStackSize);
 
-        int Init();
+        bool Init();
         void Run(const Display::WindowSpec& windowSpec);
         void Stop();
 

@@ -9,9 +9,9 @@
 std::unique_ptr<char> Chinstrap::Memory::ConvertToOSPath(const std::string_view& virtualFilePath)
 {
     using namespace Chinstrap::Application;
-    assert(App::programPath != nullptr);
+    assert(App::config.programPath != nullptr);
 
-    char* OSPath = new char[App::programPathRootIndex + virtualFilePath.length() + 1]; // + 1 for '\0'
+    char* OSPath = new char[App::config.programPathRootIndex + virtualFilePath.length() + 1]; // + 1 for '\0'
 
     // On linux our full path looks something like this:
     // "/home/username/projects/chinstrap3d/app/res/shaders/Basic.frag"
@@ -28,9 +28,9 @@ std::unique_ptr<char> Chinstrap::Memory::ConvertToOSPath(const std::string_view&
     // We know that we're using Ninja Multi Config so our binary is going to be here:
     // "MyGameRepo/bin/MyGame/Release/MyGame", so we just need to go back 4 directories.
 
-    strncpy(OSPath, App::programPath->data(), App::programPathRootIndex);
+    strncpy(OSPath, App::config.programPath->data(), App::config.programPathRootIndex);
 
-    strcpy(&OSPath[App::programPathRootIndex], virtualFilePath.data());
+    strcpy(&OSPath[App::config.programPathRootIndex], virtualFilePath.data());
 
     std::unique_ptr<char> ptr(OSPath);
 
