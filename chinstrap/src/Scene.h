@@ -2,9 +2,8 @@
 
 #include "events/Event.h"
 
-#include "Application.h"
-
-namespace Chinstrap::Application {struct App;}
+#include <vulkan/vulkan_core.h>
+#define GLFW_INCLUDE_VULKAN
 
 namespace Chinstrap::Resourcer {struct ResourceManager;}
 
@@ -39,7 +38,7 @@ namespace Chinstrap {
         template<typename TScene>
         void QueueChangeToScene()
         {
-            assert(CreateQueued == nullptr);
+            ENSURE_OR_RETURN((CreateQueued != nullptr));
             CreateQueued = [](Resourcer::ResourceManager* pResourceManager)
             {
                 return std::move(std::make_unique<TScene>(pResourceManager));

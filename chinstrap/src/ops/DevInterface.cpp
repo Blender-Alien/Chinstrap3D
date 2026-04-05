@@ -98,7 +98,7 @@ void Chinstrap::DevInterface::Initialize(float fontSize)
     ChinVulkan::VulkanContext& context = frame.vulkanContext;
     if (vkCreateDescriptorPool(context.virtualGPU, &poolInfo, nullptr, &context.imguiPool) != VK_SUCCESS)
     {
-        assert(false);
+        CHIN_LOG_ERROR("DevInterface: failed to initialize VkDescriptorPool!");
     }
 
     IMGUI_CHECKVERSION();

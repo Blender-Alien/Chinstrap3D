@@ -169,13 +169,13 @@ namespace Chinstrap::ChinVulkan
 
 bool Chinstrap::ChinVulkan::Initialize(VulkanContext& vulkanContext, GLFWwindow* glfwWindow, UserSettings::GraphicsSettings &graphicsSettings, std::string_view title)
 {
-    if (!CreateContext(vulkanContext, title)) { return false;}
-    if (!CreateSurface(vulkanContext, glfwWindow)) { return false; }
-    if (!AutoPickPhysicalGPU(vulkanContext)) { return false; }
-    if (!CreateVirtualGPU(vulkanContext)) { return false; }
-    if (!CreateVMA(vulkanContext)) { return false; }
-    if (!CreateSwapChain(vulkanContext, glfwWindow, graphicsSettings)) { return false; }
-    if (!CreateDefaultImageViews(vulkanContext)) { return false; }
+    ENSURE_OR_RETURN_FALSE(CreateContext(vulkanContext, title));
+    ENSURE_OR_RETURN_FALSE(CreateSurface(vulkanContext, glfwWindow));
+    ENSURE_OR_RETURN_FALSE(AutoPickPhysicalGPU(vulkanContext));
+    ENSURE_OR_RETURN_FALSE(CreateVirtualGPU(vulkanContext));
+    ENSURE_OR_RETURN_FALSE(CreateVMA(vulkanContext));
+    ENSURE_OR_RETURN_FALSE(CreateSwapChain(vulkanContext, glfwWindow, graphicsSettings));
+    ENSURE_OR_RETURN_FALSE(CreateDefaultImageViews(vulkanContext));
 
     return true;
 }

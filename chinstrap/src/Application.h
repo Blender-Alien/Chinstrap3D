@@ -37,15 +37,15 @@ namespace Chinstrap::Application
         Resourcer::ResourceManager resourceManager;
 
         /**
-         * Use for random strings needed at runtime
+         * Used for interning strings
          */
         Memory::StringMap devStrings;
 
         inline static uint32_t framerate = 0;
         bool running;
 
+        App(App&&) = delete;
         App(App const&)  = delete;
-        App(App const&&) = delete;
         // Set the expected stackSize
         explicit App(uint8_t sceneStackSize);
 

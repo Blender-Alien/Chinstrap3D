@@ -3,7 +3,6 @@
 #include "chinstrap/src/memory/StackArray.h"
 #include "chinstrap/src/memory/StackAllocator.h"
 #include "chinstrap/src/memory/MemoryPool.h"
-#include "chinstrap/src/memory/StringMap.h"
 
 void TestStackArray2D()
 {

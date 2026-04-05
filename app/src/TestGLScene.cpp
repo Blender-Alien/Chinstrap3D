@@ -5,6 +5,7 @@
 #include "chinstrap/src/ops/Logging.h"
 #include "chinstrap/src/rendering/VulkanFunctions.h"
 #include "chinstrap/src/resourcer/ResourceRef.h"
+#include "chinstrap/src/Application.h"
 
 #include <vk_mem_alloc.h>
 

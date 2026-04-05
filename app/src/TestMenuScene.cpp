@@ -1,8 +1,9 @@
 #include "TestMenuScene.h"
 
-#include "chinstrap/src/ops/Logging.h"
-
 #include "TestGLScene.h"
+
+#include "chinstrap/src/ops/Logging.h"
+#include "chinstrap/src/Application.h"
 
 #include "GLFW/glfw3.h"
 

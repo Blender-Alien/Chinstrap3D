@@ -1,4 +1,5 @@
 #pragma once
+#include "../ops/Logging.h"
 
 namespace Chinstrap::Memory
 {
@@ -15,7 +16,7 @@ namespace Chinstrap::Memory
 
         void Hash(const std::string_view& virtualFilePath)
         {
-            assert(!hashID.has_value());
+            ENSURE_OR_RETURN((!hashID.has_value()));
             hashID.emplace(std::hash<std::string_view>()(virtualFilePath));
         }
     private:

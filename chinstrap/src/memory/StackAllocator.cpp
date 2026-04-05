@@ -7,7 +7,7 @@ using namespace Chinstrap::Memory;
 void StackAllocator::Setup(const uint32_t stackSizeInBytes_arg)
 {
     basePointer = static_cast<std::byte*>(malloc(stackSizeInBytes_arg));
-    assert(basePointer != nullptr);
+    ENSURE_OR_RETURN_MSG((basePointer != nullptr), "StackAllocator failed to setup!");
     this->stackPointer = basePointer;
     this->topPointer = basePointer;
 
@@ -33,14 +33,19 @@ StackAllocator::~StackAllocator()
     assert(basePointer == nullptr);
 }
 
-std::byte* StackAllocator::DirectAllocate(const uint32_t sizeInBytes_arg)
+std::byte* StackAllocator::DirectAllocate(const uint32_t sizeInBytes_arg, std::size_t alignment_arg)
 {
-    if (topPointer + sizeInBytes_arg > basePointer + stackSizeInBytes)
+    alignment_arg = std::max(static_cast<std::size_t>(8), alignment_arg);
+    auto current = reinterpret_cast<std::uintptr_t>(topPointer);
+    std::uintptr_t aligned = (current + alignment_arg - 1) & ~(alignment_arg - 1);
+    std::size_t padding = aligned - current;
+
+    if (topPointer + padding + sizeInBytes_arg > basePointer + stackSizeInBytes)
     {
         CHIN_LOG_ERROR("Stack allocator out of memory!");
         return nullptr;
     }
-    topPointer += sizeInBytes_arg;
+    topPointer += padding + sizeInBytes_arg;
     stackPointer = topPointer - sizeInBytes_arg;
 
     return stackPointer;

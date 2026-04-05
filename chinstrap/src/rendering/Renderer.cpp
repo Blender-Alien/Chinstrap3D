@@ -6,7 +6,7 @@
 
 uint32_t Chinstrap::Renderer::RenderContext::imageIndex = 0;
 
-void Chinstrap::Renderer::RenderContext::Create(ChinVulkan::VulkanContext* vulkanContext_arg, Display::Window* window_arg,
+bool Chinstrap::Renderer::RenderContext::Create(ChinVulkan::VulkanContext* vulkanContext_arg, Display::Window* window_arg,
             UserSettings::GraphicsSettings* graphicsSettings_arg, const std::vector<std::unique_ptr<Scene>>* sceneStack_arg)
 {
     pVulkanContext = vulkanContext_arg;
@@ -30,12 +30,12 @@ void Chinstrap::Renderer::RenderContext::Create(ChinVulkan::VulkanContext* vulka
         stackAllocator.Setup(allocatorSize);
     }
     { // Allocate on stackAllocator
-        if (aFences.Allocate(pVulkanContext->MAX_FRAMES_IN_FLIGHT) != true) {assert(false);}
-        if (aImageAvailableSemaphores.Allocate(pVulkanContext->swapChainImages.size() + 1) != true) {assert(false);} // We need one extra slot later
-        if (aSubmitDatas.Allocate(sceneStackSize) != true) {assert(false);}
-        if (aSubmitInfos.Allocate(sceneStackSize) != true) {assert(false);}
-        if (aCommandPools.Allocate(sceneStackSize) != true) {assert(false);}
-        if (aaLayerSemaphores.Allocate(pVulkanContext->swapChainImages.size(), sceneStackSize) != true) {assert(false);}
+        ENSURE_OR_RETURN_FALSE(aFences.Allocate(pVulkanContext->MAX_FRAMES_IN_FLIGHT));
+        ENSURE_OR_RETURN_FALSE(aImageAvailableSemaphores.Allocate(pVulkanContext->swapChainImages.size() + 1)); // We need one extra slot later
+        ENSURE_OR_RETURN_FALSE(aSubmitDatas.Allocate(sceneStackSize));
+        ENSURE_OR_RETURN_FALSE(aSubmitInfos.Allocate(sceneStackSize));
+        ENSURE_OR_RETURN_FALSE(aCommandPools.Allocate(sceneStackSize));
+        ENSURE_OR_RETURN_FALSE(aaLayerSemaphores.Allocate(pVulkanContext->swapChainImages.size(), sceneStackSize));
     }
     { // Allocate all semaphore and fences
         VkSemaphoreCreateInfo semaphoreCreateInfo = {};
@@ -45,7 +45,10 @@ void Chinstrap::Renderer::RenderContext::Create(ChinVulkan::VulkanContext* vulka
         {
             if (vkCreateSemaphore(pVulkanContext->virtualGPU, &semaphoreCreateInfo, nullptr, aImageAvailableSemaphores.ptrAt(index))
                 != VK_SUCCESS)
+            {
                 CHIN_LOG_CRITICAL("Failed to create semaphore!");
+                return false;
+            }
         }
 
         VkFenceCreateInfo fenceCreateInfo = {};
@@ -56,7 +59,10 @@ void Chinstrap::Renderer::RenderContext::Create(ChinVulkan::VulkanContext* vulka
         {
             if (vkCreateFence(pVulkanContext->virtualGPU, &fenceCreateInfo, nullptr, aFences.ptrAt(index))
                 != VK_SUCCESS)
+            {
                 CHIN_LOG_CRITICAL("Failed to create fence!");
+                return false;
+            }
         }
 
         for (uint32_t i = 0; i < aaLayerSemaphores.firstOrderCapacity(); ++i)
@@ -66,7 +72,10 @@ void Chinstrap::Renderer::RenderContext::Create(ChinVulkan::VulkanContext* vulka
                 if (vkCreateSemaphore(pVulkanContext->virtualGPU, &semaphoreCreateInfo, nullptr,
                     aaLayerSemaphores.ptrAt(i, j))
                     != VK_SUCCESS)
+                {
                     CHIN_LOG_CRITICAL("Failed to allocate Semaphore!");
+                    return false;
+                }
             }
         }
 
@@ -80,7 +89,7 @@ void Chinstrap::Renderer::RenderContext::Create(ChinVulkan::VulkanContext* vulka
         const uint32_t bufferAllocatorSize = sizeof(VkCommandBuffer[sceneStackSize][pVulkanContext->MAX_FRAMES_IN_FLIGHT]);
         cmdBufferAllocator.Setup(bufferAllocatorSize);
 
-        if (aaCmdBuffers.Allocate(sceneStackSize, pVulkanContext->MAX_FRAMES_IN_FLIGHT) != true) {assert(false);}
+        ENSURE_OR_RETURN_FALSE(aaCmdBuffers.Allocate(sceneStackSize, pVulkanContext->MAX_FRAMES_IN_FLIGHT));
     }
     {
         for (uint32_t i = 0; i < aaCmdBuffers.firstOrderCapacity(); ++i)
@@ -100,6 +109,7 @@ void Chinstrap::Renderer::RenderContext::Create(ChinVulkan::VulkanContext* vulka
             ++index;
         }
     }
+    return true;
 }
 
 bool Chinstrap::Renderer::BeginFrame(const uint32_t currentFrame, RenderContext &renderContext)

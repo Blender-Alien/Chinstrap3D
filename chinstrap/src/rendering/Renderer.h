@@ -22,6 +22,7 @@ namespace Chinstrap::Renderer
 
     struct RenderContext
     {
+        // TODO: This should not be static if we intend on being able to have more than one RenderContext
         static uint32_t imageIndex;
         static uint32_t GetImageIndex() {return imageIndex;}
 
@@ -42,7 +43,7 @@ namespace Chinstrap::Renderer
         UserSettings::GraphicsSettings* pGraphicsSettings = nullptr;
         const std::vector<std::unique_ptr<Scene>>* pSceneStack = nullptr;
 
-        void Create(ChinVulkan::VulkanContext* vulkanContext_arg, Display::Window* window_arg,
+        bool Create(ChinVulkan::VulkanContext* vulkanContext_arg, Display::Window* window_arg,
             UserSettings::GraphicsSettings* graphicsSettings_arg, const std::vector<std::unique_ptr<Scene>>* sceneStack_arg);
         void Destroy();
 

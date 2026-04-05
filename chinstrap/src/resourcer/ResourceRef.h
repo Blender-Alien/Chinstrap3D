@@ -1,4 +1,5 @@
 #pragma once
+#include "../ops/Logging.h"
 
 namespace Chinstrap::Renderer
 {
@@ -35,14 +36,24 @@ namespace Chinstrap::Resourcer
             return getResourcePtr(resourceID, callbackContext);
         }
 
+        ResourceRef (const ResourceRef& other)
+        {
+            resourceType = other.resourceType;
+            *this = other;
+        }
+        ResourceRef(ResourceRef&& other) noexcept
+        {
+            resourceType = other.resourceType;
+            *this = other;
+        }
         ResourceRef& operator=(const ResourceRef& other)
         {
             assert(this->resourceType == other.resourceType);
             if (this != &other)
             {
-                this->resourceID = other.resourceID;
                 if (other.callbackContext != nullptr)
                 { // Very important, we created a new valid Ref!
+                    this->resourceID = other.resourceID;
                     this->callbackContext = other.callbackContext;
                     this->unloadCallback = other.unloadCallback;
                     this->getResourcePtr = other.getResourcePtr;
@@ -51,6 +62,10 @@ namespace Chinstrap::Resourcer
                     this->ptrResourceDeleted = other.ptrResourceDeleted;
 #endif
                     ++(*this->referenceCount);
+                }
+                else
+                {
+                    CHIN_LOG_WARN("Invalid ResourceRef was copied!");
                 }
                 return *this;
             }

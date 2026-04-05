@@ -113,10 +113,7 @@ bool ResourceManager::DeleteResource(const Memory::DevString& virtualFilePath, R
 bool ResourceManager::LoadResource(const Memory::DevString& filePath, Resource* resource, ResourceRef& resourceRef)
 {
     auto virtualFilePath = filePathMap.Lookup(filePath);
-    if (!virtualFilePath.has_value())
-    {
-        return false;
-    }
+    ENSURE_OR_RETURN_FALSE(virtualFilePath.has_value());
 
     std::unique_ptr<char> OSPath = Memory::ConvertToOSPath(virtualFilePath.value());
 
@@ -125,10 +122,7 @@ bool ResourceManager::LoadResource(const Memory::DevString& filePath, Resource* 
     case ResourceType::MATERIAL:
         {
             const auto memory = materialPool.Allocate();
-            if (!Renderer::MaterialLoader(memory, OSPath.get()))
-            {
-                CHIN_LOG_ERROR("Failed to load material: {}", OSPath.get());
-            }
+            ENSURE_OR_RETURN_FALSE_MSG(Renderer::MaterialLoader(memory, OSPath.get()), "Failed to load material: {}", OSPath.get());
             CHIN_LOG_INFO("Successfully loaded material: {}", OSPath.get());
             resource->pResource = reinterpret_cast<std::byte*>(memory);
             break;
@@ -143,10 +137,7 @@ bool ResourceManager::LoadResource(const Memory::DevString& filePath, Resource* 
 
 bool ResourceManager::GetResourceRef(const Memory::DevString& filePath, ResourceRef& resourceRef)
 {
-    if (!filePath.GetHashID().has_value())
-    {
-        return false;
-    }
+    ENSURE_OR_RETURN_FALSE(filePath.GetHashID().has_value());
 
     Resource* resource;
     const auto it = resourceData.find(filePath.GetHashID().value());
@@ -161,10 +152,7 @@ bool ResourceManager::GetResourceRef(const Memory::DevString& filePath, Resource
 
     if (resource->pResource == nullptr)
     {
-        if (!LoadResource(filePath, resource, resourceRef))
-        {
-            return false;
-        }
+        ENSURE_OR_RETURN_FALSE(LoadResource(filePath, resource, resourceRef));
     }
     resourceRef.resourceID = resource->resourceID;
     resourceRef.referenceCount = &resource->referenceCount;
@@ -190,10 +178,7 @@ bool ResourceManager::DeserializeFilePaths(std::vector<Memory::DevString>& mater
     auto OSResourceListPath = Memory::ConvertToOSPath(resourceListPath);
 
     std::ifstream fileStream(OSResourceListPath.get());
-    if (!fileStream.is_open())
-    {
-        return false;
-    }
+    ENSURE_OR_RETURN_FALSE(fileStream.is_open());
 
     std::vector<std::string> paths;
     std::string line;
@@ -216,7 +201,7 @@ bool ResourceManager::DeserializeFilePaths(std::vector<Memory::DevString>& mater
     {
         Memory::DevString filePath;
         auto ret = filePathMap.Insert(filePath, path);
-        assert(ret == Memory::StringMap::InsertRet::SUCCESS);
+        ENSURE_OR_RETURN_FALSE((ret == Memory::StringMap::InsertRet::SUCCESS));
 
         if (path.find(".material"))
         {
@@ -236,21 +221,14 @@ void ResourceManager::DeserializeFilePathsBinary()
 bool ResourceManager::Setup(const std::string& appName)
 {
     std::vector<Memory::DevString> materialPaths;
-    if (!DeserializeFilePaths(materialPaths))
-    {
-        CHIN_LOG_CRITICAL("Failed to deserialize file paths!");
-        return false;
-    }
+    ENSURE_OR_RETURN_FALSE(DeserializeFilePaths(materialPaths));
 
     { // Load Materials
         uint64_t numberOfSerializedResources = std::max(materialPaths.size(), static_cast<std::size_t>(3));
 #ifndef CHIN_SHIPPING_BUILD // Start with headroom so we don't have to resize all the time
         numberOfSerializedResources *= 2;
 #endif
-        if (!materialPool.Setup(numberOfSerializedResources))
-        {
-            return false;
-        }
+        ENSURE_OR_RETURN_FALSE(materialPool.Setup(numberOfSerializedResources));
         for (auto& materialPath : materialPaths)
         {
             resourceData.emplace(std::piecewise_construct,

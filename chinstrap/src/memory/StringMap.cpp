@@ -142,8 +142,7 @@ bool StringMap::GrowBy(const uint32_t byNumberOfElements_arg, std::optional<uint
             continue;
 
         Memory::StackArray<char> newArray(newValueStack);
-        if (!newArray.Allocate(keyIndex.value().charArray.capacity()))
-            return false;
+        ENSURE_OR_RETURN_FALSE(newArray.Allocate(keyIndex.value().charArray.capacity()));
 
         strcpy(newArray.data(), keyIndex.value().charArray.data());
 

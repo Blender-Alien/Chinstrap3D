@@ -4,6 +4,8 @@
 
 #include "chinstrap/src/rendering/VulkanFunctions.h"
 
+#include "chinstrap/src/Application.h"
+
 void Game::TestGUIScene::OnBegin()
 {
     Chinstrap::DevInterface::Initialize();

@@ -35,7 +35,7 @@ namespace Chinstrap::Display
 
         [[nodiscard]] bool ShouldClose() const;
 
-        void Create(const WindowSpec &windowSpec_arg, UserSettings::GraphicsSettings &graphicsSettings_arg, const std::vector<std::unique_ptr<Scene>>& sceneStack_arg);
+        bool Create(const WindowSpec &windowSpec_arg, UserSettings::GraphicsSettings &graphicsSettings_arg, const std::vector<std::unique_ptr<Scene>>& sceneStack_arg);
         void FinishRendering() const;
         void Destroy();
 

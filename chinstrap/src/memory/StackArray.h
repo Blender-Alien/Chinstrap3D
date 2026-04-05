@@ -1,6 +1,7 @@
 #pragma once
 
 #include "StackAllocator.h"
+#include "../ops/Logging.h"
 
 namespace Chinstrap::Memory
 {
@@ -16,7 +17,7 @@ namespace Chinstrap::Memory
         {
             arrayCapacity = arrayCapacity_arg;
 
-            basePointer = stackAllocator.DirectAllocate(sizeof(type) * arrayCapacity);
+            basePointer = stackAllocator.DirectAllocate(sizeof(type) * arrayCapacity, alignof(type));
             if (basePointer == nullptr)
             {
                 return false;
@@ -81,9 +82,8 @@ namespace Chinstrap::Memory
             capacityFirstOrder = capacityFirstOrder_arg;
             capacitySecondOrder = capacitySecondOrder_arg;
 
-            basePointer = stackAllocator.DirectAllocate(capacitySecondOrder * capacityFirstOrder * sizeof(type));
-            if (basePointer == nullptr)
-                return false;
+            basePointer = stackAllocator.DirectAllocate(capacitySecondOrder * capacityFirstOrder * sizeof(type), alignof(type));
+            ENSURE_OR_RETURN_FALSE((basePointer != nullptr));
 
             return true;
         }

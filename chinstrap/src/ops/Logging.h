@@ -43,3 +43,8 @@ inline std::shared_ptr<spdlog::logger> fileLogger;
 #define CHIN_LOG_CRITICAL_VULKAN(x) CHIN_LOG_CRITICAL(std::string("[Vulkan] ") + std::string(x))
 
 #endif
+
+#define ENSURE_OR_RETURN_FALSE(expr) if (!expr) { CHIN_LOG_ERROR("ENSURE failed: {}", #expr); return false; }
+#define ENSURE_OR_RETURN_FALSE_MSG(expr, ...) if (!expr) { CHIN_LOG_ERROR("ENSURE failed: {} ", #expr); CHIN_LOG_ERROR(__VA_ARGS__); return false; }
+#define ENSURE_OR_RETURN(expr) if (!expr) { CHIN_LOG_ERROR("ENSURE failed: {}", #expr); return; }
+#define ENSURE_OR_RETURN_MSG(expr, ...) if (!expr) { CHIN_LOG_ERROR("ENSURE failed: {} ", #expr); CHIN_LOG_ERROR(__VA_ARGS__); return; }

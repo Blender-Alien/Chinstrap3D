@@ -3,6 +3,8 @@
 #include "chinstrap/src/Scene.h"
 #include "chinstrap/src/rendering/RendererData.h"
 
+#include "chinstrap/src/resourcer/ResourceRef.h"
+
 namespace Game
 {
     struct TestGLScene : public Chinstrap::Scene

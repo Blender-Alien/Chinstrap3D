@@ -26,11 +26,7 @@ bool Chinstrap::Renderer::ShaderLoader(VkShaderModule& shaderModule, std::string
 {
     std::ifstream file(OSFilePath.data(), std::ios::binary | std::ios::ate);
 
-    if (!file.is_open())
-    {
-        CHIN_LOG_ERROR("Shader loader failed to open file {}!", OSFilePath);
-        return false;
-    }
+    ENSURE_OR_RETURN_FALSE_MSG(file.is_open(), "Shader loader failed to open file {}!", OSFilePath);
 
     size_t fileSize = file.tellg();
     char buffer[fileSize];
@@ -57,10 +53,7 @@ Chinstrap::Renderer::Material::~Material()
 bool Chinstrap::Renderer::MaterialLoader(Material* dataPtr, std::string_view OSFilePath)
 {
     std::ifstream fileStream(OSFilePath.data());
-    if (!fileStream.is_open())
-    {
-        return false;
-    }
+    ENSURE_OR_RETURN_FALSE(fileStream.is_open());
 
     std::string fieldData[2];
     uint32_t index = 0;
@@ -79,7 +72,6 @@ bool Chinstrap::Renderer::MaterialLoader(Material* dataPtr, std::string_view OSF
     {
         auto positions = Serialization::GetFieldContent(fieldData[0]);
         Application::App::InternString(vertexShaderPath, fieldData[0].substr(std::get<0>(positions), std::get<1>(positions)));
-
     }
     Memory::DevString fragmentShaderPath;
     {
@@ -88,7 +80,7 @@ bool Chinstrap::Renderer::MaterialLoader(Material* dataPtr, std::string_view OSF
     }
 
     auto* material = new(dataPtr) Material(vertexShaderPath, fragmentShaderPath);
-    material->Create(&Application::App::GetVulkanContext());
+    ENSURE_OR_RETURN_FALSE(material->Create(&Application::App::GetVulkanContext()));
     return true;
 }
 
@@ -106,14 +98,8 @@ bool Chinstrap::Renderer::Material::Create(ChinVulkan::VulkanContext* vulkanCont
         return false;
     }
 
-    if (!ShaderLoader(vertexShader, Memory::ConvertToOSPath(vertexPath.value()).get()))
-    {
-        return false;
-    }
-    if (!ShaderLoader(fragmentShader, Memory::ConvertToOSPath(fragmentPath.value()).get()))
-    {
-        return false;
-    }
+    ENSURE_OR_RETURN_FALSE(ShaderLoader(vertexShader, Memory::ConvertToOSPath(vertexPath.value()).get()));
+    ENSURE_OR_RETURN_FALSE(ShaderLoader(fragmentShader, Memory::ConvertToOSPath(fragmentPath.value()).get()));
 
     ExampleCreateMaterial(vertexShader, fragmentShader);
 
@@ -253,7 +239,6 @@ void Chinstrap::Renderer::Material::ExampleCreateMaterial(VkShaderModule vertexS
         != VK_SUCCESS)
     {
         CHIN_LOG_CRITICAL_VULKAN("Failed to create pipeline layout!");
-        assert(false);
     }
 
     VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo = {};
@@ -281,7 +266,6 @@ void Chinstrap::Renderer::Material::ExampleCreateMaterial(VkShaderModule vertexS
         != VK_SUCCESS)
     {
         CHIN_LOG_CRITICAL_VULKAN("Failed to create graphics pipeline!");
-        assert(false);
     }
 
     CHIN_LOG_INFO_VULKAN("Successfully created barebones material");

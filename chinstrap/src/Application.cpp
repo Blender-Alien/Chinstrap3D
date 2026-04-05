@@ -74,27 +74,24 @@ namespace
 
         auto path = "config.chin"; // We expect this in the project root
         std::ifstream fileStream(Memory::ConvertToOSPath(path).get());
-        if (!fileStream.is_open())
-        {
-            return false;
-        }
+        ENSURE_OR_RETURN_FALSE(fileStream.is_open())
 
         std::string line;
         while (std::getline(fileStream, line))
         {
             if (auto index = line.find(" #applicationName"); index != SIZE_MAX)
             {
-                Application::App::config.appName = std::move(line.substr(0, index));
+                Application::App::config.appName = line.substr(0, index);
                 continue;
             }
             if (auto index = line.find(" #loggingPath"); index != SIZE_MAX)
             {
-                Application::App::config.loggingPath = std::move(line.substr(0, index));
+                Application::App::config.loggingPath = line.substr(0, index);
                 continue;
             }
             if (auto index = line.find(" #loggingLevel"); index != SIZE_MAX)
             {
-                const std::string value = std::move(line.substr(0, index));
+                const std::string value = line.substr(0, index);
                 if (value == "warn")
                     spdlog::set_level(spdlog::level::warn);
                 else if (value == "err")
@@ -115,7 +112,7 @@ namespace
             {
                 spdlog::level::level_enum level;
 
-                const std::string value = std::move(line.substr(0, index));
+                const std::string value = line.substr(0, index);
                 if (value == "info")
                     level = spdlog::level::info;
                 else if (value == "warn")
@@ -195,10 +192,7 @@ bool Application::App::Init()
         scene = nullptr;
     }
 
-    if (!glfwInit())
-    {
-        return false;
-    }
+    ENSURE_OR_RETURN_FALSE(glfwInit());
 
     FindProgramPath();
     if (!ParseEngineConfig())
@@ -227,7 +221,12 @@ void Application::App::Run(const Display::WindowSpec &windowSpec)
     assert(!running); // Are we already running? Don't call Run() recursively!
     running = true;
 
-    window.Create(windowSpec, graphicsSettings, sceneStack);
+    if (!window.Create(windowSpec, graphicsSettings, sceneStack))
+    {
+        CHIN_LOG_CRITICAL("Failed to create window!");
+        Cleanup();
+        return;
+    }
     window.eventPassthrough = ForwardEvents;
 
     double timeAtPreviousFrame = glfwGetTime(), timeAtPreviousSecond = glfwGetTime();
@@ -251,24 +250,21 @@ void Application::App::Run(const Display::WindowSpec &windowSpec)
         { /* Update and Render */
             skipFrame = Renderer::BeginFrame(currentFrame, window.renderContext);
 
-            sceneIndex = 0;
-            for (auto &scene : sceneStack)
+            if (!skipFrame)
             {
-                CHIN_PROFILE_TIME(scene->OnUpdate(static_cast<float>((currentTime - timeAtPreviousFrame)*1000)), scene->OnUpdateProfile);
-
-                if (scene->CreateQueued != nullptr) [[unlikely]] // scene has requested change to new scene
+                sceneIndex = 0;
+                for (auto &scene : sceneStack)
                 {
-                    sceneTransitionQueue.at(sceneIndex) = &scene;
-                }
+                    CHIN_PROFILE_TIME(scene->OnUpdate(static_cast<float>((currentTime - timeAtPreviousFrame)*1000)), scene->OnUpdateProfile);
+                    if (scene->CreateQueued != nullptr) [[unlikely]] // scene has requested change to new scene
+                    {
+                        sceneTransitionQueue.at(sceneIndex) = &scene;
+                    }
 
-                if (!skipFrame) [[likely]]
-                {
                     CHIN_PROFILE_TIME(scene->OnRender(currentFrame), scene->OnRenderProfile);
+
+                    ++sceneIndex;
                 }
-                ++sceneIndex;
-            }
-            if (!skipFrame) [[likely]]
-            {
                 Renderer::SubmitDrawData(currentFrame, window.renderContext);
                 Renderer::RenderFrame(currentFrame, window.renderContext);
             }

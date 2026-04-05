@@ -1,4 +1,5 @@
 #pragma once
+#include "../ops/Logging.h"
 
 namespace Chinstrap::Memory
 {
@@ -8,6 +9,8 @@ namespace Chinstrap::Memory
      * creating a linked list. That's why we require that the sizeof(uint32_t) <= sizeof(type).
      * If a free chunk is the last free chunk, it's uint32_t (nextFreeIndex) is equal to its own index.
      */
+
+    // TODO: Let's clean this mess up a bit, we should also call destructors on non-trivial types
 
     // Continuous fixed size array of fixed size members that live in heap memory
     template<typename type>
@@ -36,7 +39,7 @@ namespace Chinstrap::Memory
 
         void Deallocate(type** dataPtr)
         {
-            assert(*dataPtr != nullptr);
+            ENSURE_OR_RETURN((*dataPtr != nullptr));
             auto freedData = reinterpret_cast<std::byte*>(*dataPtr);
 
             if (freePointer == nullptr)
@@ -56,7 +59,7 @@ namespace Chinstrap::Memory
         {
             assert(sizeof(uint32_t) <= sizeof(type)); // We need this in order to store the "next-free-index"
 
-            assert(numberOfElements_arg > 2);
+            assert(numberOfElements_arg > 1); // We should not make a memory pool for only one element
 
             basePointer = static_cast<std::byte*>(malloc(sizeof(type) * numberOfElements_arg));
             if (basePointer == nullptr)

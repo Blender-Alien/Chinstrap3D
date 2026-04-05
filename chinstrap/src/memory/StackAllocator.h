@@ -13,7 +13,7 @@ namespace Chinstrap::Memory
             return stackPointer;
         }
 
-        [[nodiscard]] std::byte* DirectAllocate(uint32_t sizeInBytes_arg);
+        [[nodiscard]] std::byte* DirectAllocate(uint32_t sizeInBytes_arg, std::size_t aligment_arg);
 
         // Roll back the entire stack
         void ClearStack();
@@ -26,10 +26,8 @@ namespace Chinstrap::Memory
         explicit StackAllocator() = default;
         ~StackAllocator();
 
-
-        uint32_t stackSizeInBytes = 0;
+        uint64_t stackSizeInBytes = 0;
     private:
-
         std::byte* basePointer = nullptr;
         std::byte* topPointer = nullptr;
         StackPointer stackPointer = nullptr;

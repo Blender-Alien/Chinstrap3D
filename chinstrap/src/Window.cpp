@@ -25,7 +25,7 @@ bool Chinstrap::Display::Window::ShouldClose() const
     return glfwWindowShouldClose(glfwWindow) != 0;
 }
 
-void Chinstrap::Display::Window::Create(const WindowSpec &windowSpec_arg, UserSettings::GraphicsSettings &graphicsSettings_arg, const std::vector<std::unique_ptr<Scene>>& sceneStack_arg)
+bool Chinstrap::Display::Window::Create(const WindowSpec &windowSpec_arg, UserSettings::GraphicsSettings &graphicsSettings_arg, const std::vector<std::unique_ptr<Scene>>& sceneStack_arg)
 {
     windowSpec = windowSpec_arg;
 
@@ -43,14 +43,10 @@ void Chinstrap::Display::Window::Create(const WindowSpec &windowSpec_arg, UserSe
     if (!glfwWindow)
     {
         CHIN_LOG_CRITICAL("GLFW window creation failed!");
-        assert(false);
+        return false;
     }
 
-    if (!ChinVulkan::Initialize(vulkanContext, glfwWindow, graphicsSettings_arg, windowSpec.title))
-    {
-        CHIN_LOG_CRITICAL("Vulkan initialization failed!");
-        assert(false);
-    }
+    ENSURE_OR_RETURN_FALSE(ChinVulkan::Initialize(vulkanContext, glfwWindow, graphicsSettings_arg, windowSpec.title));
 
     glfwMakeContextCurrent(glfwWindow);
 
@@ -104,8 +100,7 @@ void Chinstrap::Display::Window::Create(const WindowSpec &windowSpec_arg, UserSe
                 window.eventPassthrough(event);
                 break;
             }
-            default:
-                assert(false);
+            default: ;
         }
     });
     glfwSetMouseButtonCallback(glfwWindow, [](GLFWwindow* handle, int button, int action, int mods)
@@ -132,8 +127,7 @@ void Chinstrap::Display::Window::Create(const WindowSpec &windowSpec_arg, UserSe
                 window.eventPassthrough(event);
                 break;
             }
-        default:
-            assert(false);
+        default: ;
         }
     });
     glfwSetCursorPosCallback(glfwWindow,[](GLFWwindow* handle, double moveX, double moveY)
@@ -158,7 +152,8 @@ void Chinstrap::Display::Window::Create(const WindowSpec &windowSpec_arg, UserSe
         window.eventPassthrough(event);
     });
 
-    renderContext.Create(&vulkanContext, this, &graphicsSettings_arg, &sceneStack_arg);
+    ENSURE_OR_RETURN_FALSE(renderContext.Create(&vulkanContext, this, &graphicsSettings_arg, &sceneStack_arg));
+    return true;
 }
 
 void Chinstrap::Display::Window::FinishRendering() const
