@@ -74,7 +74,7 @@ private:
             return hashID < key_arg.hashID;
         }
 
-        explicit Key(DevString::HashIDType hashID_arg, Memory::StackAllocator& allocator_arg)
+        explicit Key(DevString::HashIDType hashID_arg, Memory::StackAllocator* allocator_arg)
             : hashID(hashID_arg), charArray(allocator_arg) {}
     };
 

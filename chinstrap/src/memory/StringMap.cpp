@@ -53,7 +53,7 @@ StringMap::InsertRet StringMap::Insert(DevString& string_arg, const std::string_
     {
         if (!keyIndex.has_value())
         {
-            keyIndex.emplace(argHashID, valueStack);
+            keyIndex.emplace(argHashID, &valueStack);
 
             if (keyIndex.value().charArray.Allocate(inputString_arg.size() + 1) // + 1 for '\0'
                 != true)
@@ -126,14 +126,14 @@ bool StringMap::GrowBy(const uint32_t byNumberOfElements_arg, std::optional<uint
     StackAllocator newValueStack;
     if (avgStringLengthHint_arg.has_value())
     {
-        const uint64_t growSize = valueStack.stackSizeInBytes + (sizeof(char[avgStringLengthHint_arg.value()]) * byNumberOfElements_arg);
-        assert(growSize + valueStack.stackSizeInBytes);
+        const uint64_t growSize = valueStack.GetStackSizeInBytes() + (sizeof(char[avgStringLengthHint_arg.value()]) * byNumberOfElements_arg);
+        assert(growSize + valueStack.GetStackSizeInBytes());
         newValueStack.Setup(growSize);
     }
     else
     {
-        const uint32_t previousElementValueSize = valueStack.stackSizeInBytes / (keyArray.capacity() - byNumberOfElements_arg);
-        newValueStack.Setup(valueStack.stackSizeInBytes + (byNumberOfElements_arg * previousElementValueSize));
+        const uint32_t previousElementValueSize = valueStack.GetStackSizeInBytes() / (keyArray.capacity() - byNumberOfElements_arg);
+        newValueStack.Setup(valueStack.GetStackSizeInBytes() + (byNumberOfElements_arg * previousElementValueSize));
     }
 
     for (auto& keyIndex : keyArray)
@@ -141,7 +141,7 @@ bool StringMap::GrowBy(const uint32_t byNumberOfElements_arg, std::optional<uint
         if (!keyIndex.has_value())
             continue;
 
-        Memory::StackArray<char> newArray(newValueStack);
+        Memory::StackArray<char> newArray(&newValueStack);
         ENSURE_OR_RETURN_FALSE(newArray.Allocate(keyIndex.value().charArray.capacity()));
 
         strcpy(newArray.data(), keyIndex.value().charArray.data());
@@ -150,7 +150,7 @@ bool StringMap::GrowBy(const uint32_t byNumberOfElements_arg, std::optional<uint
     }
 
     valueStack = newValueStack;
-    newValueStack.AfterCopyCleanup();
+    newValueStack.CleanupKeepData();
 
     return true;
 }
@@ -268,7 +268,7 @@ void StringMap::Setup(uint32_t numberOfElements, uint32_t totalValuesSize)
     keyArray.resize(numberOfElements);
     keyArrayHasValueSize = 0;
 
-    valueStack.Setup(numberOfElements * sizeof(char[totalValuesSize]));
+    valueStack.Setup(numberOfElements * CHIN_STACK_ARRAY_MEM_SIZE(char[totalValuesSize]));
 }
 
 void StringMap::Cleanup()

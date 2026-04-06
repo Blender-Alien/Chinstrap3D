@@ -12,9 +12,9 @@ void TestStackArray2D()
     constexpr uint32_t sizeSecondOrder = 2;
 
     StackAllocator allocator2;
-    allocator2.Setup(sizeof(TestStruct[sizeFirstOrder][sizeSecondOrder]));
+    allocator2.Setup(CHIN_STACK_ARRAY_MEM_SIZE(TestStruct[sizeFirstOrder][sizeSecondOrder]));
 
-    StackArray2D<TestStruct> structArray(allocator2);
+    StackArray2D<TestStruct> structArray(&allocator2);
 
     assert(structArray.Allocate(sizeFirstOrder, sizeSecondOrder));
 
@@ -50,9 +50,9 @@ void TestStackArray()
 
     constexpr uint32_t size = 2;
 
-    allocator1.Setup(sizeof(TestStruct[size]));
+    allocator1.Setup(CHIN_STACK_ARRAY_MEM_SIZE(TestStruct[size]));
 
-    StackArray<TestStruct> structArray(allocator1);
+    StackArray<TestStruct> structArray(&allocator1);
 
     assert(structArray.Allocate(size));
 

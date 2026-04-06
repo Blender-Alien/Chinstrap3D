@@ -19,13 +19,13 @@ bool Chinstrap::Renderer::RenderContext::Create(ChinVulkan::VulkanContext* vulka
     {
         uint32_t allocatorSize = 0;
         { // We need all of these per scene
-            allocatorSize += sizeof( ChinVulkan::SubmitData[sceneStackSize] );
-            allocatorSize += sizeof( VkSubmitInfo[sceneStackSize] );
-            allocatorSize += sizeof( VkCommandPool[sceneStackSize] );
-            allocatorSize += sizeof( VkSemaphore[pVulkanContext->swapChainImages.size()][sceneStackSize] );
+            allocatorSize += CHIN_STACK_ARRAY_MEM_SIZE( ChinVulkan::SubmitData[sceneStackSize] );
+            allocatorSize += CHIN_STACK_ARRAY_MEM_SIZE( VkSubmitInfo[sceneStackSize] );
+            allocatorSize += CHIN_STACK_ARRAY_MEM_SIZE( VkCommandPool[sceneStackSize] );
+            allocatorSize += CHIN_STACK_ARRAY_MEM_SIZE( VkSemaphore[pVulkanContext->swapChainImages.size()][sceneStackSize] );
         }
-        allocatorSize += sizeof( VkFence[pVulkanContext->MAX_FRAMES_IN_FLIGHT] );
-        allocatorSize += sizeof( VkSemaphore[pVulkanContext->swapChainImages.size() + 1] ); // We need one extra slot later
+        allocatorSize += CHIN_STACK_ARRAY_MEM_SIZE( VkFence[pVulkanContext->MAX_FRAMES_IN_FLIGHT] );
+        allocatorSize += CHIN_STACK_ARRAY_MEM_SIZE( VkSemaphore[pVulkanContext->swapChainImages.size() + 1] ); // We need one extra slot later
 
         stackAllocator.Setup(allocatorSize);
     }
@@ -86,7 +86,7 @@ bool Chinstrap::Renderer::RenderContext::Create(ChinVulkan::VulkanContext* vulka
     }
     { // Allocate Command Buffers
         // We only support one command buffer per scene for now, but every scene must have as many command buffers as we can have frames in flight
-        const uint32_t bufferAllocatorSize = sizeof(VkCommandBuffer[sceneStackSize][pVulkanContext->MAX_FRAMES_IN_FLIGHT]);
+        const uint32_t bufferAllocatorSize = CHIN_STACK_ARRAY_MEM_SIZE(VkCommandBuffer[sceneStackSize][pVulkanContext->MAX_FRAMES_IN_FLIGHT]);
         cmdBufferAllocator.Setup(bufferAllocatorSize);
 
         ENSURE_OR_RETURN_FALSE(aaCmdBuffers.Allocate(sceneStackSize, pVulkanContext->MAX_FRAMES_IN_FLIGHT));
