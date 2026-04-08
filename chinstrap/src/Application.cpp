@@ -52,7 +52,7 @@ namespace
         constexpr char slash = '/';
 #elif _WIN64
         char result[MAX_PATH];
-        programPath = new std::string(result, GetModuleFileName(NULL, result, MAX_PATH));
+        Application::App::config.programPath = new std::string(result, GetModuleFileName(NULL, result, MAX_PATH));
         constexpr char slash = '\\';
 #endif
         std::vector<std::size_t> slashPositions;

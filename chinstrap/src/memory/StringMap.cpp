@@ -126,14 +126,14 @@ bool StringMap::GrowBy(const uint32_t byNumberOfElements_arg, std::optional<uint
     StackAllocator newValueStack;
     if (avgStringLengthHint_arg.has_value())
     {
-        const uint64_t growSize = valueStack.GetStackSizeInBytes() + (sizeof(char[avgStringLengthHint_arg.value()]) * byNumberOfElements_arg);
-        assert(growSize + valueStack.GetStackSizeInBytes());
+        const uint64_t growSize = valueStack.stackSizeInBytes + (sizeof(char[avgStringLengthHint_arg.value()]) * byNumberOfElements_arg);
+        assert(growSize + valueStack.stackSizeInBytes);
         newValueStack.Setup(growSize);
     }
     else
     {
-        const uint32_t previousElementValueSize = valueStack.GetStackSizeInBytes() / (keyArray.capacity() - byNumberOfElements_arg);
-        newValueStack.Setup(valueStack.GetStackSizeInBytes() + (byNumberOfElements_arg * previousElementValueSize));
+        const uint32_t previousElementValueSize = valueStack.stackSizeInBytes / (keyArray.capacity() - byNumberOfElements_arg);
+        newValueStack.Setup(valueStack.stackSizeInBytes + (byNumberOfElements_arg * previousElementValueSize));
     }
 
     for (auto& keyIndex : keyArray)
