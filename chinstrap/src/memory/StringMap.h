@@ -32,6 +32,7 @@ struct Chinstrap::Memory::StringMap
     [[nodiscard]] InsertRet Insert(DevString& string_arg, const std::string_view& inputString_arg);
 
     /**
+     * TODO: This is not thread safe!
      * @return
      * Get CURRENT address of associated string, immediately use after acquiring and then discard
      * NEVER save this for later use, it can be invalidated!!!

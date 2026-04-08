@@ -257,12 +257,7 @@ void StringMap::InsertionSortKeyArray()
 
 void StringMap::Setup(uint32_t numberOfElements, uint32_t totalValuesSize)
 {
-    if (setupStatus != SetupStatus::NOT_BEGUN)
-    {
-        CHIN_LOG_WARN("A FilePathMap was ordered to Setup(), but it already was or was in the process!");
-        assert(false); // We have already setup!
-        return;
-    }
+    ENSURE_OR_RETURN((setupStatus != SetupStatus::NOT_BEGUN));
     setupStatus = SetupStatus::IN_SETUP;
 
     keyArray.resize(numberOfElements);

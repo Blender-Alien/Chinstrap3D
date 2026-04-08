@@ -1,9 +1,9 @@
 #include "MemoryTest.h"
 
+#include "chinstrap/src/memory/CompHashMap.h"
 #include "chinstrap/src/memory/MemoryPool.h"
 #include "chinstrap/src/memory/StackArray.h"
 #include "chinstrap/src/memory/StackAllocator.h"
-#include "chinstrap/src/memory/MemoryPool.h"
 
 void TestStackArray2D()
 {
@@ -119,4 +119,35 @@ void TestMemoryPool()
     assert(memoryPool.Allocate() == nullptr);
 
     memoryPool.Cleanup();
+}
+
+struct MyKey
+{
+    uint64_t whatever;
+};
+template <>
+struct std::hash<MyKey>
+{
+    std::size_t operator()(const MyKey& p) const noexcept
+    {
+        return std::hash<uint64_t>()(p.whatever);
+    }
+};
+void TestCompHashMap()
+{
+    using namespace Chinstrap::Memory;
+
+    CompHashMap<MyKey, TestStruct> hashMap;
+    hashMap.Setup(2);
+    hashMap.EndSetup();
+
+    const MyKey key = {1};
+    const auto myStruct = TestStruct();
+
+    auto ret = hashMap.Insert(key, myStruct);
+    assert(ret == HashInsertRet::SUCCESS);
+
+    assert(hashMap.Lookup(key).value()->hello == myStruct.hello);
+
+    hashMap.Cleanup();
 }
