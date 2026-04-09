@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../memory/StringMap.h"
+#include "../memory/CompHashMap.h"
 #include "../memory/MemoryPool.h"
 
 #include "ResourceRef.h"
@@ -79,7 +80,7 @@ struct Chinstrap::Resourcer::ResourceManager
     // This will load the resource if it's not already
     bool GetResourceRef(const Memory::DevString& filePath, ResourceRef& resourceRef);
 
-    bool Setup(const std::string& appName);
+    bool Setup();
     void Cleanup();
 
     explicit ResourceManager() = default;
@@ -100,10 +101,9 @@ public: /* Manage virtual file paths */
 
     Memory::StringMap filePathMap;
 
-    // TODO: This should also be a custom HashMap
     // We want to serialize all resources contained at Save time by looking up their string values
-    // by their hashID. We then write these virtual file paths in human readable or binary.
-    std::unordered_map<Memory::DevString::HashIDType, Resource> resourceData;
+    // by their hashID. We then write these virtual file paths in human-readable or binary.
+    Memory::CompHashMap<Memory::DevString::HashIDType, Resource> resourceData;
 
 public: /* Actually store resource data at runtime */
     Memory::MemoryPool<Renderer::Material> materialPool;

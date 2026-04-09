@@ -210,7 +210,7 @@ bool Application::App::Init()
     devStrings.Setup(16, 256);
     devStrings.EndSetup();
 
-    resourceManager.Setup(config.appName);
+    resourceManager.Setup();
 
     return true;
 }

@@ -44,7 +44,7 @@ struct Chinstrap::Memory::StringMap
      * @param avgStringLengthHint_arg How much more space should be allocated per new element?
      * If left empty, the average of previous value sizes will be used.
      */
-    bool GrowBy(uint32_t byNumberOfElements_arg, std::optional<uint32_t> avgStringLengthHint_arg);
+    void GrowBy(uint32_t byNumberOfElements_arg, std::optional<uint32_t> avgStringLengthHint_arg);
 
     [[nodiscard]] std::optional<std::string_view> Iterate(uint32_t index) const;
 

@@ -35,6 +35,10 @@ namespace Chinstrap::Memory
             free(basePointer);
             basePointer = nullptr;
         }
+        void CleanupKeepData()
+        {
+            basePointer = nullptr;
+        }
 
         explicit MemoryPool() = default;
         ~MemoryPool()

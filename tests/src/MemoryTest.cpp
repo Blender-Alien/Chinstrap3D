@@ -139,15 +139,26 @@ void TestCompHashMap()
 
     CompHashMap<MyKey, TestStruct> hashMap;
     hashMap.Setup(2);
-    hashMap.EndSetup();
 
     const MyKey key = {1};
-    const auto myStruct = TestStruct();
+    auto myStruct = TestStruct();
+    auto myStruct2 = TestStruct();
+    myStruct2.number = 12.5f;
+    MyKey key2 = {2};
+    {
+        auto ret = hashMap.Insert(key2, myStruct2);
+        assert(ret == HashInsertRet::SUCCESS);
+    }
+    myStruct.number = 10.0f;
+    {
+        auto ret = hashMap.Insert(key, myStruct);
+        assert(ret == HashInsertRet::SUCCESS);
+    }
 
-    auto ret = hashMap.Insert(key, myStruct);
-    assert(ret == HashInsertRet::SUCCESS);
+    hashMap.EndSetup();
 
-    assert(hashMap.Lookup(key).value()->hello == myStruct.hello);
+    assert(hashMap.Lookup(key2).value()->number == myStruct2.number);
+    assert(hashMap.Lookup(key).value()->number == myStruct.number);
 
     hashMap.Cleanup();
 }

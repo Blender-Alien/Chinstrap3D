@@ -117,7 +117,7 @@ StringMap::InsertRet StringMap::Insert(DevString& string_arg, const std::string_
     return std::nullopt;
 }
 
-bool StringMap::GrowBy(const uint32_t byNumberOfElements_arg, std::optional<uint32_t> avgStringLengthHint_arg)
+void StringMap::GrowBy(const uint32_t byNumberOfElements_arg, std::optional<uint32_t> avgStringLengthHint_arg)
 {
     assert(byNumberOfElements_arg != 0);
 
@@ -142,7 +142,7 @@ bool StringMap::GrowBy(const uint32_t byNumberOfElements_arg, std::optional<uint
             continue;
 
         Memory::StackArray<char> newArray(&newValueStack);
-        ENSURE_OR_RETURN_FALSE(newArray.Allocate(keyIndex.value().charArray.capacity()));
+        ENSURE_OR_RETURN(newArray.Allocate(keyIndex.value().charArray.capacity()));
 
         strcpy(newArray.data(), keyIndex.value().charArray.data());
 
@@ -151,8 +151,6 @@ bool StringMap::GrowBy(const uint32_t byNumberOfElements_arg, std::optional<uint
 
     valueStack = newValueStack;
     newValueStack.CleanupKeepData();
-
-    return true;
 }
 
 std::optional<std::string_view> StringMap::Iterate(uint32_t index) const
@@ -257,7 +255,7 @@ void StringMap::InsertionSortKeyArray()
 
 void StringMap::Setup(uint32_t numberOfElements, uint32_t totalValuesSize)
 {
-    ENSURE_OR_RETURN((setupStatus != SetupStatus::NOT_BEGUN));
+    ENSURE_OR_RETURN((setupStatus == SetupStatus::NOT_BEGUN));
     setupStatus = SetupStatus::IN_SETUP;
 
     keyArray.resize(numberOfElements);
