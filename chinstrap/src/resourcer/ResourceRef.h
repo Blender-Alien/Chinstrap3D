@@ -102,7 +102,7 @@ namespace Chinstrap::Resourcer
         bool* ptrResourceDeleted = nullptr;
 #endif
         void (*unloadCallback)(ResourceID resourceId, ResourceType resourceType, ResourceManager* callbackContext) = nullptr;
-        std::byte* (*getResourcePtr)(ResourceID resourceID, ResourceManager* callbackContext) = nullptr;
+        std::byte* (*getResourcePtr)(ResourceID resourceID, const ResourceManager* callbackContext) = nullptr;
         ResourceManager* callbackContext = nullptr;
     };
 }

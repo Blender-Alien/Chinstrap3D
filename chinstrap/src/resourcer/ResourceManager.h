@@ -64,7 +64,7 @@ namespace Chinstrap::Resourcer
     void UnloadResource(ResourceID resourceID, ResourceType resourceType, ResourceManager* callbackContext);
 
     // This function is automatically called by ResourceRef
-    std::byte* GetCurrentResourcePtr(ResourceID resourceID, ResourceManager* callbackContext);
+    std::byte* GetCurrentResourcePtr(ResourceID resourceID, const ResourceManager* callbackContext);
 }
 
 struct Chinstrap::Resourcer::ResourceManager
@@ -95,7 +95,7 @@ private:
     bool DeserializeFilePaths(std::vector<Memory::DevString>& materialPaths);
     void DeserializeFilePathsBinary();
 
-    bool LoadResource(const Memory::DevString& filePath, Resource* resource, ResourceRef& resourceRef);
+    bool LoadResource(const Memory::DevString& filePath, Resource* resource, const ResourceRef& resourceRef);
 
 public: /* Manage virtual file paths */
 

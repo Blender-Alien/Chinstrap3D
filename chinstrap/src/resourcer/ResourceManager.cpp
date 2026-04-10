@@ -29,7 +29,7 @@ void Chinstrap::Resourcer::UnloadResource(const ResourceID resourceID, const Res
     resource->pResource = nullptr;
 }
 
-std::byte* Chinstrap::Resourcer::GetCurrentResourcePtr(const ResourceID resourceID, ResourceManager* callbackContext)
+std::byte* Chinstrap::Resourcer::GetCurrentResourcePtr(const ResourceID resourceID, const ResourceManager* callbackContext)
 {
     const auto opt = callbackContext->resourceData.Lookup(resourceID);
     if (!opt.has_value())
@@ -110,7 +110,7 @@ bool ResourceManager::DeleteResource(const Memory::DevString& virtualFilePath, R
 }
 #endif
 
-bool ResourceManager::LoadResource(const Memory::DevString& filePath, Resource* resource, ResourceRef& resourceRef)
+bool ResourceManager::LoadResource(const Memory::DevString& filePath, Resource* resource, const ResourceRef& resourceRef)
 {
     auto virtualFilePath = filePathMap.Lookup(filePath);
     ENSURE_OR_RETURN_FALSE(virtualFilePath.has_value());
